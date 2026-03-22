@@ -1,0 +1,51 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-teal-0: #F4F9F7;
+	--color-teal-1: #EEF5F2;
+	--color-teal-2: #E6EEEC;
+	--color-teal-3: #DAE6E2;
+	--color-teal-4: #C8DDD7;
+	--color-teal-5: #B4CECA;
+	--color-teal-6: #7AADA6;
+	--color-steel-0: #EAF2F9;
+	--color-steel-1: #C2DCF0;
+	--color-steel-2: #8BBADE;
+	--color-steel-3: #3578B0;
+	--color-steel-4: #265A87;
+	--color-steel-5: #173650;
+	--color-steel-6: #0D2033;
+	--color-bg-page: #E6EEEC;
+	--color-bg-card: #FAFCFB;
+	--color-bg-dark: #0D2033;
+	--color-bg-dark-card: #122840;
+	--font-family-outfit: 'Outfit', 'Helvetica Neue', sans-serif;
+}
+
+@layer base {
+	body {
+		font-family: var(--font-family-outfit);
+		background-color: var(--color-bg-page);
+		color: var(--color-steel-6);
+	}
+}
+
+@keyframes fade-up {
+	from { opacity: 0; transform: translateY(20px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+	0% { background-position: -200% 0; }
+	100% { background-position: 200% 0; }
+}
+
+.animate-fade-up {
+	animation: fade-up 0.65s ease-out forwards;
+}
+
+.animate-shimmer {
+	background: linear-gradient(90deg, transparent 0%, rgba(53,120,176,0.08) 50%, transparent 100%);
+	background-size: 200% 100%;
+	animation: shimmer 2s infinite;
+}
