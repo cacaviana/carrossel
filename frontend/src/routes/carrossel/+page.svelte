@@ -20,6 +20,14 @@
 	function prevSlide() { slideAtual.update((n) => Math.max(0, n - 1)); }
 	function nextSlide() { slideAtual.update((n) => Math.min(totalSlides - 1, n + 1)); }
 
+	// Touch swipe
+	let touchStartX = 0;
+	function handleTouchStart(e: TouchEvent) { touchStartX = e.touches[0].clientX; }
+	function handleTouchEnd(e: TouchEvent) {
+		const diff = touchStartX - e.changedTouches[0].clientX;
+		if (Math.abs(diff) > 50) { diff > 0 ? nextSlide() : prevSlide(); }
+	}
+
 	async function copiarLegenda() {
 		if (!$carrosselAtual?.legenda_linkedin) return;
 		await navigator.clipboard.writeText($carrosselAtual.legenda_linkedin);
@@ -208,32 +216,32 @@
 {:else}
 	<div class="animate-fade-up">
 		<!-- Header -->
-		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-			<div>
-				<h2 class="text-xl sm:text-2xl font-semibold text-steel-6">{$carrosselAtual.title}</h2>
-				<p class="text-sm text-steel-4 font-light">{$carrosselAtual.disciplina} — {$carrosselAtual.tecnologia_principal}</p>
+		<div class="mb-6">
+			<div class="mb-4">
+				<h2 class="text-lg sm:text-2xl font-semibold text-steel-6 leading-tight">{$carrosselAtual.title}</h2>
+				<p class="text-xs sm:text-sm text-steel-4 font-light mt-1">{$carrosselAtual.disciplina} — {$carrosselAtual.tecnologia_principal}</p>
 			</div>
-			<div class="flex flex-wrap gap-2">
+			<div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
 				<button
 					onclick={() => modoEdicao = !modoEdicao}
-					class="px-5 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer
+					class="py-2.5 px-4 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer active:scale-[0.97]
 						{modoEdicao ? 'bg-steel-6 text-white' : 'border border-steel-3/30 text-steel-3 hover:bg-steel-0'}"
 				>
-					{modoEdicao ? 'Visualizar' : 'Editar slides'}
+					{modoEdicao ? 'Visualizar' : 'Editar'}
 				</button>
 				<button onclick={gerarImagens} disabled={$gerandoImagens}
-					class="px-5 py-2.5 rounded-full text-sm font-medium text-white cursor-pointer
+					class="py-2.5 px-4 rounded-full text-xs sm:text-sm font-medium text-white cursor-pointer
 						bg-gradient-to-r from-steel-4 via-steel-3 to-steel-2
-						hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-					{$gerandoImagens ? 'Gerando...' : 'Gerar Imagens'}
+						hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]">
+					{$gerandoImagens ? 'Gerando...' : 'Imagens'}
 				</button>
 				<button onclick={exportarPDF}
-					class="px-5 py-2.5 rounded-full text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer">
-					Exportar PDF
+					class="py-2.5 px-4 rounded-full text-xs sm:text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer active:scale-[0.97]">
+					PDF
 				</button>
 				<button onclick={salvarNoDrive} disabled={salvandoDrive}
-					class="px-5 py-2.5 rounded-full text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-					{salvandoDrive ? 'Salvando...' : 'Salvar no Drive'}
+					class="py-2.5 px-4 rounded-full text-xs sm:text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]">
+					{salvandoDrive ? 'Salvando...' : 'Drive'}
 				</button>
 			</div>
 		</div>
@@ -358,10 +366,15 @@
 
 		<!-- MODO PREVIEW -->
 		{:else}
-			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 				<div class="lg:col-span-2">
-					<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-6">
-						<div class="aspect-[4/5] bg-steel-6 rounded-xl overflow-hidden flex items-center justify-center mb-4">
+					<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-3 sm:p-6">
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div
+							class="aspect-[4/5] bg-steel-6 rounded-xl overflow-hidden flex items-center justify-center mb-3 sm:mb-4"
+							ontouchstart={handleTouchStart}
+							ontouchend={handleTouchEnd}
+						>
 							{#if slideData?.imageBase64}
 								<img src={slideData.imageBase64} alt="Slide {$slideAtual + 1}" class="w-full h-full object-contain" />
 							{:else}

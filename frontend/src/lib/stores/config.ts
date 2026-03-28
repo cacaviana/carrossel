@@ -8,7 +8,16 @@ export interface AppConfig {
 
 function getDefaultBackendUrl(): string {
 	if (typeof window === 'undefined') return 'http://localhost:8000';
-	return `${window.location.protocol}//${window.location.hostname}:8000`;
+	const hostname = window.location.hostname;
+	if (hostname.includes('azurewebsites.net')) {
+		return 'https://app-carrossel-backend.azurewebsites.net';
+	}
+	return `${window.location.protocol}//${hostname}:8000`;
+}
+
+export function isProduction(): boolean {
+	if (typeof window === 'undefined') return false;
+	return window.location.hostname.includes('azurewebsites.net');
 }
 
 const defaultConfig: AppConfig = {

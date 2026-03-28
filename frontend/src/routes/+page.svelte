@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { disciplinas } from '$lib/data/disciplinas';
-	import { config } from '$lib/stores/config';
+	import { config, isProduction } from '$lib/stores/config';
 	import { carrosselAtual, gerandoConteudo } from '$lib/stores/carrossel';
 	import { goto } from '$app/navigation';
+
+	const isProd = isProduction();
 
 	let modo = $state<'disciplina' | 'texto'>('disciplina');
 	let disciplinaSelecionada = $state('');
@@ -100,25 +102,25 @@
 	</div>
 
 	<!-- Quantidade de slides -->
-	<div class="flex items-center gap-3 mb-6">
+	<div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
 		<span class="text-sm font-medium text-steel-5">Slides:</span>
 		{#each [3, 7, 10] as count}
 			<button
 				onclick={() => totalSlides = count as 3 | 7 | 10}
-				class="w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer
+				class="w-11 h-11 sm:w-10 sm:h-10 rounded-full text-sm font-bold transition-all cursor-pointer active:scale-95
 					{totalSlides === count ? 'bg-steel-6 text-white shadow' : 'bg-bg-card text-steel-4 border border-teal-4/30 hover:border-steel-3/40'}"
 			>
 				{count}
 			</button>
 		{/each}
 		<span class="text-xs text-steel-4 font-light">
-			{totalSlides === 3 ? 'Micro — rápido e direto' : totalSlides === 7 ? 'Compacto — bom equilíbrio' : 'Completo — máximo impacto'}
+			{totalSlides === 3 ? 'Micro' : totalSlides === 7 ? 'Compacto' : 'Completo'}
 		</span>
 	</div>
 
 	<!-- Modo: Por disciplina -->
 	{#if modo === 'disciplina'}
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+		<div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-8">
 			{#each disciplinas as disc}
 				<button
 					onclick={() => { disciplinaSelecionada = disc.id; techSelecionada = ''; }}
@@ -142,8 +144,8 @@
 		</div>
 
 		{#if disciplinaAtual}
-			<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-6 animate-fade-up">
-				<h3 class="font-semibold text-steel-6 mb-4">{disciplinaAtual.id} — {disciplinaAtual.nome}</h3>
+			<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4 sm:p-6 animate-fade-up">
+				<h3 class="font-semibold text-steel-6 mb-4 text-sm sm:text-base">{disciplinaAtual.id} — {disciplinaAtual.nome}</h3>
 
 				<div class="mb-4">
 					<label class="block text-sm font-medium text-steel-5 mb-2">Tecnologia</label>
@@ -170,28 +172,32 @@
 
 				{#if erro}<div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{erro}</div>{/if}
 
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-					<button onclick={() => gerarConteudo(true)} disabled={$gerandoConteudo || !podeContinuar}
-						class="py-3 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
-							bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4
-							hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-						{#if $gerandoConteudo && modoCli}
-							<span class="inline-flex items-center gap-2">
-								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-								Gerando com Claude Code...
-							</span>
-						{:else}Claude Code (grátis){/if}
-					</button>
+				<div class="flex flex-col gap-3">
+					{#if !isProd}
+						<button onclick={() => gerarConteudo(true)} disabled={$gerandoConteudo || !podeContinuar}
+							class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
+								bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4
+								hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
+								active:scale-[0.98]">
+							{#if $gerandoConteudo && modoCli}
+								<span class="inline-flex items-center gap-2">
+									<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+									Gerando com Claude Code...
+								</span>
+							{:else}Claude Code (grátis){/if}
+						</button>
+					{/if}
 					<button onclick={() => gerarConteudo(false)} disabled={$gerandoConteudo || !podeContinuar}
-						class="py-3 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
+						class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
 							bg-gradient-to-r from-steel-4 via-steel-3 to-steel-2
-							hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+							hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
+							active:scale-[0.98]">
 						{#if $gerandoConteudo && !modoCli}
 							<span class="inline-flex items-center gap-2">
 								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
 								Gerando com API...
 							</span>
-						{:else}Gerar com API (pago){/if}
+						{:else}Gerar Carrossel{/if}
 					</button>
 				</div>
 			</div>
@@ -199,7 +205,7 @@
 
 	<!-- Modo: Texto livre -->
 	{:else}
-		<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-6 animate-fade-up">
+		<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-5 sm:p-6 animate-fade-up">
 			<h3 class="font-semibold text-steel-6 mb-2">Cole ou escreva seu conteúdo</h3>
 			<p class="text-xs text-steel-4 font-light mb-4">
 				O Claude vai formatar seu texto criando os slides automaticamente.
@@ -207,36 +213,40 @@
 
 			<textarea
 				bind:value={textoLivre}
-				placeholder="Ex: Hoje vou falar sobre como implementei detecção de objetos em tempo real com YOLO v8 e Python. O problema era processar 30fps numa câmera de segurança com hardware limitado..."
-				rows="8"
+				placeholder="Ex: Hoje vou falar sobre como implementei detecção de objetos em tempo real com YOLO v8 e Python..."
+				rows="6"
 				class="w-full px-4 py-3 rounded-xl border border-teal-4/30 bg-white text-steel-6 text-sm
 					focus:border-steel-3 focus:ring-2 focus:ring-steel-3/20 outline-none transition-all resize-y mb-4"
 			></textarea>
 
 			{#if erro}<div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{erro}</div>{/if}
 
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				<button onclick={() => gerarConteudo(true)} disabled={$gerandoConteudo || !podeContinuar}
-					class="py-3 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
-						bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4
-						hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-					{#if $gerandoConteudo && modoCli}
-						<span class="inline-flex items-center gap-2">
-							<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-							Formatando com Claude Code...
-						</span>
-					{:else}Claude Code (grátis){/if}
-				</button>
+			<div class="flex flex-col gap-3">
+				{#if !isProd}
+					<button onclick={() => gerarConteudo(true)} disabled={$gerandoConteudo || !podeContinuar}
+						class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
+							bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4
+							hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
+							active:scale-[0.98]">
+						{#if $gerandoConteudo && modoCli}
+							<span class="inline-flex items-center gap-2">
+								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								Formatando com Claude Code...
+							</span>
+						{:else}Claude Code (grátis){/if}
+					</button>
+				{/if}
 				<button onclick={() => gerarConteudo(false)} disabled={$gerandoConteudo || !podeContinuar}
-					class="py-3 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
+					class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
 						bg-gradient-to-r from-steel-4 via-steel-3 to-steel-2
-						hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+						hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
+						active:scale-[0.98]">
 					{#if $gerandoConteudo && !modoCli}
 						<span class="inline-flex items-center gap-2">
 							<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
 							Formatando com API...
 						</span>
-					{:else}Gerar com API (pago){/if}
+					{:else}Gerar Carrossel{/if}
 				</button>
 			</div>
 		</div>
