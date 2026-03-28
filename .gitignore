@@ -29,3 +29,13 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Generated output
+output/
+
+# Images & binaries
+*.png
+*.jpg
+*.jpeg
+*.b64
+*.tgz
