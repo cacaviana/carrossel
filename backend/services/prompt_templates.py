@@ -60,18 +60,51 @@ def _content_prompt(slide: dict, counter: str, ds: str) -> str:
     title = slide.get("title", "")
     etapa = slide.get("etapa", "")
     bullets = slide.get("bullets", [])
+    metrics = slide.get("metrics", [])
+    table = slide.get("table")
     bullets_text = "\n".join(f"→ {b}" for b in bullets)
-    return (
+
+    base = (
         f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). Card central com fundo (#12121A), "
         f"borda 1px roxa sutil (rgba(167,139,250,0.2)), radius 14px. "
         f"Badge pill roxo no topo do card: '{etapa}'. "
         f"Borda: 1px rgba(167,139,250,0.2), fundo: rgba(167,139,250,0.1), texto roxo (#A78BFA). "
         f"Titulo em branco (#FFFFFF), Outfit Semibold: '{title}'. "
-        f"Bullets em cinza muted (#9896A3), com palavras-chave em roxo (#A78BFA) bold:\n{bullets_text}\n"
+    )
+
+    if table:
+        headers = table.get("headers", [])
+        rows = table.get("rows", [])
+        header_text = " | ".join(headers)
+        rows_text = "\n".join(" | ".join(row) for row in rows)
+        base += (
+            f"TABELA COMPARATIVA no centro do card. "
+            f"Header: fundo roxo escuro (rgba(167,139,250,0.15)), texto roxo (#A78BFA), "
+            f"fonte JetBrains Mono 10px bold. Colunas: {header_text}. "
+            f"Linhas alternadas: fundo (#0D0D18) e (#12121A), texto branco (#FFFFFF), "
+            f"fonte JetBrains Mono 9.5px. Borda fina entre linhas (rgba(167,139,250,0.1)). "
+            f"Dados:\n{rows_text}\n"
+            f"CADA TEXTO na tabela deve ser LEGIVEL. "
+        )
+    elif metrics:
+        metrics_text = " | ".join(f"{m.get('label','')}: {m.get('value','')}" for m in metrics)
+        base += (
+            f"METRICAS DE DESTAQUE em cards individuais horizontais, "
+            f"cada metrica num mini-card (#0D0D18) com borda roxa sutil. "
+            f"Valor em grande (amber #FBBF24, Outfit Semibold 28px). "
+            f"Label abaixo em cinza (#9896A3, 11px). "
+            f"Metricas: {metrics_text}. "
+        )
+
+    if bullets_text:
+        base += f"Bullets em cinza muted (#9896A3), com palavras-chave em roxo (#A78BFA) bold:\n{bullets_text}\n"
+
+    base += (
         f"Rodape: foto circular com borda roxa + 'Carlos Viana' + '{counter}' em cinza (#5A5A66) monospace. "
         f"Hierarquia visual clara. Layout limpo."
     )
+    return base
 
 
 def _code_prompt(slide: dict, counter: str, ds: str) -> str:

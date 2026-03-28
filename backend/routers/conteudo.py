@@ -26,6 +26,7 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
                 tema_custom=req.tema_custom,
                 texto_livre=req.texto_livre,
                 total_slides=req.total_slides,
+                tipo_carrossel=req.tipo_carrossel,
             )
         else:
             result = await gerar_conteudo(
@@ -35,6 +36,7 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
                 tema_custom=req.tema_custom,
                 texto_livre=req.texto_livre,
                 total_slides=req.total_slides,
+                tipo_carrossel=req.tipo_carrossel,
             )
         return result
     except Exception as e:
@@ -50,6 +52,7 @@ async def api_gerar_conteudo_cli(req: GerarConteudoRequest):
             tema_custom=req.tema_custom,
             texto_livre=req.texto_livre,
             total_slides=req.total_slides,
+            tipo_carrossel=req.tipo_carrossel,
         )
         return result
     except Exception as e:

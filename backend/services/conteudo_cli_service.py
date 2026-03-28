@@ -23,9 +23,10 @@ async def gerar_conteudo_cli(
     tema_custom: str | None = None,
     texto_livre: str | None = None,
     total_slides: int = 10,
+    tipo_carrossel: str = "codigo",
 ) -> dict:
-    system_prompt = build_system_prompt()
-    user_prompt = build_user_prompt(disciplina, tecnologia, tema_custom, texto_livre, total_slides)
+    system_prompt = build_system_prompt(tipo_carrossel)
+    user_prompt = build_user_prompt(disciplina, tecnologia, tema_custom, texto_livre, total_slides, tipo_carrossel)
 
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)

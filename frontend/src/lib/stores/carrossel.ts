@@ -1,5 +1,15 @@
 import { writable } from 'svelte/store';
 
+export interface MetricItem {
+	label: string;
+	value: string;
+}
+
+export interface TableData {
+	headers: string[];
+	rows: string[][];
+}
+
 export interface Slide {
 	type: 'cover' | 'content' | 'code' | 'comparison' | 'cta';
 	headline?: string;
@@ -14,6 +24,8 @@ export interface Slide {
 	right_label?: string;
 	right_items?: string[];
 	tags?: string[];
+	metrics?: MetricItem[];
+	table?: TableData;
 	imageBase64?: string;
 }
 

@@ -1,6 +1,16 @@
 from pydantic import BaseModel
 
 
+class MetricItem(BaseModel):
+    label: str
+    value: str
+
+
+class TableData(BaseModel):
+    headers: list[str]
+    rows: list[list[str]]
+
+
 class SlideResponse(BaseModel):
     type: str
     headline: str | None = None
@@ -15,3 +25,5 @@ class SlideResponse(BaseModel):
     right_label: str | None = None
     right_items: list[str] | None = None
     tags: list[str] | None = None
+    metrics: list[MetricItem] | None = None
+    table: TableData | None = None

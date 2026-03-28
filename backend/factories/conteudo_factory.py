@@ -2,7 +2,16 @@
 
 from pathlib import Path
 
-SKILL_PATH = Path(__file__).parent.parent.parent / "agents" / "anti-bel-pesce.md"
+AGENTS_DIR = Path(__file__).parent.parent.parent / "agents"
+
+SKILL_FILES = {
+    "codigo": "anti-bel-pesce.md",
+    "editorial": "editorial.md",
+    "infografico": "infografico.md",
+    "tabela-ti": "tabela-ti.md",
+    "misto": "misto.md",
+    "card-unico": "card-unico.md",
+}
 
 DISCIPLINAS = {
     "D1": "D1 — Linguagens",
@@ -17,8 +26,10 @@ DISCIPLINAS = {
 }
 
 
-def build_system_prompt() -> str:
-    return SKILL_PATH.read_text(encoding="utf-8")
+def build_system_prompt(tipo_carrossel: str = "codigo") -> str:
+    filename = SKILL_FILES.get(tipo_carrossel, SKILL_FILES["codigo"])
+    skill_path = AGENTS_DIR / filename
+    return skill_path.read_text(encoding="utf-8")
 
 
 def build_user_prompt(
@@ -27,7 +38,11 @@ def build_user_prompt(
     tema_custom: str | None,
     texto_livre: str | None,
     total_slides: int = 10,
+    tipo_carrossel: str = "codigo",
 ) -> str:
+    if tipo_carrossel == "card-unico":
+        total_slides = 1
+
     if texto_livre:
         prompt = (
             "O usuário enviou o seguinte texto para ser transformado em carrossel LinkedIn:\n\n"
@@ -40,6 +55,10 @@ def build_user_prompt(
         if tema_custom:
             prompt += f"\n\nTema específico: {tema_custom}"
 
-    prompt += f"\n\nGere EXATAMENTE {total_slides} slides (formato de {total_slides} slides)."
+    if tipo_carrossel == "card-unico":
+        prompt += "\n\nGere EXATAMENTE 1 slide (card único — post single para LinkedIn)."
+    else:
+        prompt += f"\n\nGere EXATAMENTE {total_slides} slides (formato de {total_slides} slides)."
+
     prompt += "\n\nRetorne SOMENTE o JSON no formato especificado, sem texto antes ou depois."
     return prompt
