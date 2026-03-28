@@ -8,7 +8,12 @@ export interface AppConfig {
 
 function getDefaultBackendUrl(): string {
 	if (typeof window === 'undefined') return 'http://localhost:8000';
-	return `${window.location.protocol}//${window.location.hostname}:8000`;
+	const host = window.location.hostname;
+	// Azure App Service: frontend e backend são apps separados
+	if (host.includes('azurewebsites.net')) {
+		return 'https://app-carrossel-backend.azurewebsites.net';
+	}
+	return `${window.location.protocol}//${host}:8000`;
 }
 
 const defaultConfig: AppConfig = {

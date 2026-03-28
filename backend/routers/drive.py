@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from dtos.drive.salvar_drive.request import UploadDriveRequest, SaveCarrosselDriveRequest
 from dtos.drive.salvar_drive.response import UploadDriveResponse, SaveCarrosselDriveResponse, PastaResponse
-from services.drive_service import upload_to_drive, list_folders, save_carrossel
+from services.drive_service import upload_to_drive, list_folders, save_carrossel, list_files_in_folder, download_file_content
 
 router = APIRouter()
 
@@ -35,6 +35,29 @@ async def api_listar_pastas():
     try:
         pastas = await list_folders(credentials_json)
         return pastas
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/drive/design-systems")
+async def api_listar_design_systems():
+    credentials_json = _get_credentials()
+    folder_id = os.getenv("DESIGN_SYSTEMS_FOLDER_ID")
+    if not folder_id:
+        return []
+    try:
+        files = await list_files_in_folder(credentials_json, folder_id)
+        return files
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/drive/design-systems/{file_id}")
+async def api_get_design_system(file_id: str):
+    credentials_json = _get_credentials()
+    try:
+        result = await download_file_content(credentials_json, file_id)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

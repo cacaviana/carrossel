@@ -16,7 +16,7 @@ async def api_gerar_imagem(req: GerarImagemRequest):
         raise HTTPException(status_code=400, detail="GEMINI_API_KEY não configurada. Acesse /configuracoes.")
     try:
         slides_dicts = [s.model_dump() for s in req.slides]
-        images = await gerar_imagens(slides=slides_dicts, gemini_api_key=api_key, foto_criador=req.foto_criador)
+        images = await gerar_imagens(slides=slides_dicts, gemini_api_key=api_key, foto_criador=req.foto_criador, design_system=req.design_system)
         return {"images": images}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -34,6 +34,7 @@ async def api_gerar_imagem_slide(req: GerarImagemSlideRequest):
             total_slides=req.total_slides,
             gemini_api_key=api_key,
             foto_criador=req.foto_criador,
+            design_system=req.design_system,
         )
         return {"image": image}
     except Exception as e:
