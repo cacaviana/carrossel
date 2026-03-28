@@ -24,9 +24,10 @@ async def gerar_conteudo(
     tema_custom: str | None = None,
     texto_livre: str | None = None,
     total_slides: int = 10,
+    tipo_carrossel: str = "texto",
 ) -> dict:
     system_prompt = build_system_prompt()
-    user_prompt = build_user_prompt(disciplina, tecnologia, tema_custom, texto_livre, total_slides)
+    user_prompt = build_user_prompt(disciplina, tecnologia, tema_custom, texto_livre, total_slides, tipo_carrossel)
 
     client = anthropic.AsyncAnthropic(api_key=claude_api_key)
     message = await client.messages.create(

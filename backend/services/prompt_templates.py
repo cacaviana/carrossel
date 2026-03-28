@@ -27,6 +27,13 @@ def build_prompt(slide: dict, position: int, total: int, design_system: str | No
     slide_type = slide.get("type", "content")
     counter = f"{position}/{total}"
 
+    # Slides com ilustração
+    illustration = slide.get("illustration_description", "")
+    if illustration:
+        return _visual_prompt(slide, counter, ds, illustration)
+
+    if slide_type == "infographic":
+        return _infographic_prompt(slide, ds)
     if slide_type == "cover":
         return _cover_prompt(slide, ds)
     if slide_type == "code":
@@ -133,4 +140,41 @@ def _cta_prompt(slide: dict, ds: str) -> str:
         f"Tags em badges pill com fundo (#12121A), borda roxa sutil, texto roxo (#A78BFA): {tags_text}. "
         f"Rodape: 'Carlos Viana — IT Valley School — Pos IA & ML' em cinza (#9896A3). "
         f"Card de convite com borda roxa sutil."
+    )
+
+
+def _visual_prompt(slide: dict, counter: str, ds: str, illustration: str) -> str:
+    title = slide.get("title", slide.get("headline", ""))
+    return (
+        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
+        f"FUNDO: preto profundo (#0A0A0F). "
+        f"Titulo em branco (#FFFFFF), Outfit Semibold, CURTO: '{title}'. "
+        f"A MAIOR PARTE DO SLIDE deve ser ocupada por uma ILUSTRACAO/DIAGRAMA tecnico: "
+        f"{illustration} "
+        f"Use as cores do design system para o diagrama: roxo (#A78BFA) para linhas e setas, "
+        f"verde (#34D399) para highlights positivos, amber (#FBBF24) para metricas, "
+        f"branco para labels, cinza (#9896A3) para texto secundario. "
+        f"O diagrama deve ser CLARO, PROFISSIONAL e LEGIVEL. "
+        f"Rodape: foto circular com borda roxa + 'Carlos Viana' + '{counter}' em cinza (#5A5A66) monospace."
+    )
+
+
+def _infographic_prompt(slide: dict, ds: str) -> str:
+    title = slide.get("title", slide.get("headline", ""))
+    illustration = slide.get("illustration_description", "")
+    bullets = slide.get("bullets", [])
+    bullets_text = " | ".join(bullets) if bullets else ""
+    return (
+        f"Crie INFOGRAFICO LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
+        f"FUNDO: preto profundo (#0A0A0F) com gradiente sutil diagonal. "
+        f"Titulo GRANDE no topo em branco (#FFFFFF), Outfit Semibold: '{title}'. "
+        f"LAYOUT INFOGRAFICO DENSO E VISUAL com multiplas secoes: "
+        f"{illustration} "
+        f"METRICAS/DADOS destacados com numeros GRANDES (28px+) em cards coloridos: "
+        f"roxo (#A78BFA), verde (#34D399), amber (#FBBF24). "
+        f"Secoes separadas com linhas finas ou cards (#12121A) com borda roxa sutil. "
+        f"Dados adicionais: {bullets_text}. "
+        f"Icones clean (outline, fundo #16162A, radius). SEM emojis. SEM clipart. "
+        f"Rodape: foto circular com borda roxa + 'Carlos Viana — IT Valley School'. "
+        f"O slide deve ser RICO visualmente, com muita informacao organizada de forma clara."
     )

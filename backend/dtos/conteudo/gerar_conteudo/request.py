@@ -7,3 +7,4 @@ class GerarConteudoRequest(BaseModel):
     tema_custom: str | None = None
     texto_livre: str | None = None
     total_slides: int = 10
+    tipo_carrossel: str = "texto"  # texto | visual | infografico

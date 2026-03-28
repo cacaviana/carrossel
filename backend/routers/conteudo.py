@@ -18,6 +18,7 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
     if not openai_key and not claude_key:
         raise HTTPException(status_code=400, detail="Nenhuma API key configurada (OPENAI_API_KEY ou CLAUDE_API_KEY). Acesse /configuracoes.")
     try:
+        total = 1 if req.tipo_carrossel == "infografico" else req.total_slides
         if openai_key:
             result = await gerar_conteudo_openai(
                 openai_api_key=openai_key,
@@ -25,7 +26,8 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
                 tecnologia=req.tecnologia,
                 tema_custom=req.tema_custom,
                 texto_livre=req.texto_livre,
-                total_slides=req.total_slides,
+                total_slides=total,
+                tipo_carrossel=req.tipo_carrossel,
             )
         else:
             result = await gerar_conteudo(
@@ -34,7 +36,8 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
                 tecnologia=req.tecnologia,
                 tema_custom=req.tema_custom,
                 texto_livre=req.texto_livre,
-                total_slides=req.total_slides,
+                total_slides=total,
+                tipo_carrossel=req.tipo_carrossel,
             )
         return result
     except Exception as e:

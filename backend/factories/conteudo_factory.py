@@ -21,12 +21,40 @@ def build_system_prompt() -> str:
     return SKILL_PATH.read_text(encoding="utf-8")
 
 
+TIPO_INSTRUCOES = {
+    "texto": (
+        "ESTILO: Carrossel de TEXTO TECNICO. "
+        "Slides com headlines, bullets, codigo real. "
+        "Foco em conteudo escrito claro e didatico."
+    ),
+    "visual": (
+        "ESTILO: Carrossel VISUAL com ilustracoes e diagramas. "
+        "Cada slide DEVE incluir um campo 'illustration_description' com uma descricao DETALHADA "
+        "do diagrama, fluxograma, grafico ou ilustracao tecnica que o Gemini deve gerar. "
+        "Exemplos: fluxograma mostrando o pipeline de dados, diagrama de arquitetura, "
+        "grafico comparativo antes/depois, visualizacao de como o algoritmo funciona passo a passo. "
+        "O texto do slide deve ser CURTO (1-2 linhas) — a ilustracao e o foco principal. "
+        "Use o campo 'illustration_description' em TODOS os slides de conteudo."
+    ),
+    "infografico": (
+        "ESTILO: INFOGRAFICO unico — 1 slide denso e visual. "
+        "Crie um slide UNICO tipo 'infographic' com: "
+        "titulo impactante, secoes visuais com metricas/numeros grandes, "
+        "campo 'illustration_description' descrevendo o layout completo do infografico "
+        "(diagrama central, blocos de dados, setas, icones, fluxos). "
+        "O infografico deve ser RICO visualmente — numeros grandes, cores, secoes bem definidas. "
+        "NAO e carrossel, e UM UNICO SLIDE de alto impacto visual."
+    ),
+}
+
+
 def build_user_prompt(
     disciplina: str | None,
     tecnologia: str | None,
     tema_custom: str | None,
     texto_livre: str | None,
     total_slides: int = 10,
+    tipo_carrossel: str = "texto",
 ) -> str:
     if texto_livre:
         prompt = (
@@ -40,6 +68,21 @@ def build_user_prompt(
         if tema_custom:
             prompt += f"\n\nTema específico: {tema_custom}"
 
-    prompt += f"\n\nGere EXATAMENTE {total_slides} slides (formato de {total_slides} slides)."
+    # Tipo de carrossel
+    tipo_inst = TIPO_INSTRUCOES.get(tipo_carrossel, TIPO_INSTRUCOES["texto"])
+    prompt += f"\n\n{tipo_inst}"
+
+    if tipo_carrossel == "infografico":
+        prompt += "\n\nGere EXATAMENTE 1 slide (infografico unico)."
+    else:
+        prompt += f"\n\nGere EXATAMENTE {total_slides} slides (formato de {total_slides} slides)."
+
     prompt += "\n\nRetorne SOMENTE o JSON no formato especificado, sem texto antes ou depois."
+
+    if tipo_carrossel in ("visual", "infografico"):
+        prompt += (
+            "\n\nIMPORTANTE: Inclua o campo 'illustration_description' em cada slide que deve ter ilustracao. "
+            "Este campo sera usado pelo Gemini para gerar a imagem. Seja DETALHADO na descricao visual."
+        )
+
     return prompt
