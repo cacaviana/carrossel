@@ -26,11 +26,8 @@ jobs:
 
       - name: Prepare deploy package
         run: |
-          cd frontend
-          cp package.json build/
-          cp package-lock.json build/
-          cd build
-          npm ci --omit=dev
+          cd frontend/build
+          echo '{"type":"module"}' > package.json
           zip -r ../../frontend.zip .
 
       - name: Deploy to Azure Web App
