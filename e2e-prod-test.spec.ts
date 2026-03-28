@@ -197,3 +197,35 @@ test('Mobile - Pagina config carrega', async ({ browser }) => {
   await expect(page.locator('h2')).toContainText('Configurações');
   await context.close();
 });
+
+// ====================== TEXTO LIVRE ======================
+
+test('Desktop - Texto livre envia payload correto', async ({ page }) => {
+  await page.goto(BASE_URL);
+  await page.click('button:has-text("Enviar texto")');
+  const textarea = page.locator('textarea');
+  await textarea.fill('Este e um texto sobre inteligencia artificial e machine learning para testar o modo texto livre do carrossel LinkedIn.');
+  const [request] = await Promise.all([
+    page.waitForRequest(req => req.url().includes('/api/gerar-conteudo') && req.method() === 'POST'),
+    page.click('button:has-text("Gerar Carrossel")')
+  ]);
+  const body = request.postDataJSON();
+  expect(body).toHaveProperty('texto_livre');
+  expect(body).toHaveProperty('total_slides');
+  expect(body.texto_livre).toContain('inteligencia artificial');
+});
+
+test('Mobile - Texto livre funciona no mobile', async ({ browser }) => {
+  const { context, page } = await mobileContext(browser);
+  await page.goto(BASE_URL);
+  await page.click('button:has-text("Enviar texto")');
+  const textarea = page.locator('textarea');
+  await expect(textarea).toBeVisible();
+  await textarea.fill('Texto sobre deep learning e redes neurais para carrossel mobile test.');
+  const gerarBtn = page.locator('button:has-text("Gerar Carrossel")');
+  await expect(gerarBtn).toBeVisible();
+  const box = await gerarBtn.boundingBox();
+  expect(box).toBeTruthy();
+  expect(box!.width).toBeGreaterThan(300);
+  await context.close();
+});

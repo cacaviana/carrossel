@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { carrosselAtual, gerandoImagens, slideAtual } from '$lib/stores/carrossel';
 	import { config } from '$lib/stores/config';
+	import { fotos } from '$lib/stores/fotos';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import type { Slide } from '$lib/stores/carrossel';
 
 	let legendaCopiada = $state(false);
@@ -10,6 +12,37 @@
 	let driveSalvo = $state('');
 	let modoEdicao = $state(false);
 	let gerandoSlide = $state<number | null>(null);
+
+	// Design Systems
+	type DesignSystemItem = { id: string; name: string };
+	let designSystems = $state<DesignSystemItem[]>([]);
+	let designSystemSelecionado = $state('');
+	let designSystemConteudo = $state('');
+	let carregandoDS = $state(false);
+
+	onMount(async () => {
+		let currentConfig: typeof $config | undefined;
+		config.subscribe((v) => (currentConfig = v))();
+		try {
+			const res = await fetch(`${currentConfig.backendUrl}/api/drive/design-systems`);
+			if (res.ok) designSystems = await res.json();
+		} catch {}
+	});
+
+	async function selecionarDesignSystem(id: string) {
+		if (!id) { designSystemSelecionado = ''; designSystemConteudo = ''; return; }
+		let currentConfig: typeof $config | undefined;
+		config.subscribe((v) => (currentConfig = v))();
+		carregandoDS = true;
+		try {
+			const res = await fetch(`${currentConfig.backendUrl}/api/drive/design-systems/${id}`);
+			if (res.ok) {
+				const data = await res.json();
+				designSystemSelecionado = id;
+				designSystemConteudo = data.content;
+			}
+		} catch {} finally { carregandoDS = false; }
+	}
 
 	const totalSlides = $derived($carrosselAtual?.slides.length ?? 0);
 	const slideData = $derived($carrosselAtual?.slides[$slideAtual]);
@@ -92,7 +125,8 @@
 					slide: $carrosselAtual.slides[index],
 					slide_index: index,
 					total_slides: $carrosselAtual.slides.length,
-					foto_criador: currentConfig.fotoCriadorBase64 || undefined
+					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
+					design_system: designSystemConteudo || undefined
 				})
 			});
 			if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
@@ -127,7 +161,8 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					slides: $carrosselAtual.slides,
-					foto_criador: currentConfig.fotoCriadorBase64 || undefined
+					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
+					design_system: designSystemConteudo || undefined
 				})
 			});
 
@@ -258,6 +293,50 @@
 		<!-- MODO EDIÇÃO -->
 		{#if modoEdicao}
 			<div class="space-y-4">
+				<!-- Opções rápidas: Design System + Foto -->
+				<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4 flex flex-col sm:flex-row gap-4">
+					<!-- Design System -->
+					<div class="flex-1">
+						<p class="text-xs font-medium text-steel-5 mb-2">Design System</p>
+						<select
+							onchange={(e) => selecionarDesignSystem((e.target as HTMLSelectElement).value)}
+							disabled={carregandoDS}
+							class="w-full px-3 py-2.5 rounded-xl border border-teal-4/30 bg-white text-steel-6 text-sm focus:border-steel-3 outline-none"
+						>
+							<option value="">Padrão (dark mode premium)</option>
+							{#each designSystems as ds}
+								<option value={ds.id} selected={designSystemSelecionado === ds.id}>{ds.name.replace(/\.(md|txt)$/, '')}</option>
+							{/each}
+						</select>
+					</div>
+					<!-- Foto -->
+					<div class="flex-1">
+						<p class="text-xs font-medium text-steel-5 mb-2">Foto do criador</p>
+						{#if $fotos.length > 0}
+							<div class="flex gap-2 flex-wrap">
+								{#each $fotos as foto}
+									<button
+										onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: foto.dataUrl }))}
+										class="w-10 h-10 rounded-full overflow-hidden cursor-pointer transition-all
+											{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-[#A78BFA] scale-110' : 'opacity-60 hover:opacity-100'}"
+									>
+										<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
+									</button>
+								{/each}
+								<button
+									onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: '' }))}
+									class="w-10 h-10 rounded-full border border-teal-4/30 flex items-center justify-center text-xs text-steel-4 cursor-pointer hover:bg-teal-1
+										{!$config.fotoCriadorBase64 ? 'ring-2 ring-[#A78BFA]' : ''}"
+								>
+									Sem
+								</button>
+							</div>
+						{:else}
+							<p class="text-xs text-steel-4 italic">Nenhuma foto. Adicione em Config.</p>
+						{/if}
+					</div>
+				</div>
+
 				<div class="flex items-center justify-between mb-2">
 					<p class="text-sm text-steel-4 font-light">{totalSlides} slides — edite o texto antes de gerar imagens</p>
 					<span class="text-xs text-steel-4 bg-teal-1 border border-teal-4/30 px-3 py-1 rounded-full">

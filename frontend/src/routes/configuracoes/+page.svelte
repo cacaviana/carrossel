@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { config, type AppConfig } from '$lib/stores/config';
+	import { fotos, type FotoItem } from '$lib/stores/fotos';
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
 
 	let formData = $state<AppConfig>(get(config));
 
 	let claudeApiKey = $state('');
+	let openaiApiKey = $state('');
 	let geminiApiKey = $state('');
 	let googleDriveCredentials = $state('');
 	let folderIdManual = $state('');
 
 	type KeysStatus = {
 		claude_api_key_set: boolean;
+		openai_api_key_set: boolean;
 		gemini_api_key_set: boolean;
 		google_drive_credentials_set: boolean;
 		google_drive_folder_id: string;
@@ -19,6 +22,7 @@
 
 	let keysStatus = $state<KeysStatus>({
 		claude_api_key_set: false,
+		openai_api_key_set: false,
 		gemini_api_key_set: false,
 		google_drive_credentials_set: false,
 		google_drive_folder_id: ''
@@ -91,6 +95,7 @@
 		try {
 			const payload: Record<string, string> = {};
 			if (claudeApiKey) payload.claude_api_key = claudeApiKey;
+			if (openaiApiKey) payload.openai_api_key = openaiApiKey;
 			if (geminiApiKey) payload.gemini_api_key = geminiApiKey;
 			if (googleDriveCredentials) payload.google_drive_credentials = googleDriveCredentials;
 			if (folderIdManual && folderIdManual !== keysStatus.google_drive_folder_id) {
@@ -112,6 +117,7 @@
 				}
 
 				claudeApiKey = '';
+				openaiApiKey = '';
 				geminiApiKey = '';
 				googleDriveCredentials = '';
 			}
@@ -133,17 +139,31 @@
 		})();
 	}
 
-	function handleFoto(e: Event) {
+	async function handleFotos(e: Event) {
 		const target = e.target as HTMLInputElement;
-		const file = target.files?.[0];
-		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = () => { formData.fotoCriadorBase64 = reader.result as string; };
-		reader.readAsDataURL(file);
+		const files = target.files;
+		if (!files) return;
+		for (const file of files) {
+			await fotos.add(file);
+		}
+		// Seleciona a primeira automaticamente se nenhuma ativa
+		const all = get(fotos);
+		if (all.length > 0 && !formData.fotoCriadorBase64) {
+			formData.fotoCriadorBase64 = all[all.length - 1].dataUrl;
+		}
 	}
 
-	function removerFoto() {
-		formData.fotoCriadorBase64 = '';
+	function usarFoto(foto: FotoItem) {
+		formData.fotoCriadorBase64 = foto.dataUrl;
+	}
+
+	function removerFoto(id: string) {
+		const foto = get(fotos).find(f => f.id === id);
+		fotos.remove(id);
+		if (foto && formData.fotoCriadorBase64 === foto.dataUrl) {
+			const restante = get(fotos);
+			formData.fotoCriadorBase64 = restante.length > 0 ? restante[0].dataUrl : '';
+		}
 	}
 </script>
 
@@ -176,6 +196,20 @@
 				</label>
 				<input id="claude-key" type="password" bind:value={claudeApiKey}
 					placeholder={keysStatus.claude_api_key_set ? 'Deixe em branco para manter a atual' : 'sk-ant-...'}
+					class="w-full px-4 py-3 rounded-xl border border-teal-4/30 bg-white text-steel-6 text-sm focus:border-steel-3 focus:ring-2 focus:ring-steel-3/20 outline-none transition-all" />
+			</div>
+
+			<div>
+				<label for="openai-key" class="block text-sm font-medium text-steel-5 mb-1.5">
+					OpenAI API Key
+					{#if keysStatus.openai_api_key_set}
+						<span class="ml-2 text-xs text-green-600 font-normal">✓ configurada</span>
+					{:else}
+						<span class="ml-2 text-xs text-red-500 font-normal">não configurada</span>
+					{/if}
+				</label>
+				<input id="openai-key" type="password" bind:value={openaiApiKey}
+					placeholder={keysStatus.openai_api_key_set ? 'Deixe em branco para manter a atual' : 'sk-...'}
 					class="w-full px-4 py-3 rounded-xl border border-teal-4/30 bg-white text-steel-6 text-sm focus:border-steel-3 focus:ring-2 focus:ring-steel-3/20 outline-none transition-all" />
 			</div>
 
@@ -291,29 +325,44 @@
 		</div>
 	</div>
 
-	<!-- Foto do Criador -->
-	<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-6 mb-6">
-		<h3 class="font-semibold text-steel-6 mb-4 flex items-center gap-2">
+	<!-- Galeria de Fotos -->
+	<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-5 sm:p-6 mb-6">
+		<h3 class="font-semibold text-steel-6 mb-1 flex items-center gap-2">
 			<span class="w-2 h-2 rounded-full bg-steel-2"></span>
-			Foto do Criador (CTA)
+			Suas Fotos
 		</h3>
-		<p class="text-xs text-steel-4 mb-3 font-light">Usada no último slide do carrossel. Opcional.</p>
+		<p class="text-xs text-steel-4 mb-4 font-light">Escolha qual foto aparece nos slides. A foto ativa tem borda roxa.</p>
 
-		{#if formData.fotoCriadorBase64}
-			<div class="flex items-center gap-4 mb-3">
-				<img src={formData.fotoCriadorBase64} alt="Foto do criador"
-					class="w-16 h-16 rounded-2xl object-cover border border-teal-4/30" />
-				<button onclick={removerFoto}
-					class="px-4 py-2 rounded-full text-sm text-red-600 bg-red-50 hover:bg-red-100 transition-all cursor-pointer">
-					Remover foto
-				</button>
+		{#if $fotos.length > 0}
+			<div class="flex flex-wrap gap-3 mb-4">
+				{#each $fotos as foto}
+					<div class="relative group">
+						<button
+							onclick={() => usarFoto(foto)}
+							class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden cursor-pointer transition-all
+								{formData.fotoCriadorBase64 === foto.dataUrl
+									? 'ring-3 ring-[#A78BFA] ring-offset-2 scale-110'
+									: 'opacity-70 hover:opacity-100 hover:scale-105'}"
+						>
+							<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
+						</button>
+						<button
+							onclick={() => removerFoto(foto.id)}
+							class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs
+								flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+							x
+						</button>
+					</div>
+				{/each}
 			</div>
+		{:else}
+			<p class="text-xs text-steel-4 mb-4 italic">Nenhuma foto adicionada. Faça upload abaixo.</p>
 		{/if}
 
-		<input bind:this={fileInput} type="file" accept="image/*" onchange={handleFoto} class="hidden" />
+		<input bind:this={fileInput} type="file" accept="image/*" multiple onchange={handleFotos} class="hidden" />
 		<button onclick={() => fileInput.click()}
-			class="px-4 py-2 rounded-full text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer">
-			{formData.fotoCriadorBase64 ? 'Trocar foto' : 'Upload foto'}
+			class="px-5 py-2.5 rounded-full text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer active:scale-[0.97]">
+			Adicionar fotos
 		</button>
 	</div>
 

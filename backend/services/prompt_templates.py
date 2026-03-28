@@ -21,27 +21,28 @@ DESIGN_SYSTEM = (
 )
 
 
-def build_prompt(slide: dict, position: int, total: int) -> str:
+def build_prompt(slide: dict, position: int, total: int, design_system: str | None = None) -> str:
     """Constroi prompt de imagem baseado no tipo e posicao do slide."""
+    ds = design_system or DESIGN_SYSTEM
     slide_type = slide.get("type", "content")
     counter = f"{position}/{total}"
 
     if slide_type == "cover":
-        return _cover_prompt(slide)
+        return _cover_prompt(slide, ds)
     if slide_type == "code":
-        return _code_prompt(slide, counter)
+        return _code_prompt(slide, counter, ds)
     if slide_type == "comparison":
-        return _comparison_prompt(slide, counter)
+        return _comparison_prompt(slide, counter, ds)
     if slide_type == "cta":
-        return _cta_prompt(slide)
-    return _content_prompt(slide, counter)
+        return _cta_prompt(slide, ds)
+    return _content_prompt(slide, counter, ds)
 
 
-def _cover_prompt(slide: dict) -> str:
+def _cover_prompt(slide: dict, ds: str) -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {DESIGN_SYSTEM} "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
         f"FUNDO: gradiente diagonal (#1a0a2e topo esquerdo para #0a1628 base direito) "
         f"com glows sutis de roxo (#A78BFA, 8% opacidade, blur extremo) nos cantos. "
         f"Badge pill verde (#34D399) no topo: 'Carlos Viana'. "
@@ -55,13 +56,13 @@ def _cover_prompt(slide: dict) -> str:
     )
 
 
-def _content_prompt(slide: dict, counter: str) -> str:
+def _content_prompt(slide: dict, counter: str, ds: str) -> str:
     title = slide.get("title", "")
     etapa = slide.get("etapa", "")
     bullets = slide.get("bullets", [])
     bullets_text = "\n".join(f"→ {b}" for b in bullets)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {DESIGN_SYSTEM} "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). Card central com fundo (#12121A), "
         f"borda 1px roxa sutil (rgba(167,139,250,0.2)), radius 14px. "
         f"Badge pill roxo no topo do card: '{etapa}'. "
@@ -73,11 +74,11 @@ def _content_prompt(slide: dict, counter: str) -> str:
     )
 
 
-def _code_prompt(slide: dict, counter: str) -> str:
+def _code_prompt(slide: dict, counter: str, ds: str) -> str:
     code = slide.get("code", "")
     caption = slide.get("caption", "")
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {DESIGN_SYSTEM} "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). "
         f"Badge pill verde (#34D399) no topo: 'CODIGO REAL'. "
         f"Borda: 1px #34D399, fundo: rgba(52,211,153,0.1), texto verde (#34D399). "
@@ -95,7 +96,7 @@ def _code_prompt(slide: dict, counter: str) -> str:
     )
 
 
-def _comparison_prompt(slide: dict, counter: str) -> str:
+def _comparison_prompt(slide: dict, counter: str, ds: str) -> str:
     left_label = slide.get("left_label", "")
     right_label = slide.get("right_label", "")
     left_items = slide.get("left_items", [])
@@ -103,7 +104,7 @@ def _comparison_prompt(slide: dict, counter: str) -> str:
     left_text = ", ".join(left_items)
     right_text = ", ".join(right_items)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {DESIGN_SYSTEM} "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). Card central (#12121A), borda roxa sutil. "
         f"Dois blocos lado a lado com gap dentro do card. "
         f"Bloco ESQUERDO: fundo vermelho escuro (rgba(248,113,113,0.09)), "
@@ -116,13 +117,13 @@ def _comparison_prompt(slide: dict, counter: str) -> str:
     )
 
 
-def _cta_prompt(slide: dict) -> str:
+def _cta_prompt(slide: dict, ds: str) -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     tags = slide.get("tags", [])
     tags_text = ", ".join(tags)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {DESIGN_SYSTEM} "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
         f"FUNDO: gradiente diagonal (#1a0a2e para #0a1628) com glows roxos sutis nos cantos. "
         f"Linha horizontal roxa (#A78BFA) fina decorativa no topo. "
         f"Se houver foto da pessoa, colocar no centro com moldura circular (40-48px) "

@@ -11,9 +11,9 @@ def select_model(slide: dict, position: int, total: int) -> str:
     return "gemini-2.5-flash-image"
 
 
-def build_image_prompt(slide: dict, position: int, total: int) -> str:
+def build_image_prompt(slide: dict, position: int, total: int, design_system: str | None = None) -> str:
     """Delega para prompt_templates.build_prompt."""
-    return build_prompt(slide, position, total)
+    return build_prompt(slide, position, total, design_system)
 
 
 def build_payload(
@@ -21,10 +21,11 @@ def build_payload(
     position: int,
     total: int,
     foto_criador: str | None = None,
+    design_system: str | None = None,
 ) -> tuple[str, dict]:
     """Retorna (model, payload) prontos para envio à API Gemini."""
     model = select_model(slide, position, total)
-    prompt = build_image_prompt(slide, position, total)
+    prompt = build_image_prompt(slide, position, total, design_system)
     parts: list[dict] = []
 
     # Foto do criador no último slide (CTA)

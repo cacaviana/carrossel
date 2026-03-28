@@ -20,6 +20,7 @@ class SlideInput(BaseModel):
 class GerarImagemRequest(BaseModel):
     slides: list[SlideInput]
     foto_criador: str | None = None
+    design_system: str | None = None
 
 
 class GerarImagemSlideRequest(BaseModel):
@@ -27,3 +28,4 @@ class GerarImagemSlideRequest(BaseModel):
     slide_index: int
     total_slides: int
     foto_criador: str | None = None
+    design_system: str | None = None

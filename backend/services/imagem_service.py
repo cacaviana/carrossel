@@ -14,9 +14,10 @@ async def gerar_imagem_slide(
     total_slides: int,
     gemini_api_key: str,
     foto_criador: str | None = None,
+    design_system: str | None = None,
 ) -> str | None:
     position = slide_index + 1
-    model, payload = build_payload(slide, position, total_slides, foto_criador)
+    model, payload = build_payload(slide, position, total_slides, foto_criador, design_system)
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         res = await client.post(
@@ -32,6 +33,7 @@ async def gerar_imagens(
     slides: list[dict],
     gemini_api_key: str,
     foto_criador: str | None = None,
+    design_system: str | None = None,
 ) -> list[str | None]:
     images: list[str | None] = []
     total = len(slides)
@@ -39,7 +41,7 @@ async def gerar_imagens(
     async with httpx.AsyncClient(timeout=120.0) as client:
         for i, slide in enumerate(slides):
             position = i + 1
-            model, payload = build_payload(slide, position, total, foto_criador)
+            model, payload = build_payload(slide, position, total, foto_criador, design_system)
 
             try:
                 res = await client.post(
