@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 
 export interface Slide {
-	type: 'cover' | 'content' | 'code' | 'comparison' | 'cta';
+	type: 'cover' | 'content' | 'code' | 'comparison' | 'cta' | 'infographic';
 	headline?: string;
 	subline?: string;
 	title?: string;
@@ -14,6 +14,7 @@ export interface Slide {
 	right_label?: string;
 	right_items?: string[];
 	tags?: string[];
+	illustration_description?: string;
 	imageBase64?: string;
 }
 

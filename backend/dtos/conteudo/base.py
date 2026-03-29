@@ -15,3 +15,4 @@ class SlideResponse(BaseModel):
     right_label: str | None = None
     right_items: list[str] | None = None
     tags: list[str] | None = None
+    illustration_description: str | None = None

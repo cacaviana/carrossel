@@ -47,12 +47,13 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
 @router.post("/gerar-conteudo-cli", response_model=GerarConteudoResponse)
 async def api_gerar_conteudo_cli(req: GerarConteudoRequest):
     try:
+        total = 1 if req.tipo_carrossel == "infografico" else req.total_slides
         result = await gerar_conteudo_cli(
             disciplina=req.disciplina,
             tecnologia=req.tecnologia,
             tema_custom=req.tema_custom,
             texto_livre=req.texto_livre,
-            total_slides=req.total_slides,
+            total_slides=total,
         )
         return result
     except Exception as e:

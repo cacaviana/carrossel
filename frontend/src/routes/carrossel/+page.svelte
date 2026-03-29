@@ -429,6 +429,14 @@
 										class="w-full px-3 py-2 rounded-lg border border-teal-4/30 bg-white text-steel-6 text-sm focus:border-steel-3 outline-none" />
 								</div>
 							{/if}
+							{#if slide.illustration_description !== undefined}
+								<div>
+									<label class="block text-xs font-medium text-steel-4 mb-1">Descrição da ilustração (Gemini vai gerar isso)</label>
+									<textarea value={slide.illustration_description} rows="3"
+										oninput={(e) => updateSlide(i, 'illustration_description', (e.target as HTMLTextAreaElement).value)}
+										class="w-full px-3 py-2 rounded-lg border border-teal-4/30 bg-white text-steel-6 text-xs focus:border-steel-3 outline-none resize-y"></textarea>
+								</div>
+							{/if}
 						</div>
 					</div>
 				{/each}
