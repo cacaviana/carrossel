@@ -224,7 +224,15 @@
 			const res = await fetch(`${currentConfig.backendUrl}/api/google-drive/carrossel`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ title: $carrosselAtual.title || 'carrossel', pdf_base64: pdfBase64, images_base64: images })
+				body: JSON.stringify({
+						title: $carrosselAtual.title || 'carrossel',
+						pdf_base64: pdfBase64,
+						images_base64: images,
+						disciplina: $carrosselAtual.disciplina || null,
+						tecnologia_principal: $carrosselAtual.tecnologia_principal || null,
+						tipo_carrossel: $carrosselAtual.slides[0]?.type === 'infographic' ? 'infografico' : 'texto',
+						legenda_linkedin: $carrosselAtual.legenda_linkedin || null
+					})
 			});
 
 			if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Erro ao salvar no Drive'); }

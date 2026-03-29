@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from routers import conteudo, imagem, drive, config, agentes
+from routers import conteudo, imagem, drive, config, agentes, historico
 
 app = FastAPI(title="Carrossel System API", version="1.0.0")
 
@@ -21,6 +21,7 @@ app.include_router(imagem.router, prefix="/api")
 app.include_router(drive.router, prefix="/api")
 app.include_router(config.router, prefix="/api")
 app.include_router(agentes.router, prefix="/api")
+app.include_router(historico.router, prefix="/api")
 
 
 @app.get("/health")

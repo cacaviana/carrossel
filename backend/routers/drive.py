@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from dtos.drive.salvar_drive.request import UploadDriveRequest, SaveCarrosselDriveRequest
 from dtos.drive.salvar_drive.response import UploadDriveResponse, SaveCarrosselDriveResponse, PastaResponse
 from services.drive_service import upload_to_drive, list_folders, save_carrossel, list_files_in_folder, download_file_content
+from services.db_service import salvar_historico
 
 router = APIRouter()
 
@@ -74,6 +75,20 @@ async def api_salvar_carrossel(req: SaveCarrosselDriveRequest):
             pdf_base64=req.pdf_base64,
             images_base64=req.images_base64,
         )
+        # Salvar no banco de dados
+        try:
+            await salvar_historico(
+                titulo=req.title,
+                disciplina=req.disciplina,
+                tecnologia=req.tecnologia_principal,
+                tipo=req.tipo_carrossel or "texto",
+                total_slides=len([i for i in req.images_base64 if i]),
+                legenda=req.legenda_linkedin,
+                drive_link=result.get("web_view_link", ""),
+                folder_name=result.get("subfolder_name", ""),
+            )
+        except Exception:
+            pass  # Não falhar o save no Drive por causa do banco
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

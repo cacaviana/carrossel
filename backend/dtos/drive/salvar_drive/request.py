@@ -12,3 +12,7 @@ class SaveCarrosselDriveRequest(BaseModel):
     title: str
     pdf_base64: str | None = None
     images_base64: list[str | None]
+    disciplina: str | None = None
+    tecnologia_principal: str | None = None
+    tipo_carrossel: str | None = "texto"
+    legenda_linkedin: str | None = None
