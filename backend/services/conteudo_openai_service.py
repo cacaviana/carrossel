@@ -31,7 +31,7 @@ async def gerar_conteudo_openai(
 
     client = openai.AsyncOpenAI(api_key=openai_api_key)
     response = await client.chat.completions.create(
-        model="gpt-5.2-mini",
+        model="gpt-5.4-mini",
         max_tokens=4096,
         messages=[
             {"role": "system", "content": system_prompt},
