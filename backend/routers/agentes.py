@@ -5,7 +5,10 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-AGENTS_PATH = Path(__file__).parent.parent.parent / "agents"
+_BASE = Path(__file__).parent.parent
+AGENTS_PATH = _BASE / "agents"
+if not AGENTS_PATH.exists():
+    AGENTS_PATH = _BASE.parent / "agents"
 
 AGENTES_META = [
     {

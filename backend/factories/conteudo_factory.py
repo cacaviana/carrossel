@@ -2,7 +2,11 @@
 
 from pathlib import Path
 
-SKILL_PATH = Path(__file__).parent.parent.parent / "agents" / "anti-bel-pesce.md"
+# Funciona local (agents/ na raiz do projeto) e em produção (agents/ copiado para backend/)
+_BASE = Path(__file__).parent.parent
+SKILL_PATH = _BASE / "agents" / "anti-bel-pesce.md"
+if not SKILL_PATH.exists():
+    SKILL_PATH = _BASE.parent / "agents" / "anti-bel-pesce.md"
 
 DISCIPLINAS = {
     "D1": "D1 — Linguagens",

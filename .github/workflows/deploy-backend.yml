@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "backend/**"
+      - "agents/**"
       - ".github/workflows/deploy-backend.yml"
 
 jobs:
@@ -26,6 +27,7 @@ jobs:
 
       - name: Zip backend
         run: |
+          cp -r agents backend/agents
           cd backend
           zip -r ../backend.zip . -x "venv/*" "__pycache__/*" "*.pyc" ".env"
 
