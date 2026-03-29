@@ -301,48 +301,52 @@
 		<!-- MODO EDIÇÃO -->
 		{#if modoEdicao}
 			<div class="space-y-4">
-				<!-- Opções rápidas: Design System + Foto -->
-				<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4 flex flex-col sm:flex-row gap-4">
-					<!-- Design System -->
-					<div class="flex-1">
-						<p class="text-xs font-medium text-steel-5 mb-2">Design System</p>
-						<select
-							onchange={(e) => selecionarDesignSystem((e.target as HTMLSelectElement).value)}
-							disabled={carregandoDS}
-							class="w-full px-3 py-2.5 rounded-xl border border-teal-4/30 bg-white text-steel-6 text-sm focus:border-steel-3 outline-none"
-						>
-							<option value="">Padrão (dark mode premium)</option>
+				<!-- Marca / Design System -->
+				{#if designSystems.length > 0}
+					<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4">
+						<p class="text-xs font-medium text-steel-5 mb-3">Marca</p>
+						<div class="flex gap-2 flex-wrap">
+							<button
+								onclick={() => selecionarDesignSystem('')}
+								class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer active:scale-[0.97]
+									{!designSystemSelecionado ? 'bg-steel-6 text-white shadow' : 'bg-white border border-teal-4/30 text-steel-4 hover:border-steel-3/40'}"
+							>Padrão</button>
 							{#each designSystems as ds}
-								<option value={ds.id} selected={designSystemSelecionado === ds.id}>{ds.name.replace(/\.(md|txt)$/, '')}</option>
-							{/each}
-						</select>
-					</div>
-					<!-- Foto -->
-					<div class="flex-1">
-						<p class="text-xs font-medium text-steel-5 mb-2">Foto do criador</p>
-						{#if $fotos.length > 0}
-							<div class="flex gap-2 flex-wrap">
-								{#each $fotos as foto}
-									<button
-										onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: foto.dataUrl }))}
-										class="w-10 h-10 rounded-full overflow-hidden cursor-pointer transition-all
-											{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-[#A78BFA] scale-110' : 'opacity-60 hover:opacity-100'}"
-									>
-										<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
-									</button>
-								{/each}
 								<button
-									onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: '' }))}
-									class="w-10 h-10 rounded-full border border-teal-4/30 flex items-center justify-center text-xs text-steel-4 cursor-pointer hover:bg-teal-1
-										{!$config.fotoCriadorBase64 ? 'ring-2 ring-[#A78BFA]' : ''}"
-								>
-									Sem
-								</button>
-							</div>
-						{:else}
-							<p class="text-xs text-steel-4 italic">Nenhuma foto. Adicione em Config.</p>
-						{/if}
+									onclick={() => selecionarDesignSystem(ds.id)}
+									disabled={carregandoDS}
+									class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer active:scale-[0.97]
+										{designSystemSelecionado === ds.id ? 'bg-steel-6 text-white shadow' : 'bg-white border border-teal-4/30 text-steel-4 hover:border-steel-3/40'}
+										disabled:opacity-50"
+								>{ds.name.replace(/\.(md|txt|html)$/, '')}</button>
+							{/each}
+						</div>
 					</div>
+				{/if}
+
+				<!-- Foto do criador -->
+				<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4">
+					<p class="text-xs font-medium text-steel-5 mb-3">Foto do criador</p>
+					{#if $fotos.length > 0}
+						<div class="flex gap-2 flex-wrap items-center">
+							{#each $fotos as foto}
+								<button
+									onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: foto.dataUrl }))}
+									class="w-11 h-11 rounded-full overflow-hidden cursor-pointer transition-all active:scale-95
+										{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-[#A78BFA] scale-110' : 'opacity-50 hover:opacity-100'}"
+								>
+									<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
+								</button>
+							{/each}
+							<button
+								onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: '' }))}
+								class="w-11 h-11 rounded-full border border-teal-4/30 flex items-center justify-center text-xs text-steel-4 cursor-pointer hover:bg-teal-1 transition-all
+									{!$config.fotoCriadorBase64 ? 'ring-2 ring-[#A78BFA]' : ''}"
+							>Sem</button>
+						</div>
+					{:else}
+						<a href="/configuracoes" class="text-xs text-steel-3 underline">Adicionar fotos em Config</a>
+					{/if}
 				</div>
 
 				<div class="flex items-center justify-between mb-2">
