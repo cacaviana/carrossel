@@ -63,6 +63,36 @@ async def api_get_design_system(file_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/drive/design-systems")
+async def api_upload_design_system(req: UploadDriveRequest):
+    credentials_json = _get_credentials()
+    folder_id = os.getenv("DESIGN_SYSTEMS_FOLDER_ID")
+    if not folder_id:
+        raise HTTPException(status_code=400, detail="DESIGN_SYSTEMS_FOLDER_ID não configurada.")
+    try:
+        result = await upload_to_drive(
+            file_base64=req.file_base64,
+            file_name=req.file_name,
+            mime_type=req.mime_type,
+            credentials_json=credentials_json,
+            folder_id=folder_id,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/drive/design-systems/{file_id}")
+async def api_delete_design_system(file_id: str):
+    credentials_json = _get_credentials()
+    try:
+        from services.drive_service import delete_file
+        await delete_file(credentials_json, file_id)
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/google-drive/carrossel", response_model=SaveCarrosselDriveResponse)
 async def api_salvar_carrossel(req: SaveCarrosselDriveRequest):
     credentials_json = _get_credentials()

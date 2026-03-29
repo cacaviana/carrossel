@@ -176,6 +176,13 @@ async def download_file_content(credentials_json: str, file_id: str) -> dict:
     )
 
 
+async def delete_file(credentials_json: str, file_id: str):
+    def _delete_sync():
+        service = _build_service(credentials_json)
+        service.files().delete(fileId=file_id).execute()
+    await asyncio.get_event_loop().run_in_executor(None, _delete_sync)
+
+
 async def save_carrossel(
     credentials_json: str,
     parent_folder_id: str,

@@ -38,6 +38,14 @@
 	let salvando = $state(false);
 	let erroSalvar = $state('');
 	let fileInput: HTMLInputElement;
+	let dsFileInput: HTMLInputElement;
+
+	// Design Systems
+	type DSItem = { id: string; name: string };
+	let designSystems = $state<DSItem[]>([]);
+	let carregandoDS = $state(false);
+	let dsPreview = $state<{ name: string; content: string; isHtml: boolean } | null>(null);
+	let uploadingDS = $state(false);
 
 	config.subscribe((v) => {
 		formData = { ...v };
@@ -53,6 +61,7 @@
 				folderIdManual = keysStatus.google_drive_folder_id;
 			}
 		} catch {}
+		carregarDesignSystems();
 	});
 
 	async function listarPastas() {
@@ -155,6 +164,55 @@
 
 	function usarFoto(foto: FotoItem) {
 		formData.fotoCriadorBase64 = foto.dataUrl;
+	}
+
+	async function carregarDesignSystems() {
+		carregandoDS = true;
+		try {
+			const res = await fetch(`${formData.backendUrl}/api/drive/design-systems`);
+			if (res.ok) designSystems = await res.json();
+		} catch {} finally { carregandoDS = false; }
+	}
+
+	async function uploadDesignSystem(e: Event) {
+		const target = e.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file) return;
+		uploadingDS = true;
+		try {
+			const reader = new FileReader();
+			const base64 = await new Promise<string>((resolve) => {
+				reader.onload = () => {
+					const result = reader.result as string;
+					resolve(result.split(',')[1] || result);
+				};
+				reader.readAsDataURL(file);
+			});
+			const res = await fetch(`${formData.backendUrl}/api/drive/design-systems`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ file_base64: base64, file_name: file.name, mime_type: file.type || 'text/markdown' })
+			});
+			if (res.ok) await carregarDesignSystems();
+		} catch {} finally { uploadingDS = false; target.value = ''; }
+	}
+
+	async function previewDS(ds: DSItem) {
+		try {
+			const res = await fetch(`${formData.backendUrl}/api/drive/design-systems/${ds.id}`);
+			if (res.ok) {
+				const data = await res.json();
+				dsPreview = { name: data.name, content: data.content, isHtml: data.name.endsWith('.html') };
+			}
+		} catch {}
+	}
+
+	async function deletarDS(ds: DSItem) {
+		try {
+			await fetch(`${formData.backendUrl}/api/drive/design-systems/${ds.id}`, { method: 'DELETE' });
+			designSystems = designSystems.filter(d => d.id !== ds.id);
+			if (dsPreview?.name === ds.name) dsPreview = null;
+		} catch {}
 	}
 
 	function removerFoto(id: string) {
@@ -309,6 +367,61 @@
 				O ID está na URL do Drive: drive.google.com/drive/folders/<strong>ID_AQUI</strong>
 			</p>
 		</div>
+	</div>
+
+	<!-- Design Systems -->
+	<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-5 sm:p-6 mb-6">
+		<h3 class="font-semibold text-steel-6 mb-1 flex items-center gap-2">
+			<span class="w-2 h-2 rounded-full bg-[#A78BFA]"></span>
+			Design Systems (Marcas)
+		</h3>
+		<p class="text-xs text-steel-4 mb-4 font-light">Cada marca tem suas cores, fontes e estilo. Suba um arquivo .md ou .html para adicionar.</p>
+
+		{#if designSystems.length > 0}
+			<div class="space-y-2 mb-4">
+				{#each designSystems as ds}
+					<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-teal-1 border border-teal-4/20">
+						<span class="w-2 h-2 rounded-full bg-[#A78BFA]"></span>
+						<span class="flex-1 text-sm font-medium text-steel-6">{ds.name.replace(/\.(md|txt|html)$/, '')}</span>
+						<button onclick={() => previewDS(ds)}
+							class="px-3 py-1 rounded-full text-xs font-medium bg-white border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer">
+							Ver
+						</button>
+						<button onclick={() => deletarDS(ds)}
+							class="px-3 py-1 rounded-full text-xs text-red-500 hover:bg-red-50 transition-all cursor-pointer">
+							Remover
+						</button>
+					</div>
+				{/each}
+			</div>
+		{:else if !carregandoDS}
+			<p class="text-xs text-steel-4 mb-4 italic">Nenhum design system cadastrado.</p>
+		{/if}
+
+		{#if carregandoDS}
+			<p class="text-xs text-steel-4 mb-4">Carregando...</p>
+		{/if}
+
+		<!-- Preview modal -->
+		{#if dsPreview}
+			<div class="mb-4 rounded-xl border border-[#A78BFA]/30 overflow-hidden">
+				<div class="flex items-center justify-between px-4 py-2 bg-steel-6 text-white text-xs">
+					<span class="font-medium">{dsPreview.name}</span>
+					<button onclick={() => dsPreview = null} class="hover:text-teal-4 cursor-pointer">Fechar</button>
+				</div>
+				{#if dsPreview.isHtml}
+					<iframe srcdoc={dsPreview.content} class="w-full h-80 bg-white border-0" sandbox="allow-same-origin" title="Preview"></iframe>
+				{:else}
+					<pre class="p-4 text-xs text-steel-5 bg-white overflow-auto max-h-80 whitespace-pre-wrap font-mono">{dsPreview.content}</pre>
+				{/if}
+			</div>
+		{/if}
+
+		<input bind:this={dsFileInput} type="file" accept=".md,.html,.txt" onchange={uploadDesignSystem} class="hidden" />
+		<button onclick={() => dsFileInput.click()} disabled={uploadingDS}
+			class="px-5 py-2.5 rounded-full text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer active:scale-[0.97] disabled:opacity-50">
+			{uploadingDS ? 'Enviando...' : 'Upload Design System (.md ou .html)'}
+		</button>
 	</div>
 
 	<!-- Backend URL -->
