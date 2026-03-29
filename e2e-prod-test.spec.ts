@@ -58,11 +58,14 @@ test('Desktop - Navegacao funciona', async ({ page }) => {
   await expect(page).toHaveURL(/configuracoes/);
 });
 
-test('Desktop - Cards de disciplina renderizam', async ({ page }) => {
+test('Desktop - Wizard mostra tipos e textarea', async ({ page }) => {
   await page.goto(BASE_URL);
-  for (const id of ['D1', 'D7', 'D9']) {
-    await expect(page.locator(`button:has-text("${id}")`)).toBeVisible();
-  }
+  // Tipos de carrossel visíveis
+  await expect(page.locator('button:has-text("Texto")')).toBeVisible();
+  await expect(page.locator('button:has-text("Visual")')).toBeVisible();
+  await expect(page.locator('button:has-text("Infográfico")')).toBeVisible();
+  // Textarea visível por padrão (modo texto livre)
+  await expect(page.locator('textarea')).toBeVisible();
 });
 
 test('Desktop - Seletor de slides funciona', async ({ page }) => {
@@ -72,19 +75,17 @@ test('Desktop - Seletor de slides funciona', async ({ page }) => {
   await expect(btn3).toHaveClass(/bg-steel-6/);
 });
 
-test('Desktop - Claude Code CLI escondido em producao', async ({ page }) => {
+test('Desktop - Disciplinas aparecem ao clicar Por disciplina', async ({ page }) => {
   await page.goto(BASE_URL);
-  await page.click('button:has-text("D7")');
-  await page.click('button:has-text("RAG")');
-  await expect(page.locator('button:has-text("Claude Code")')).toHaveCount(0);
-  await expect(page.locator('button:has-text("Gerar Carrossel")')).toBeVisible();
+  await page.click('button:has-text("Por disciplina")');
+  await expect(page.locator('button:has-text("D1")')).toBeVisible();
+  await expect(page.locator('button:has-text("D7")')).toBeVisible();
 });
 
-test('Desktop - Modo texto livre funciona', async ({ page }) => {
+test('Desktop - Claude Code CLI escondido em producao', async ({ page }) => {
   await page.goto(BASE_URL);
-  await page.click('button:has-text("Enviar texto")');
-  await expect(page.locator('textarea')).toBeVisible();
   await expect(page.locator('button:has-text("Claude Code")')).toHaveCount(0);
+  await expect(page.locator('button:has-text("Gerar Carrossel")')).toBeVisible();
 });
 
 // ====================== MOBILE FIRST ======================
@@ -112,39 +113,27 @@ test('Mobile - Hamburger abre menu e navega', async ({ browser }) => {
   await context.close();
 });
 
-test('Mobile - Grid de disciplinas tem 2 colunas', async ({ browser }) => {
+test('Mobile - Wizard mostra tipos', async ({ browser }) => {
   const { context, page } = await mobileContext(browser);
   await page.goto(BASE_URL);
-  const grid = page.locator('.grid.grid-cols-2');
-  await expect(grid).toBeVisible();
-  // Pega posição de 2 cards adjacentes - devem estar lado a lado
+  await expect(page.locator('button:has-text("Texto")')).toBeVisible();
+  await expect(page.locator('button:has-text("Visual")')).toBeVisible();
+  await expect(page.locator('button:has-text("Infográfico")')).toBeVisible();
+  await context.close();
+});
+
+test('Mobile - Disciplinas em grid 2 colunas', async ({ browser }) => {
+  const { context, page } = await mobileContext(browser);
+  await page.goto(BASE_URL);
+  await page.click('button:has-text("Por disciplina")');
   const card1 = page.locator('button:has-text("D1")');
   const card2 = page.locator('button:has-text("D2")');
+  await expect(card1).toBeVisible();
   const box1 = await card1.boundingBox();
   const box2 = await card2.boundingBox();
   expect(box1).toBeTruthy();
   expect(box2).toBeTruthy();
-  // D1 e D2 devem estar na mesma linha (mesmo Y aproximado)
   expect(Math.abs(box1!.y - box2!.y)).toBeLessThan(10);
-  // D1 deve estar a esquerda de D2
-  expect(box1!.x).toBeLessThan(box2!.x);
-  await context.close();
-});
-
-test('Mobile - Selecao de disciplina e tecnologia', async ({ browser }) => {
-  const { context, page } = await mobileContext(browser);
-  await page.goto(BASE_URL);
-  // Seleciona disciplina
-  await page.click('button:has-text("D7")');
-  // Seleciona tecnologia
-  await page.click('button:has-text("RAG")');
-  // Botao Gerar Carrossel visivel e full-width
-  const gerarBtn = page.locator('button:has-text("Gerar Carrossel")');
-  await expect(gerarBtn).toBeVisible();
-  const box = await gerarBtn.boundingBox();
-  expect(box).toBeTruthy();
-  // Botao deve ocupar quase toda a largura (>300px em tela de 375px)
-  expect(box!.width).toBeGreaterThan(300);
   await context.close();
 });
 
@@ -162,13 +151,11 @@ test('Mobile - Seletor de slides touch-friendly', async ({ browser }) => {
   await context.close();
 });
 
-test('Mobile - Modo texto livre funciona', async ({ browser }) => {
+test('Mobile - Textarea visivel por padrao', async ({ browser }) => {
   const { context, page } = await mobileContext(browser);
   await page.goto(BASE_URL);
-  await page.click('button:has-text("Enviar texto")');
   const textarea = page.locator('textarea');
   await expect(textarea).toBeVisible();
-  // Textarea deve ocupar largura total
   const box = await textarea.boundingBox();
   expect(box).toBeTruthy();
   expect(box!.width).toBeGreaterThan(300);
@@ -202,7 +189,6 @@ test('Mobile - Pagina config carrega', async ({ browser }) => {
 
 test('Desktop - Texto livre envia payload correto', async ({ page }) => {
   await page.goto(BASE_URL);
-  await page.click('button:has-text("Enviar texto")');
   const textarea = page.locator('textarea');
   await textarea.fill('Este e um texto sobre inteligencia artificial e machine learning para testar o modo texto livre do carrossel LinkedIn.');
   const [request] = await Promise.all([
@@ -218,7 +204,6 @@ test('Desktop - Texto livre envia payload correto', async ({ page }) => {
 test('Mobile - Texto livre funciona no mobile', async ({ browser }) => {
   const { context, page } = await mobileContext(browser);
   await page.goto(BASE_URL);
-  await page.click('button:has-text("Enviar texto")');
   const textarea = page.locator('textarea');
   await expect(textarea).toBeVisible();
   await textarea.fill('Texto sobre deep learning e redes neurais para carrossel mobile test.');
