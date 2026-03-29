@@ -370,7 +370,7 @@
 	</div>
 
 	<!-- Design Systems -->
-	<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-5 sm:p-6 mb-6">
+	<div id="design-systems" class="bg-bg-card rounded-2xl border border-teal-4/30 p-5 sm:p-6 mb-6">
 		<h3 class="font-semibold text-steel-6 mb-1 flex items-center gap-2">
 			<span class="w-2 h-2 rounded-full bg-[#A78BFA]"></span>
 			Design Systems (Marcas)

@@ -9,7 +9,8 @@
 		{ href: '/carrossel', label: 'Carrossel' },
 		{ href: '/historico', label: 'Historico' },
 		{ href: '/agentes', label: 'Agentes' },
-		{ href: '/configuracoes', label: 'Config' }
+		{ href: '/configuracoes', label: 'Config' },
+		{ href: '/configuracoes#design-systems', label: 'Design' }
 	];
 </script>
 

@@ -61,9 +61,9 @@ test('Desktop - Navegacao funciona', async ({ page }) => {
 test('Desktop - Wizard mostra tipos e textarea', async ({ page }) => {
   await page.goto(BASE_URL);
   // Tipos de carrossel visíveis
-  await expect(page.locator('button:has-text("Texto")')).toBeVisible();
-  await expect(page.locator('button:has-text("Visual")')).toBeVisible();
-  await expect(page.locator('button:has-text("Infográfico")')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Texto Slides com texto' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Visual Texto \+ diagramas/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Infográfico/ })).toBeVisible();
   // Textarea visível por padrão (modo texto livre)
   await expect(page.locator('textarea')).toBeVisible();
 });
@@ -116,9 +116,9 @@ test('Mobile - Hamburger abre menu e navega', async ({ browser }) => {
 test('Mobile - Wizard mostra tipos', async ({ browser }) => {
   const { context, page } = await mobileContext(browser);
   await page.goto(BASE_URL);
-  await expect(page.locator('button:has-text("Texto")')).toBeVisible();
-  await expect(page.locator('button:has-text("Visual")')).toBeVisible();
-  await expect(page.locator('button:has-text("Infográfico")')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Texto Slides com texto' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Visual Texto \+ diagramas/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Infográfico/ })).toBeVisible();
   await context.close();
 });
 
