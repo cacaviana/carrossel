@@ -528,17 +528,19 @@
 						<h4 class="font-semibold text-steel-6 text-sm mb-3">Checklist</h4>
 						<div class="space-y-2 text-xs">
 							<div class="flex items-center gap-2">
-								<span class="{$carrosselAtual.slides.length >= 6 ? 'text-green-500' : 'text-steel-4'}">{$carrosselAtual.slides.length >= 6 ? '✓' : '○'}</span>
-								<span>Mín 6 slides ({$carrosselAtual.slides.length})</span>
+								<span class="text-green-500">✓</span>
+								<span>{totalSlides} {totalSlides === 1 ? 'slide' : 'slides'}</span>
 							</div>
-							<div class="flex items-center gap-2">
-								<span class="{hasCode ? 'text-green-500' : 'text-steel-4'}">{hasCode ? '✓' : '○'}</span>
-								<span>Slide de código</span>
-							</div>
-							<div class="flex items-center gap-2">
-								<span class="{hasCta ? 'text-green-500' : 'text-steel-4'}">{hasCta ? '✓' : '○'}</span>
-								<span>CTA com IT Valley</span>
-							</div>
+							{#if totalSlides > 1}
+								<div class="flex items-center gap-2">
+									<span class="{hasCode ? 'text-green-500' : 'text-steel-4'}">{hasCode ? '✓' : '○'}</span>
+									<span>Slide de código</span>
+								</div>
+								<div class="flex items-center gap-2">
+									<span class="{hasCta ? 'text-green-500' : 'text-steel-4'}">{hasCta ? '✓' : '○'}</span>
+									<span>CTA com IT Valley</span>
+								</div>
+							{/if}
 							<div class="flex items-center gap-2">
 								<span class="{hasImages ? 'text-green-500' : 'text-steel-4'}">{hasImages ? '✓' : '○'}</span>
 								<span>Imagens geradas</span>

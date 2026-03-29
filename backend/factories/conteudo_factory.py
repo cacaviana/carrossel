@@ -29,23 +29,26 @@ TIPO_INSTRUCOES = {
     "texto": (
         "ESTILO: Carrossel de TEXTO TECNICO. "
         "Slides com headlines, bullets, codigo real. "
-        "Foco em conteudo escrito claro e didatico."
+        "Foco em conteudo escrito claro e didatico. "
+        "REGRA: O conteudo DEVE seguir EXATAMENTE o tema que o usuario escreveu."
     ),
     "visual": (
         "ESTILO: Carrossel VISUAL com ilustracoes e diagramas. "
+        "REGRA: O conteudo DEVE seguir EXATAMENTE o tema que o usuario escreveu. "
         "Cada slide DEVE incluir um campo 'illustration_description' com uma descricao DETALHADA "
-        "do diagrama, fluxograma, grafico ou ilustracao tecnica que o Gemini deve gerar. "
-        "Exemplos: fluxograma mostrando o pipeline de dados, diagrama de arquitetura, "
-        "grafico comparativo antes/depois, visualizacao de como o algoritmo funciona passo a passo. "
+        "do diagrama, fluxograma, grafico ou ilustracao que explica o TEMA DO USUARIO. "
         "O texto do slide deve ser CURTO (1-2 linhas) — a ilustracao e o foco principal. "
         "Use o campo 'illustration_description' em TODOS os slides de conteudo."
     ),
     "infografico": (
         "ESTILO: INFOGRAFICO unico — 1 slide denso e visual. "
+        "REGRA CRITICA: O infografico DEVE ser sobre EXATAMENTE o tema que o usuario escreveu. "
+        "NAO invente outro tema. Use as palavras, conceitos e dados do texto do usuario. "
         "Crie um slide UNICO tipo 'infographic' com: "
-        "titulo impactante, secoes visuais com metricas/numeros grandes, "
-        "campo 'illustration_description' descrevendo o layout completo do infografico "
-        "(diagrama central, blocos de dados, setas, icones, fluxos). "
+        "titulo que reflita o tema do usuario, "
+        "campo 'illustration_description' descrevendo o layout visual do infografico "
+        "com diagramas, fluxos, metricas e secoes que explicam o tema do usuario. "
+        "Inclua 'bullets' com os dados/pontos-chave extraidos do texto do usuario. "
         "O infografico deve ser RICO visualmente — numeros grandes, cores, secoes bem definidas. "
         "NAO e carrossel, e UM UNICO SLIDE de alto impacto visual."
     ),
