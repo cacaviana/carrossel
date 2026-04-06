@@ -49,9 +49,30 @@
 				]);
 				if (copyRes.ok) {
 					const copyData = await copyRes.json();
-					textos = (copyData.saida?.slides || []).map((s: any) => ({
-						titulo: s.titulo || '', corpo: s.corpo || ''
-					}));
+					const saida = copyData.saida ?? {};
+					// LLM retorna slides em formatos variados
+					let copySlides: any[] = [];
+					if (Array.isArray(saida.slides) && saida.slides.length > 0) copySlides = saida.slides;
+					else if (saida.slide && typeof saida.slide === 'object') copySlides = [saida.slide];
+					else {
+						for (const k of Object.keys(saida)) {
+							const v = saida[k];
+							if (v && typeof v === 'object' && !Array.isArray(v) && Array.isArray(v.slides)) { copySlides = v.slides; break; }
+							if (v && typeof v === 'object' && !Array.isArray(v) && v.titulo) { copySlides = [v]; break; }
+						}
+					}
+					textos = copySlides.map((s: any) => {
+						let titulo = s.titulo || s.headline || '';
+						let corpo = s.corpo || s.conteudo || s.texto || s.texto_principal || s.subtitulo || '';
+						// Fallback: buscar em elementos[] (LLM às vezes retorna texto lá)
+						if ((!titulo || !corpo) && Array.isArray(s.elementos)) {
+							for (const el of s.elementos) {
+								if (!titulo && (el.tipo === 'titulo_principal' || el.tipo === 'titulo')) titulo = el.texto || el.conteudo || '';
+								if (!corpo && (el.tipo === 'card_principal' || el.tipo === 'corpo' || el.tipo === 'subtitulo')) corpo = el.texto || el.conteudo || '';
+							}
+						}
+						return { titulo, corpo };
+					});
 				}
 				if (pipRes.ok) {
 					const pipData = await pipRes.json();

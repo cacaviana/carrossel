@@ -28,10 +28,17 @@ export class CopyRepository {
     // LLM retorna em formatos variados — buscar slides em qualquer estrutura
     const slides = _findSlides(saida);
 
-    // headline/narrativa/cta podem estar no nivel raiz ou no primeiro slide
+    // headline/narrativa/cta podem estar no nivel raiz, no slide, ou em elementos[]
     const primeiroSlide = slides[0] ?? {};
-    const headline = saida.headline || primeiroSlide.titulo || primeiroSlide.headline || '';
-    const narrativa = saida.narrativa || primeiroSlide.subtitulo || primeiroSlide.narrativa || '';
+    let headline = saida.headline || primeiroSlide.titulo || primeiroSlide.headline || '';
+    let narrativa = saida.narrativa || primeiroSlide.subtitulo || primeiroSlide.narrativa || '';
+    // Fallback: buscar em elementos[] do slide
+    if ((!headline || !narrativa) && Array.isArray(primeiroSlide.elementos)) {
+      for (const el of primeiroSlide.elementos) {
+        if (!headline && (el.tipo === 'titulo_principal' || el.tipo === 'titulo')) headline = el.texto || el.conteudo || '';
+        if (!narrativa && (el.tipo === 'card_principal' || el.tipo === 'subtitulo' || el.tipo === 'credibilidade_footer')) narrativa = el.texto || el.conteudo || '';
+      }
+    }
     const ultimoSlide = slides[slides.length - 1] ?? {};
     const cta = saida.cta || (ultimoSlide.tipo === 'cta' ? ultimoSlide.texto || ultimoSlide.titulo : '') || '';
 
@@ -42,12 +49,22 @@ export class CopyRepository {
       cta,
       provider: saida._provider ?? 'anthropic',
       model: saida._model ?? '',
-      sequencia_slides: slides.map((s: any, i: number) => ({
-        titulo: s.titulo ?? '',
-        conteudo: s.corpo ?? s.conteudo ?? s.texto ?? s.texto_principal ?? s.subtitulo ?? '',
-        tipo: s.tipo ?? 'content',
-        ordem: s.indice ?? s.ordem ?? i,
-      })),
+      sequencia_slides: slides.map((s: any, i: number) => {
+        let titulo = s.titulo ?? '';
+        let conteudo = s.corpo ?? s.conteudo ?? s.texto ?? s.texto_principal ?? s.subtitulo ?? '';
+        if ((!titulo || !conteudo) && Array.isArray(s.elementos)) {
+          for (const el of s.elementos) {
+            if (!titulo && (el.tipo === 'titulo_principal' || el.tipo === 'titulo')) titulo = el.texto || el.conteudo || '';
+            if (!conteudo && (el.tipo === 'card_principal' || el.tipo === 'corpo')) conteudo = el.texto || el.conteudo || '';
+          }
+        }
+        return {
+          titulo,
+          conteudo,
+          tipo: s.tipo ?? 'content',
+          ordem: s.indice ?? s.ordem ?? i,
+        };
+      }),
     });
   }
 
