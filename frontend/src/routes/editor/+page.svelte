@@ -183,15 +183,20 @@
 
 	async function regenerarSlide(modo: 'texto' | 'tudo') {
 		const txt = textos[currentSlide];
-		if (!txt || regenerando) return;
+		if (regenerando) return;
 		regenerando = true;
+		ultimoFeedback = modo === 'texto' ? 'Corrigindo texto...' : 'Regenerando imagem...';
 		try {
-			const tipo = currentSlide === 0 ? 'cover' : currentSlide === slides.length - 1 ? 'cta' : 'content';
+			// Pra slide unico (thumb/post), sempre usar type 'cover'
+			const isUnico = slides.length === 1;
+			const tipo = isUnico ? 'cover' : (currentSlide === 0 ? 'cover' : currentSlide === slides.length - 1 ? 'cta' : 'content');
+			const titulo = txt?.titulo || '';
+			const corpo = txt?.corpo || '';
 			const slideData = tipo === 'cover'
-				? { type: 'cover', headline: txt.titulo, subline: txt.corpo }
+				? { type: 'cover', headline: titulo, subline: corpo }
 				: tipo === 'cta'
-					? { type: 'cta', headline: txt.titulo, subline: txt.corpo, tags: [] }
-					: { type: 'content', title: txt.titulo, bullets: txt.corpo.split('\n').filter((l: string) => l.trim()), etapa: '' };
+					? { type: 'cta', headline: titulo, subline: corpo, tags: [] }
+					: { type: 'content', title: titulo, bullets: corpo.split('\n').filter((l: string) => l.trim()), etapa: '' };
 
 			if (modo === 'texto') {
 				// Sempre mandar a imagem ORIGINAL (nao a ultima tentativa falha)
@@ -231,10 +236,21 @@
 					if (data.images?.[0]) {
 						const newImg = data.images[0].startsWith('data:') ? data.images[0] : `data:image/png;base64,${data.images[0]}`;
 						slides = slides.map((s, i) => i === currentSlide ? newImg : s);
+						ultimoFeedback = 'Imagem regenerada!';
+						setTimeout(() => ultimoFeedback = '', 3000);
+					} else {
+						ultimoFeedback = 'Gemini nao retornou imagem. Tente novamente.';
+						setTimeout(() => ultimoFeedback = '', 5000);
 					}
+				} else {
+					ultimoFeedback = 'Erro ao regenerar imagem.';
+					setTimeout(() => ultimoFeedback = '', 5000);
 				}
 			}
-		} catch {}
+		} catch (e) {
+			ultimoFeedback = 'Erro: ' + (e instanceof Error ? e.message : 'falha na requisicao');
+			setTimeout(() => ultimoFeedback = '', 5000);
+		}
 		finally { regenerando = false; }
 	}
 
