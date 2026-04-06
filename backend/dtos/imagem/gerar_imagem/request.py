@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel
+
+FormatoValido = Literal["carrossel", "post_unico", "thumbnail_youtube", "capa_reels"]
 
 
 class SlideInput(BaseModel):
@@ -23,6 +27,7 @@ class GerarImagemRequest(BaseModel):
     foto_criador: str | None = None
     design_system: str | None = None
     brand_slug: str | None = None
+    formato: FormatoValido = "carrossel"
 
 
 class GerarImagemSlideRequest(BaseModel):
@@ -32,3 +37,4 @@ class GerarImagemSlideRequest(BaseModel):
     foto_criador: str | None = None
     design_system: str | None = None
     reference_image: str | None = None
+    formato: FormatoValido = "carrossel"

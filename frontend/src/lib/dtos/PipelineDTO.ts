@@ -1,5 +1,5 @@
 export type PipelineStatus = 'pendente' | 'executando' | 'em_execucao' | 'aguardando_aprovacao' | 'aprovado' | 'rejeitado' | 'completo' | 'erro' | 'cancelado';
-export type FormatoConteudo = 'carrossel' | 'post_unico' | 'thumbnail_youtube';
+export type FormatoConteudo = 'carrossel' | 'post_unico' | 'thumbnail_youtube' | 'capa_reels';
 export type EtapaPipeline = 'strategist' | 'copywriter' | 'hook_specialist' | 'art_director' | 'image_generator' | 'brand_gate' | 'content_critic';
 
 export class PipelineDTO {
@@ -60,7 +60,8 @@ export class PipelineDTO {
     const labels: Record<FormatoConteudo, string> = {
       carrossel: 'Carrossel',
       post_unico: 'Post Unico',
-      thumbnail_youtube: 'Thumbnail YouTube'
+      thumbnail_youtube: 'Thumbnail YouTube',
+      capa_reels: 'Capa Reels'
     };
     return labels[this.formato] ?? this.formato;
   }

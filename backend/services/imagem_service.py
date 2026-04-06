@@ -17,9 +17,10 @@ async def gerar_imagem_slide(
     foto_criador: str | None = None,
     design_system: str | None = None,
     brand_slug: str | None = None,
+    formato: str = "carrossel",
 ) -> str | None:
     position = slide_index + 1
-    model, payload = build_payload(slide, position, total_slides, foto_criador, design_system, brand_slug=brand_slug)
+    model, payload = build_payload(slide, position, total_slides, foto_criador, design_system, brand_slug=brand_slug, formato=formato)
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         res = await client.post(

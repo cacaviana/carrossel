@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { ExportService } from '$lib/services/ExportService';
 	import { ImagemService } from '$lib/services/ImagemService';
+	import { PipelineService } from '$lib/services/PipelineService';
+	import { getDims } from '$lib/utils/dimensions';
 	import { ScoreDTO, scoreCor } from '$lib/dtos/ScoreDTO';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
@@ -21,6 +23,7 @@
 	let driveLink = $state('');
 	let copiado = $state(false);
 	let erro = $state('');
+	let formato = $state('carrossel');
 
 	function scoreBg(valor: number): string {
 		if (valor >= 8) return 'bg-green/10';
@@ -57,14 +60,16 @@
 
 	onMount(async () => {
 		try {
-			const [s, l, img] = await Promise.all([
+			const [s, l, img, pip] = await Promise.all([
 				ExportService.buscarScore(pipelineId),
 				ExportService.buscarLegenda(pipelineId),
-				ImagemService.buscar(pipelineId)
+				ImagemService.buscar(pipelineId),
+				PipelineService.buscar(pipelineId)
 			]);
 			score = s;
 			legenda = l;
 			slides = img.slides;
+			formato = pip.formato || 'carrossel';
 		} catch {
 			erro = 'Erro ao carregar dados de export';
 		} finally {
@@ -116,7 +121,7 @@
 				<div class="bg-bg-code rounded-xl overflow-hidden">
 					{#if slides.length > 0}
 						{@const currentSlide = slides[slideAtual]}
-						<div class="aspect-[4/5] flex items-center justify-center relative">
+						<div class="flex items-center justify-center relative" style="aspect-ratio: {getDims(formato).cssRatio}">
 							{#if currentSlide?.variacoes?.[0]?.base64}
 								<img src={currentSlide.variacoes[0].base64} alt="Slide {slideAtual + 1}" class="w-full h-full object-contain" />
 							{:else}

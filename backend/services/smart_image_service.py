@@ -31,6 +31,7 @@ async def gerar_imagens_smart(
     foto_criador: str | None = None,
     brand_slug: str | None = None,
     avatar_mode: str = "livre",
+    formato: str = "carrossel",
 ) -> list[str | None]:
     """Gera imagens com fallback inteligente pra texto errado.
 
@@ -53,6 +54,7 @@ async def gerar_imagens_smart(
                         client, slide, position, total,
                         gemini_api_key, foto_criador, brand_slug, brand,
                         avatar_mode=avatar_mode,
+                        formato=formato,
                     )
                 return (i, img)
             except Exception as e:
@@ -86,11 +88,12 @@ async def _gerar_slide_smart(
     brand_slug: str | None,
     brand: dict | None,
     avatar_mode: str = "livre",
+    formato: str = "carrossel",
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
     # Passo 1: Gemini gera imagem completa (otimista)
-    model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode)
+    model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato)
     res = await client.post(
         API_URL.format(model=model),
         json=payload,
@@ -153,9 +156,10 @@ async def _gerar_slide_smart(
     return result["image"]
 
 
-def _build_bg_only_prompt(slide: dict, position: int, total: int, brand_slug: str | None) -> str:
+def _build_bg_only_prompt(slide: dict, position: int, total: int, brand_slug: str | None, formato: str = "carrossel") -> str:
     """Prompt pra gerar APENAS o fundo, sem texto."""
     from services.brand_prompt_builder import carregar_brand, build_design_system_text
+    from utils.dimensions import get_prompt_size_str
 
     brand = carregar_brand(brand_slug) if brand_slug else None
     if brand:
@@ -163,8 +167,10 @@ def _build_bg_only_prompt(slide: dict, position: int, total: int, brand_slug: st
     else:
         ds = "Professional background. Premium style."
 
+    size_str = get_prompt_size_str(formato)
+
     return (
-        f"Generate a background image for a LinkedIn carousel slide (1080x1350px). "
+        f"Generate a background image for a social media slide ({size_str}). "
         f"CRITICAL: NO TEXT whatsoever. No letters, no words, no numbers. "
         f"This is ONLY a background/atmosphere image with decorative elements. "
         f"{ds} "

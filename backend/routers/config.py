@@ -180,7 +180,7 @@ async def editor_salvar_pdf(data: dict):
     logo_data = data.get("logo", "")
     if not slides_data or not logo_data:
         raise HTTPException(status_code=400, detail="slides e logo obrigatorios")
-    return _salvar_pdf(slides_data, logo_data, borda_cor_hex=data.get("borda_cor"))
+    return _salvar_pdf(slides_data, logo_data, borda_cor_hex=data.get("borda_cor"), formato=data.get("formato", "carrossel"))
 
 
 @router.get("/editor/slides/{brand}")

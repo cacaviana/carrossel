@@ -9,9 +9,14 @@ from pathlib import Path
 import httpx
 from PIL import Image, ImageDraw
 
+from utils.dimensions import get_dims
 
-def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = None) -> dict:
+
+def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = None, formato: str = "carrossel") -> dict:
     """Recebe slides + logo + posicoes e gera PDF. Retorna {pdf_base64, total_slides}."""
+    dims = get_dims(formato)
+    target_w = dims["width"]
+    target_h = dims["height"]
 
     # Decodificar logo
     logo_raw = logo_data.split(",")[1] if "," in logo_data else logo_data
@@ -33,8 +38,8 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
         logo_y = int(s.get("logo_y", 1290))
 
         w, h = slide_img.size
-        scale_x = w / 1080
-        scale_y = h / 1350
+        scale_x = w / target_w
+        scale_y = h / target_h
         actual_size = int(logo_size * scale_x)
         actual_x = int(logo_x * scale_x)
         actual_y = int(logo_y * scale_y)
@@ -69,8 +74,8 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
             slide_img.paste(circular, (paste_x, paste_y), circular)
 
         page = slide_img.convert("RGB")
-        if page.size != (1080, 1350):
-            page = page.resize((1080, 1350), Image.LANCZOS)
+        if page.size != (target_w, target_h):
+            page = page.resize((target_w, target_h), Image.LANCZOS)
         pil_pages.append(page)
 
     # Gerar PDF

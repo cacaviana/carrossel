@@ -31,15 +31,16 @@ def build_payload(
     design_system: str | None = None,
     brand_slug: str | None = None,
     avatar_mode: str = "livre",
+    formato: str = "carrossel",
 ) -> tuple[str, dict]:
     """Retorna (model, payload) prontos para envio a API Gemini."""
     model = select_model(slide, position, total)
 
     # Se tem brand_slug, usa Brand Profile. Senao, fallback legacy.
     if brand_slug:
-        prompt = brand_build_prompt(slide, position, total, brand_slug)
+        prompt = brand_build_prompt(slide, position, total, brand_slug, formato=formato)
     else:
-        prompt = legacy_build_prompt(slide, position, total, design_system)
+        prompt = legacy_build_prompt(slide, position, total, design_system, formato=formato)
 
     slide_type = slide.get("type", "content")
 

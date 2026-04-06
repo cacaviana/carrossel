@@ -38,7 +38,7 @@
 	const avatarOptions = $derived(
 		formatoAtual === 'thumbnail_youtube'
 			? [{ id: 'sim' as AvatarMode, label: 'Com avatar' }]
-			: formatoAtual === 'post_unico'
+			: formatoAtual === 'post_unico' || formatoAtual === 'capa_reels'
 				? [{ id: 'sim' as AvatarMode, label: 'Com avatar' }, { id: 'sem' as AvatarMode, label: 'Sem avatar' }]
 				: [{ id: 'capa' as AvatarMode, label: 'Avatar na capa' }, { id: 'livre' as AvatarMode, label: 'Avatar livre' }, { id: 'sem' as AvatarMode, label: 'Sem avatar' }]
 	);
@@ -66,6 +66,7 @@
 		carrossel: 'Carrossel',
 		post_unico: 'Post Unico',
 		thumbnail_youtube: 'Thumbnail YouTube',
+		capa_reels: 'Capa Reels',
 		funil: 'Funil de Conteudo'
 	};
 
@@ -73,6 +74,7 @@
 		carrossel: '1080 x 1350 · LinkedIn, Instagram',
 		post_unico: '1080 x 1080 · Instagram, Facebook, LinkedIn',
 		thumbnail_youtube: '1280 x 720 · YouTube',
+		capa_reels: '1080 x 1920 · Instagram Reels, TikTok',
 		funil: 'Mix de formatos · Todas as plataformas'
 	};
 

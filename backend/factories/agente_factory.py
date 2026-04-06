@@ -50,6 +50,14 @@ AGENTES_LLM = [
         "arquivo": "copywriter-thumbnail.md",
     },
     {
+        "slug": "copywriter-reels",
+        "nome": "Copywriter Reels",
+        "descricao": "Cria capas de Reels (1080x1920, 9:16): maximo 3-4 palavras, vertical, impacto visual pra gerar clique.",
+        "tipo": "llm",
+        "ordem_pipeline": None,
+        "arquivo": "copywriter-reels.md",
+    },
+    {
         "slug": "hook_specialist",
         "nome": "Hook Specialist",
         "descricao": "Gera 3 ganchos A/B/C com abordagens diferentes a partir da copy completa.",

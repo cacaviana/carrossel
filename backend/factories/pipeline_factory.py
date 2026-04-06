@@ -24,7 +24,8 @@ ETAPAS_APROVACAO = {
     "brand_gate": "AP-4",
 }
 
-FORMATOS_VALIDOS = ["carrossel", "post_unico", "thumbnail_youtube"]
+from utils.dimensions import FORMATS
+FORMATOS_VALIDOS = list(FORMATS.keys())
 
 
 class PipelineFactory:

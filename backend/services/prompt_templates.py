@@ -4,6 +4,8 @@ Paleta: roxo lilas (#A78BFA), verde neon (#34D399), amber (#FBBF24), vermelho (#
 Fundo: #0A0A0F, cards: #12121A, gradiente: #1a0a2e -> #0a1628.
 """
 
+from utils.dimensions import get_dims, get_prompt_size_str
+
 FOTO_INSTRUCTION = (
     "NAO desenhar rosto humano. A foto real e adicionada na pos-producao."
 )
@@ -24,35 +26,38 @@ DESIGN_SYSTEM = (
 )
 
 
-def build_prompt(slide: dict, position: int, total: int, design_system: str | None = None) -> str:
+def build_prompt(slide: dict, position: int, total: int, design_system: str | None = None, formato: str = "carrossel") -> str:
     """Constroi prompt de imagem baseado no tipo e posicao do slide."""
     ds = design_system or DESIGN_SYSTEM
     slide_type = slide.get("type", "content")
     counter = f"{position}/{total}"
+    size_str = get_prompt_size_str(formato)
+    dims = get_dims(formato)
+    ratio = dims["ratio"]
 
     # Slides com ilustração
     illustration = slide.get("illustration_description", "")
     if illustration:
-        return _visual_prompt(slide, counter, ds, illustration)
+        return _visual_prompt(slide, counter, ds, illustration, size_str, ratio)
 
     if slide_type == "infographic":
-        return _infographic_prompt(slide, ds)
+        return _infographic_prompt(slide, ds, size_str, ratio)
     if slide_type == "cover":
-        return _cover_prompt(slide, ds)
+        return _cover_prompt(slide, ds, size_str, ratio)
     if slide_type == "code":
-        return _code_prompt(slide, counter, ds)
+        return _code_prompt(slide, counter, ds, size_str, ratio)
     if slide_type == "comparison":
-        return _comparison_prompt(slide, counter, ds)
+        return _comparison_prompt(slide, counter, ds, size_str, ratio)
     if slide_type == "cta":
-        return _cta_prompt(slide, ds)
-    return _content_prompt(slide, counter, ds)
+        return _cta_prompt(slide, ds, size_str, ratio)
+    return _content_prompt(slide, counter, ds, size_str, ratio)
 
 
-def _cover_prompt(slide: dict, ds: str) -> str:
+def _cover_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Badge pill verde (#34D399) no topo: 'Carlos Viana'. "
         f"Headline ENORME em branco, ocupando a maior parte do slide, "
         f"com palavras-chave em roxo (#A78BFA) bold: '{headline}'. "
@@ -65,13 +70,13 @@ def _cover_prompt(slide: dict, ds: str) -> str:
     )
 
 
-def _content_prompt(slide: dict, counter: str, ds: str) -> str:
+def _content_prompt(slide: dict, counter: str, ds: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     title = slide.get("title", "")
     etapa = slide.get("etapa", "")
     bullets = slide.get("bullets", [])
     bullets_text = "\n".join(f"→ {b}" for b in bullets)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Card central GRANDE glassmorphism (vidro fosco semi-transparente, borda roxa sutil). "
         f"Badge pill roxo no topo do card: '{etapa}'. "
         f"Titulo GRANDE em branco bold: '{title}'. "
@@ -82,11 +87,11 @@ def _content_prompt(slide: dict, counter: str, ds: str) -> str:
     )
 
 
-def _code_prompt(slide: dict, counter: str, ds: str) -> str:
+def _code_prompt(slide: dict, counter: str, ds: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     code = slide.get("code", "")
     caption = slide.get("caption", "")
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). "
         f"Badge pill verde (#34D399) no topo: 'CODIGO REAL'. "
         f"Borda: 1px #34D399, fundo: rgba(52,211,153,0.1), texto verde (#34D399). "
@@ -104,7 +109,7 @@ def _code_prompt(slide: dict, counter: str, ds: str) -> str:
     )
 
 
-def _comparison_prompt(slide: dict, counter: str, ds: str) -> str:
+def _comparison_prompt(slide: dict, counter: str, ds: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     left_label = slide.get("left_label", "")
     right_label = slide.get("right_label", "")
     left_items = slide.get("left_items", [])
@@ -112,7 +117,7 @@ def _comparison_prompt(slide: dict, counter: str, ds: str) -> str:
     left_text = ", ".join(left_items)
     right_text = ", ".join(right_items)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). Card central (#12121A), borda roxa sutil. "
         f"Dois blocos lado a lado com gap dentro do card. "
         f"Bloco ESQUERDO: fundo vermelho escuro (rgba(248,113,113,0.09)), "
@@ -125,13 +130,13 @@ def _comparison_prompt(slide: dict, counter: str, ds: str) -> str:
     )
 
 
-def _cta_prompt(slide: dict, ds: str) -> str:
+def _cta_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     tags = slide.get("tags", [])
     tags_text = ", ".join(tags)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"{FOTO_INSTRUCTION} Circulo GRANDE no topo (foto de perfil principal). "
         f"Headline GRANDE em branco bold: '{headline}'. "
         f"Texto em cinza (#9896A3): '{subline}'. "
@@ -142,10 +147,10 @@ def _cta_prompt(slide: dict, ds: str) -> str:
     )
 
 
-def _visual_prompt(slide: dict, counter: str, ds: str, illustration: str) -> str:
+def _visual_prompt(slide: dict, counter: str, ds: str, illustration: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     title = slide.get("title", slide.get("headline", ""))
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F). "
         f"Titulo em branco (#FFFFFF), Outfit Semibold, CURTO: '{title}'. "
         f"A MAIOR PARTE DO SLIDE deve ser ocupada por uma ILUSTRACAO/DIAGRAMA tecnico: "
@@ -158,13 +163,13 @@ def _visual_prompt(slide: dict, counter: str, ds: str, illustration: str) -> str
     )
 
 
-def _infographic_prompt(slide: dict, ds: str) -> str:
+def _infographic_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 portrait", ratio: str = "4:5") -> str:
     title = slide.get("title", slide.get("headline", ""))
     illustration = slide.get("illustration_description", "")
     bullets = slide.get("bullets", [])
     bullets_text = " | ".join(bullets) if bullets else ""
     return (
-        f"Crie INFOGRAFICO LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
+        f"Crie INFOGRAFICO LinkedIn {ratio} ({size_str}). DESIGN: {ds} "
         f"FUNDO: preto profundo (#0A0A0F) com gradiente sutil diagonal. "
         f"Titulo GRANDE no topo em branco (#FFFFFF), Outfit Semibold: '{title}'. "
         f"LAYOUT INFOGRAFICO DENSO E VISUAL com multiplas secoes: "

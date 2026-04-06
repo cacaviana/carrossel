@@ -378,6 +378,7 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         gemini_api_key=gemini_api_key,
         brand_slug=brand_slug,
         avatar_mode=avatar_mode,
+        formato=formato,
     )
 
     imagens_result = []

@@ -14,6 +14,7 @@ import httpx
 
 from mappers.imagem_mapper import extract_image_from_response
 from services.brand_prompt_builder import carregar_brand, build_design_system_text
+from utils.dimensions import get_dims, get_prompt_size_str
 
 TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 from utils.constants import GEMINI_API_URL as API_URL
@@ -23,6 +24,7 @@ async def gerar_slides_com_texto_exato(
     slides: list[dict],
     brand_slug: str = "",
     gemini_api_key: str = "",
+    formato: str = "carrossel",
 ) -> list[str | None]:
     """Gera slides com texto garantido.
 
@@ -34,17 +36,18 @@ async def gerar_slides_com_texto_exato(
 
     brand = carregar_brand(brand_slug) or _default_brand()
     total = len(slides)
+    dims = get_dims(formato)
     results: list[str | None] = []
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         for i, slide in enumerate(slides):
             try:
                 # 1. Gerar fundo bonito sem texto
-                bg = await _gerar_fundo(client, slide, i + 1, total, brand, gemini_api_key)
+                bg = await _gerar_fundo(client, slide, i + 1, total, brand, gemini_api_key, formato=formato)
 
                 # 2. Renderizar texto por cima via HTML/CSS
-                html = _build_slide_html(slide, i + 1, total, brand, bg)
-                img_b64 = await _screenshot(html)
+                html = _build_slide_html(slide, i + 1, total, brand, bg, formato=formato)
+                img_b64 = await _screenshot(html, dims["width"], dims["height"])
                 results.append(img_b64)
 
                 try:
@@ -64,13 +67,14 @@ async def gerar_slides_com_texto_exato(
     return results
 
 
-async def _gerar_fundo(client, slide, position, total, brand, api_key):
+async def _gerar_fundo(client, slide, position, total, brand, api_key, formato: str = "carrossel"):
     """Gemini gera apenas o fundo/arte, sem texto nenhum."""
     visual = brand.get("visual", {})
     cores = brand.get("cores", {})
+    size_str = get_prompt_size_str(formato)
 
     prompt = (
-        f"Generate a beautiful background image for a carousel slide (1080x1350px). "
+        f"Generate a beautiful background image for a slide ({size_str}). "
         f"CRITICAL: absolutely NO TEXT, NO LETTERS, NO WORDS, NO NUMBERS anywhere in the image. "
         f"This is ONLY a decorative background. "
         f"{visual.get('estilo_fundo', 'Dark gradient background.')} "
@@ -95,8 +99,11 @@ async def _gerar_fundo(client, slide, position, total, brand, api_key):
     return extract_image_from_response(res.json())
 
 
-def _build_slide_html(slide, position, total, brand, bg_b64=None):
+def _build_slide_html(slide, position, total, brand, bg_b64=None, formato: str = "carrossel"):
     """Monta HTML bonito com fundo Gemini e texto exato."""
+    dims = get_dims(formato)
+    slide_w = dims["width"]
+    slide_h = dims["height"]
     cores = brand.get("cores", {})
     fontes = brand.get("fontes", {})
     elementos = brand.get("elementos", {})
@@ -130,8 +137,8 @@ def _build_slide_html(slide, position, total, brand, bg_b64=None):
 <link href="https://fonts.googleapis.com/css2?family={fonte.replace(' ','+')}:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * {{ margin:0; padding:0; box-sizing:border-box; }}
-body {{ width:1080px; height:1350px; overflow:hidden; font-family:'{fonte}',sans-serif; background:{fundo}; color:{texto_cor}; }}
-.slide {{ width:1080px; height:1350px; position:relative; display:flex; flex-direction:column; {bg_css} }}
+body {{ width:{slide_w}px; height:{slide_h}px; overflow:hidden; font-family:'{fonte}',sans-serif; background:{fundo}; color:{texto_cor}; }}
+.slide {{ width:{slide_w}px; height:{slide_h}px; position:relative; display:flex; flex-direction:column; {bg_css} }}
 .overlay {{ position:absolute; inset:0; background:rgba(0,0,0,0.15); }}
 .content {{ position:relative; z-index:1; flex:1; display:flex; flex-direction:column; padding:60px 56px; }}
 .badge {{ display:inline-flex; align-self:flex-start; padding:10px 28px; border-radius:9999px; font-size:16px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:28px; background:rgba({_hex_rgb(principal)},0.15); color:{principal}; border:1px solid rgba({_hex_rgb(principal)},0.3); backdrop-filter:blur(8px); }}
@@ -211,11 +218,11 @@ def _hex_rgb(hex_color):
     return "167,139,250"
 
 
-async def _screenshot(html: str) -> str:
+async def _screenshot(html: str, width: int = 1080, height: int = 1350) -> str:
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        page = await browser.new_page(viewport={"width": 1080, "height": 1350})
+        page = await browser.new_page(viewport={"width": width, "height": height})
         await page.set_content(html)
         await page.wait_for_load_state("networkidle")
         await page.wait_for_timeout(2000)

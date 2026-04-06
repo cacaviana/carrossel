@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { API_BASE } from '$lib/api';
+	import { getDims } from '$lib/utils/dimensions';
 	import SlideDotsNav from '$lib/components/ui/SlideDotsNav.svelte';
 
 	const API = API_BASE;
@@ -28,9 +29,11 @@
 	let salvandoDrive = $state(false);
 	let driveSalvo = $state('');
 	let pipelineTema = $state('');
+	let formato = $state('carrossel');
 
 	const total = $derived(slides.length);
 	const currentImage = $derived(slides[currentSlide] || '');
+	const dims = $derived(getDims(formato));
 
 	onMount(async () => {
 		const pipelineId = page.url.searchParams.get('pipeline');
@@ -53,6 +56,7 @@
 				if (pipRes.ok) {
 					const pipData = await pipRes.json();
 					pipelineTema = pipData.tema || '';
+					formato = pipData.formato || 'carrossel';
 				}
 			} catch {}
 		}
@@ -80,7 +84,7 @@
 			} catch {}
 		}
 
-		logoPositions = slides.map(() => ({ x: 50, y: 1280 }));
+		logoPositions = slides.map(() => ({ x: 50, y: getDims(formato).h - 70 }));
 		logoSize = slides.map(() => 60);
 		logoModo = slides.map(() => 'rodape' as const);
 		slidesOriginal = [...slides];
@@ -126,7 +130,7 @@
 			const res = await fetch(`${API}/api/gerar-imagem`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ slides: allSlides, brand_slug: brandSlug }),
+				body: JSON.stringify({ slides: allSlides, brand_slug: brandSlug, formato }),
 			});
 			if (res.ok) {
 				const data = await res.json();
@@ -185,6 +189,7 @@
 					body: JSON.stringify({
 						slides: [slideData],
 						brand_slug: brandSlug,
+						formato,
 					}),
 				});
 				if (res.ok) {
@@ -202,8 +207,8 @@
 	function handleClick(e: MouseEvent) {
 		if (!logoSrc) return;
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		const scaleX = 1080 / rect.width;
-		const scaleY = 1350 / rect.height;
+		const scaleX = dims.w / rect.width;
+		const scaleY = dims.h / rect.height;
 		logoPositions[currentSlide] = {
 			x: Math.round((e.clientX - rect.left) * scaleX),
 			y: Math.round((e.clientY - rect.top) * scaleY),
@@ -255,6 +260,7 @@
 			})),
 			logo: logoSrc,
 			borda_cor: logoBordaAtiva ? logoBordaCor : null,
+			formato,
 		};
 	}
 
@@ -366,7 +372,7 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="relative mx-auto rounded-xl overflow-hidden shadow-2xl cursor-crosshair"
-			style="max-width: 540px; aspect-ratio: 4/5;"
+			style="max-width: 540px; aspect-ratio: {dims.cssRatio};"
 			onclick={handleClick}
 		>
 			<img src={currentImage} alt="Slide {currentSlide + 1}" class="w-full h-full object-cover" />
@@ -375,9 +381,9 @@
 				<div
 					class="absolute rounded-full overflow-hidden shadow-lg pointer-events-none"
 					style="
-						left: {logoPositions[currentSlide].x / 1080 * 100}%;
-						top: {logoPositions[currentSlide].y / 1350 * 100}%;
-						width: {(logoSize[currentSlide] || 60) / 1080 * 100}%;
+						left: {logoPositions[currentSlide].x / dims.w * 100}%;
+						top: {logoPositions[currentSlide].y / dims.h * 100}%;
+						width: {(logoSize[currentSlide] || 60) / dims.w * 100}%;
 						aspect-ratio: 1;
 						transform: translate(-50%, -50%);
 						{logoBordaAtiva ? `border: 2px solid ${logoBordaCor}50; box-shadow: 0 0 12px ${logoBordaCor}40;` : ''}

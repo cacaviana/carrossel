@@ -12,6 +12,7 @@ PROMPT_MAP = {
     "carrossel": AGENTS_DIR / "copywriter-carrossel.md",
     "post_unico": AGENTS_DIR / "copywriter-post-unico.md",
     "thumbnail_youtube": AGENTS_DIR / "copywriter-thumbnail.md",
+    "capa_reels": AGENTS_DIR / "copywriter-reels.md",
 }
 FALLBACK_PROMPT = AGENTS_DIR / "copywriter.md"
 

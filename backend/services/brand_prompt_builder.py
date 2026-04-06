@@ -7,6 +7,8 @@ O prompt e montado dinamicamente a partir do perfil visual da marca.
 import json
 from pathlib import Path
 
+from utils.dimensions import get_dims, get_prompt_size_str
+
 DS_DIR = Path(__file__).parent.parent / "assets" / "design-systems"
 
 # Instrucao chroma key — o Gemini desenha circulo verde solido, o Pillow substitui pela foto real
@@ -171,8 +173,12 @@ def _rodape_instruction(elementos: dict, counter: str, brand_slug: str | None = 
         return f"Rodape simples: texto '{nome}' + '{counter}' no canto inferior. SEM circulo, SEM placeholder."
 
 
-def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "") -> str:
+def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "", formato: str = "carrossel") -> str:
     """Constroi prompt completo a partir do brand profile + tipo do slide."""
+    size_str = get_prompt_size_str(formato)
+    dims = get_dims(formato)
+    ratio = dims["ratio"]
+
     brand = carregar_brand(brand_slug) if brand_slug else None
     if not brand:
         # Tentar primeiro brand disponivel
@@ -180,7 +186,7 @@ def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "") -
         if brands:
             brand = carregar_brand(brands[0]["slug"])
     if not brand:
-        return f"Create a social media slide (1080x1350px). Title: \"{slide.get('headline') or slide.get('title', '')}\" Professional style."
+        return f"Create a social media slide ({size_str}). Title: \"{slide.get('headline') or slide.get('title', '')}\" Professional style."
 
     ds = build_design_system_text(brand)
     visual = brand.get("visual", {})
@@ -192,22 +198,22 @@ def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "") -
     # Illustration override
     illustration = slide.get("illustration_description", "")
     if illustration:
-        return _visual_prompt(slide, counter, ds, illustration, visual)
+        return _visual_prompt(slide, counter, ds, illustration, visual, size_str, ratio)
 
     rodape = _rodape_instruction(elementos, counter, brand_slug)
 
     if slide_type == "cover":
-        return _cover_prompt(slide, ds, visual, elementos, cores, rodape)
+        return _cover_prompt(slide, ds, visual, elementos, cores, rodape, size_str, ratio)
     if slide_type == "cta":
-        return _cta_prompt(slide, ds, visual, elementos, cores, counter, rodape, brand_slug)
+        return _cta_prompt(slide, ds, visual, elementos, cores, counter, rodape, brand_slug, size_str, ratio)
     if slide_type == "code":
-        return _code_prompt(slide, counter, ds, visual, cores, rodape)
+        return _code_prompt(slide, counter, ds, visual, cores, rodape, size_str, ratio)
     if slide_type == "comparison":
-        return _comparison_prompt(slide, counter, ds, visual, cores, rodape)
-    return _content_prompt(slide, counter, ds, visual, elementos, cores, rodape)
+        return _comparison_prompt(slide, counter, ds, visual, cores, rodape, size_str, ratio)
+    return _content_prompt(slide, counter, ds, visual, elementos, cores, rodape, size_str, ratio)
 
 
-def _cover_prompt(slide, ds, visual, elementos, cores, rodape):
+def _cover_prompt(slide, ds, visual, elementos, cores, rodape, size_str="1080x1350px, 4:5 portrait", ratio="4:5"):
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     badge = elementos.get("badge_topo", "")
@@ -215,7 +221,7 @@ def _cover_prompt(slide, ds, visual, elementos, cores, rodape):
     desenho = visual.get("estilo_desenho", "")
 
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Badge pill ({badge_cor}) no topo: '{badge}'. "
         f"Headline ENORME em {cores.get('texto_principal', 'branco')}, "
         f"com palavras-chave em {cores.get('acento_principal', '')} bold: '{headline}'. "
@@ -225,7 +231,7 @@ def _cover_prompt(slide, ds, visual, elementos, cores, rodape):
     )
 
 
-def _content_prompt(slide, counter, ds, visual, elementos, cores, rodape):
+def _content_prompt(slide, counter, ds, visual, elementos, cores, rodape, size_str="1080x1350px, 4:5 portrait", ratio="4:5"):
     title = slide.get("title", "")
     etapa = slide.get("etapa", "")
     bullets = slide.get("bullets", [])
@@ -233,7 +239,7 @@ def _content_prompt(slide, counter, ds, visual, elementos, cores, rodape):
     desenho = visual.get("estilo_desenho", "")
 
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Card central GRANDE com o estilo definido pelo design system. "
         f"Badge pill {cores.get('acento_principal', '')} no topo do card: '{etapa}'. "
         f"Titulo GRANDE em {cores.get('texto_principal', 'branco')} bold: '{title}'. "
@@ -244,11 +250,11 @@ def _content_prompt(slide, counter, ds, visual, elementos, cores, rodape):
     )
 
 
-def _code_prompt(slide, counter, ds, visual, cores, rodape):
+def _code_prompt(slide, counter, ds, visual, cores, rodape, size_str="1080x1350px, 4:5 portrait", ratio="4:5"):
     code = slide.get("code", "")
     caption = slide.get("caption", "")
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Badge pill {cores.get('acento_secundario', '')} no topo: 'CODIGO REAL'. "
         f"Janela de terminal estilo macOS: barra com 3 botoes (vermelho, amarelo, verde), "
         f"corpo escuro com codigo em {cores.get('acento_secundario', 'verde')}. "
@@ -259,13 +265,13 @@ def _code_prompt(slide, counter, ds, visual, cores, rodape):
     )
 
 
-def _comparison_prompt(slide, counter, ds, visual, cores, rodape):
+def _comparison_prompt(slide, counter, ds, visual, cores, rodape, size_str="1080x1350px, 4:5 portrait", ratio="4:5"):
     left_label = slide.get("left_label", "")
     right_label = slide.get("right_label", "")
     left_items = slide.get("left_items", [])
     right_items = slide.get("right_items", [])
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Card central com dois blocos lado a lado. "
         f"Esquerdo ({cores.get('acento_negativo', 'vermelho')}): '{left_label}' — {', '.join(left_items)}. "
         f"Direito ({cores.get('acento_principal', 'roxo')}): '{right_label}' — {', '.join(right_items)}. "
@@ -273,7 +279,7 @@ def _comparison_prompt(slide, counter, ds, visual, cores, rodape):
     )
 
 
-def _cta_prompt(slide, ds, visual, elementos, cores, counter, rodape, brand_slug=None):
+def _cta_prompt(slide, ds, visual, elementos, cores, counter, rodape, brand_slug=None, size_str="1080x1350px, 4:5 portrait", ratio="4:5"):
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     tags = slide.get("tags", [])
@@ -281,7 +287,7 @@ def _cta_prompt(slide, ds, visual, elementos, cores, counter, rodape, brand_slug
     desenho = visual.get("estilo_desenho", "")
 
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Headline GRANDE em {cores.get('texto_principal', 'branco')} bold: '{headline}'. "
         f"Texto em {cores.get('texto_secundario', 'cinza')}: '{subline}'. "
         f"Tags em badges pill: {tags_text}. "
@@ -292,10 +298,10 @@ def _cta_prompt(slide, ds, visual, elementos, cores, counter, rodape, brand_slug
     )
 
 
-def _visual_prompt(slide, counter, ds, illustration, visual):
+def _visual_prompt(slide, counter, ds, illustration, visual, size_str="1080x1350px, 4:5 portrait", ratio="4:5"):
     title = slide.get("title", slide.get("headline", ""))
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
         f"Titulo em destaque: '{title}'. "
         f"A MAIOR PARTE DO SLIDE deve ser ocupada por: {illustration} "
     )
