@@ -7,6 +7,7 @@
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	let tabAtiva = $state('marcas');
 	let salvando = $state(false);
@@ -105,6 +106,42 @@
 			marcaVisualizando = slug;
 		} catch (e) {
 			erro = e instanceof Error ? e.message : 'Erro ao buscar marca';
+		}
+	}
+
+	let showClonarModal = $state(false);
+	let clonarOrigem = $state('');
+	let clonarSlug = $state('');
+	let clonarNome = $state('');
+	let clonando = $state(false);
+
+	function abrirClonar(slug: string, nome: string) {
+		clonarOrigem = slug;
+		clonarSlug = slug + '-copia';
+		clonarNome = nome + ' (Copia)';
+		showClonarModal = true;
+	}
+
+	async function executarClonar() {
+		if (!clonarSlug || !clonarNome) return;
+		clonando = true;
+		try {
+			const res = await fetch(`${backendUrl}/api/brands/${clonarOrigem}/clonar`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ slug_destino: clonarSlug, nome_destino: clonarNome }),
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				throw new Error(err.detail || 'Erro ao clonar');
+			}
+			showClonarModal = false;
+			showSucesso(`Marca "${clonarNome}" clonada!`);
+			await carregarMarcas();
+		} catch (e) {
+			erro = e instanceof Error ? e.message : 'Erro ao clonar marca';
+		} finally {
+			clonando = false;
 		}
 	}
 
@@ -368,6 +405,10 @@
 									<button onclick={() => verMarca(marca.slug)}
 										class="px-3 py-1 rounded-full text-xs font-medium text-purple border border-purple/20 hover:bg-purple/8 transition-all cursor-pointer">
 										{expandida ? 'Fechar' : 'Ver'}
+									</button>
+									<button onclick={() => abrirClonar(marca.slug, marca.nome)}
+										class="px-3 py-1 rounded-full text-xs font-medium text-green border border-green/20 hover:bg-green/8 transition-all cursor-pointer">
+										Clonar
 									</button>
 									<button onclick={() => removerMarca(marca.slug)}
 										class="px-3 py-1 rounded-full text-xs font-medium text-red border border-red/20 hover:bg-red/8 transition-all cursor-pointer">
@@ -743,3 +784,32 @@
 		{/if}
 	</div>
 </div>
+
+{#if showClonarModal}
+	<Modal onclose={() => showClonarModal = false}>
+		<h3 class="text-lg font-semibold text-text-primary mb-4">Clonar Marca</h3>
+		<p class="text-sm text-text-secondary mb-4">Criando copia de <strong>{clonarOrigem}</strong> com novo nome e slug.</p>
+		<div class="space-y-3 mb-6">
+			<div>
+				<label for="clonar-nome" class="block text-xs text-text-muted mb-1">Nome da nova marca</label>
+				<input id="clonar-nome" type="text" bind:value={clonarNome}
+					class="w-full px-3 py-2 rounded-lg bg-bg-input border border-border-default text-sm text-text-primary focus:border-purple focus:outline-none" />
+			</div>
+			<div>
+				<label for="clonar-slug" class="block text-xs text-text-muted mb-1">Slug (sem espacos, minusculo)</label>
+				<input id="clonar-slug" type="text" bind:value={clonarSlug}
+					class="w-full px-3 py-2 rounded-lg bg-bg-input border border-border-default text-sm text-text-primary font-mono focus:border-purple focus:outline-none" />
+			</div>
+		</div>
+		<div class="flex justify-end gap-3">
+			<button onclick={() => showClonarModal = false}
+				class="px-4 py-2 rounded-full text-sm text-text-secondary border border-border-default hover:bg-white/4 cursor-pointer transition-all">
+				Cancelar
+			</button>
+			<button onclick={executarClonar} disabled={clonando || !clonarSlug || !clonarNome}
+				class="px-4 py-2 rounded-full text-sm font-medium text-bg-global bg-green hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
+				{clonando ? 'Clonando...' : 'Clonar Marca'}
+			</button>
+		</div>
+	</Modal>
+{/if}

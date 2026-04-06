@@ -50,6 +50,37 @@ def deletar_brand_service(slug: str) -> bool:
     return _deletar_brand(slug)
 
 
+def clonar_brand(slug_origem: str, slug_destino: str, nome_destino: str) -> dict:
+    """Clona uma marca existente com novo slug e nome. Copia JSON, foto e assets."""
+    import shutil
+
+    original = carregar_brand(slug_origem)
+    if not original:
+        raise ValueError(f"Marca '{slug_origem}' nao encontrada")
+    if carregar_brand(slug_destino):
+        raise FileExistsError(f"Marca '{slug_destino}' ja existe")
+
+    # Clonar JSON com novo slug e nome
+    clone = {**original, "slug": slug_destino, "nome": nome_destino}
+    _salvar_brand(slug_destino, clone)
+
+    # Clonar foto
+    FOTOS_DIR.mkdir(exist_ok=True)
+    for ext in ("jpg", "png", "jpeg"):
+        foto_orig = FOTOS_DIR / f"{slug_origem}.{ext}"
+        if foto_orig.exists():
+            shutil.copy2(foto_orig, FOTOS_DIR / f"{slug_destino}.{ext}")
+            break
+
+    # Clonar assets
+    assets_orig = BRAND_ASSETS_DIR / slug_origem
+    assets_dest = BRAND_ASSETS_DIR / slug_destino
+    if assets_orig.exists():
+        shutil.copytree(assets_orig, assets_dest, dirs_exist_ok=True)
+
+    return {"slug": slug_destino, "nome": nome_destino, "mensagem": f"Marca '{nome_destino}' clonada de '{slug_origem}'"}
+
+
 def salvar_foto_brand(slug: str, foto_data: str) -> dict:
     """Decodifica base64 e salva foto no disco. Retorna {slug, foto}."""
     raw = foto_data.split(",")[1] if "," in foto_data else foto_data

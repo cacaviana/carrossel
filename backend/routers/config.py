@@ -24,6 +24,7 @@ from services.brand_service import (
     criar_brand as _criar_brand,
     atualizar_brand as _atualizar_brand,
     deletar_brand_service as _deletar_brand,
+    clonar_brand as _clonar_brand,
     salvar_foto_brand as _salvar_foto_brand,
     buscar_foto_brand as _buscar_foto_brand,
     listar_assets as _listar_assets,
@@ -153,6 +154,21 @@ async def atualizar_brand(slug: str, data: dict):
 async def deletar_brand(slug: str):
     if not _deletar_brand(slug):
         raise HTTPException(status_code=404, detail=f"Marca '{slug}' nao encontrada")
+
+
+@router.post("/brands/{slug}/clonar", status_code=201)
+async def clonar_brand(slug: str, data: dict):
+    """Clona marca. Body: {slug_destino, nome_destino}."""
+    slug_destino = data.get("slug_destino", "")
+    nome_destino = data.get("nome_destino", "")
+    if not slug_destino or not nome_destino:
+        raise HTTPException(status_code=400, detail="slug_destino e nome_destino obrigatorios")
+    try:
+        return _clonar_brand(slug, slug_destino, nome_destino)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.post("/brands/{slug}/foto")
