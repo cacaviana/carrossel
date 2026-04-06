@@ -25,6 +25,9 @@
 	let brandSlug = $state('');
 	let ultimoFeedback = $state('');
 	let slidesOriginal = $state<string[]>([]);
+	let salvandoDrive = $state(false);
+	let driveSalvo = $state('');
+	let pipelineTema = $state('');
 
 	const total = $derived(slides.length);
 	const currentImage = $derived(slides[currentSlide] || '');
@@ -34,15 +37,22 @@
 		const brand = page.url.searchParams.get('brand') || '';
 		brandSlug = brand;
 
-		// Carregar textos da pipeline
+		// Carregar textos e tema da pipeline
 		if (pipelineId) {
 			try {
-				const copyRes = await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter`);
+				const [copyRes, pipRes] = await Promise.all([
+					fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter`),
+					fetch(`${API}/api/pipelines/${pipelineId}`),
+				]);
 				if (copyRes.ok) {
 					const copyData = await copyRes.json();
 					textos = (copyData.saida?.slides || []).map((s: any) => ({
 						titulo: s.titulo || '', corpo: s.corpo || ''
 					}));
+				}
+				if (pipRes.ok) {
+					const pipData = await pipRes.json();
+					pipelineTema = pipData.tema || '';
 				}
 			} catch {}
 		}
@@ -235,33 +245,81 @@
 		reader.readAsDataURL(file);
 	}
 
+	function _buildPdfPayload() {
+		return {
+			slides: slides.map((img, i) => ({
+				image: img,
+				logo_x: logoPositions[i]?.x ?? 50,
+				logo_y: logoPositions[i]?.y ?? 1280,
+				logo_size: logoSize[i] || 60,
+			})),
+			logo: logoSrc,
+			borda_cor: logoBordaAtiva ? logoBordaCor : null,
+		};
+	}
+
+	async function _gerarPdfBase64(): Promise<{ pdf_base64: string; images: string[] } | null> {
+		const res = await fetch(`${API}/api/editor/salvar-pdf`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(_buildPdfPayload()),
+		});
+		if (!res.ok) return null;
+		const data = await res.json();
+		return { pdf_base64: data.pdf_base64, images: slides };
+	}
+
 	async function baixarPDF() {
 		if (!logoSrc || slides.length === 0) return;
 		salvando = true;
 		try {
-			const res = await fetch(`${API}/api/editor/salvar-pdf`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					slides: slides.map((img, i) => ({
-						image: img,
-						logo_x: logoPositions[i]?.x ?? 50,
-						logo_y: logoPositions[i]?.y ?? 1280,
-						logo_size: logoSize[i] || 60,
-					})),
-					logo: logoSrc,
-					borda_cor: logoBordaAtiva ? logoBordaCor : null,
-				}),
-			});
-			if (res.ok) {
-				const data = await res.json();
+			const result = await _gerarPdfBase64();
+			if (result) {
 				const link = document.createElement('a');
-				link.href = `data:application/pdf;base64,${data.pdf_base64}`;
+				link.href = `data:application/pdf;base64,${result.pdf_base64}`;
 				link.download = 'carrossel.pdf';
 				link.click();
 			}
 		} catch {}
 		finally { salvando = false; }
+	}
+
+	async function salvarNoDrive() {
+		if (!logoSrc || slides.length === 0) return;
+		salvandoDrive = true;
+		driveSalvo = '';
+		try {
+			const result = await _gerarPdfBase64();
+			if (!result) throw new Error('Falha ao gerar PDF');
+
+			const imagesClean = result.images.map(img =>
+				img.startsWith('data:') ? img.split(',')[1] : img
+			);
+
+			const res = await fetch(`${API}/api/google-drive/carrossel`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: pipelineTema || 'carrossel',
+					pdf_base64: result.pdf_base64,
+					images_base64: imagesClean,
+					disciplina: null,
+					tecnologia_principal: null,
+					tipo_carrossel: 'texto',
+					legenda_linkedin: null,
+				}),
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				throw new Error(err.detail || 'Erro ao salvar no Drive');
+			}
+			const data = await res.json();
+			driveSalvo = data.web_view_link;
+		} catch (e) {
+			alert(e instanceof Error ? e.message : 'Erro ao salvar no Drive');
+		} finally {
+			salvandoDrive = false;
+		}
 	}
 </script>
 
@@ -410,7 +468,9 @@
 					</label>
 				</div>
 			</div>
-			{#if ultimoFeedback}
+			{#if driveSalvo}
+				<p class="text-center text-xs text-green mt-2">Salvo no Drive! <a href={driveSalvo} target="_blank" class="underline font-medium">Abrir no Google Drive</a></p>
+			{:else if ultimoFeedback}
 				<p class="text-center text-xs text-amber mt-1">{ultimoFeedback}</p>
 			{:else}
 				<p class="text-center text-xs text-text-muted mt-1">Clique no slide pra posicionar</p>
@@ -434,10 +494,16 @@
 					Proximo
 				</button>
 			{:else}
-				<button onclick={baixarPDF} disabled={salvando || !logoSrc}
-					class="px-6 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
-					{salvando ? 'Gerando PDF...' : 'Baixar PDF'}
-				</button>
+				<div class="flex gap-3">
+					<button onclick={baixarPDF} disabled={salvando || !logoSrc}
+						class="px-6 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
+						{salvando ? 'Gerando PDF...' : 'Baixar PDF'}
+					</button>
+					<button onclick={salvarNoDrive} disabled={salvandoDrive || !logoSrc}
+						class="px-6 py-2.5 rounded-full text-sm font-medium text-purple border border-purple hover:bg-purple/10 cursor-pointer transition-all disabled:opacity-50">
+						{salvandoDrive ? 'Salvando...' : 'Salvar no Drive'}
+					</button>
+				</div>
 			{/if}
 		</div>
 	{/if}
