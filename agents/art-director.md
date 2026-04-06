@@ -44,12 +44,17 @@ Cada slide DEVE ter uma ilustracao no estilo neon LED line-art que represente o 
 - Linhas finas e luminosas sobre fundo escuro, estilo tech/futurista
 - NAO usar ilustracoes solidas ou realistas — sempre wireframe com glow
 
+## Regras por formato
+- **Carrossel** (1080x1350): vertical portrait, foto do Carlos aplicada depois como overlay
+- **Post Unico** (1080x1080): square, foto do Carlos aplicada depois como overlay
+- **Thumbnail YouTube** (1280x720): HORIZONTAL landscape. ROSTO GRANDE do criador ocupando 50-60% da imagem. Expressao facial forte (surpreso, animado, chocado). Texto CURTO (max 4 palavras) em fonte GIGANTE ao lado do rosto. Estilo YouTube moderno. NAO usar layout dark mode padrao — usar cores vibrantes e alto contraste.
+- **Capa Reels** (1080x1920): vertical tall, texto GRANDE, impacto visual pra scroll vertical
+
 ## Regras gerais
-1. SEMPRE incluir "dark background #0A0A0F" em todo prompt
+1. SEMPRE incluir dimensoes no prompt (ex: "1280x720 horizontal landscape")
 2. SEMPRE incluir "Outfit font" quando houver texto
-3. SEMPRE incluir a ilustracao LED wireframe relacionada ao tema do slide
-4. NUNCA pedir rostos humanos (exceto a foto do Carlos que e aplicada depois)
+3. Para carrossel/post_unico: incluir ilustracao LED wireframe + "dark background #0A0A0F"
+4. Para thumbnail_youtube: incluir "creator's face taking 50-60% of frame, strong facial expression" + cores vibrantes. NAO usar dark mode sombrio
 5. Prompts em ingles (Gemini funciona melhor)
-6. Incluir dimensoes no prompt (ex: "1080x1350 vertical format")
-7. Se usuario rejeitou estilos anteriores, EVITAR esses estilos
-8. Responder APENAS em JSON valido
+6. Se usuario rejeitou estilos anteriores, EVITAR esses estilos
+7. Responder APENAS em JSON valido

@@ -5,6 +5,44 @@ import { HookDTO } from '$lib/dtos/HookDTO';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
 
+/** Extrai string de texto de um valor que pode ser string, dict, ou array de dicts. */
+function _str(val: any): string {
+  if (typeof val === 'string') return val;
+  if (!val) return '';
+  // Array de objetos — concatenar textos dos sub-elementos
+  if (Array.isArray(val)) {
+    return val.map((item: any) => _str(item.texto ?? item.conteudo ?? item)).filter(Boolean).join(' ');
+  }
+  if (typeof val !== 'object') return '';
+  if (typeof val.texto === 'string') return val.texto;
+  if (typeof val.conteudo === 'string') return val.conteudo;
+  if (typeof val.titulo === 'string') return val.titulo;
+  // Array dentro do objeto
+  if (Array.isArray(val.conteudo)) return _str(val.conteudo);
+  for (const k of Object.keys(val)) {
+    const v = val[k];
+    if (typeof v === 'string' && v.length > 3) return v;
+  }
+  return '';
+}
+
+/** Extrai titulo e corpo de um slide, independente da estrutura que o LLM retornou. */
+function _extractText(s: any): { titulo: string; conteudo: string } {
+  // 1. Campos diretos (padrao esperado)
+  let titulo = _str(s.titulo) || _str(s.headline) || '';
+  let conteudo = _str(s.corpo) || _str(s.conteudo) || _str(s.texto) || _str(s.texto_principal) || _str(s.subtitulo) || '';
+  // 2. Fallback: buscar em elementos[] (LLM retorna layout visual com texto dentro)
+  if ((!titulo || !conteudo) && Array.isArray(s.elementos)) {
+    for (const el of s.elementos) {
+      const t = el.tipo ?? '';
+      const val = _str(el.texto) || _str(el.conteudo) || _str(el);
+      if (!titulo && (t.includes('titulo') || t === 'headline')) titulo = val;
+      if (!conteudo && (t.includes('card') || t === 'corpo' || t === 'subtitulo' || t === 'call_to_action' || t === 'descricao')) conteudo = val;
+    }
+  }
+  return { titulo, conteudo };
+}
+
 /** Busca array de slides em qualquer nivel da saida do LLM. */
 function _findSlides(obj: any): any[] {
   if (!obj || typeof obj !== 'object') return [];
@@ -28,17 +66,9 @@ export class CopyRepository {
     // LLM retorna em formatos variados — buscar slides em qualquer estrutura
     const slides = _findSlides(saida);
 
-    // headline/narrativa/cta podem estar no nivel raiz, no slide, ou em elementos[]
-    const primeiroSlide = slides[0] ?? {};
-    let headline = saida.headline || primeiroSlide.titulo || primeiroSlide.headline || '';
-    let narrativa = saida.narrativa || primeiroSlide.subtitulo || primeiroSlide.narrativa || '';
-    // Fallback: buscar em elementos[] do slide
-    if ((!headline || !narrativa) && Array.isArray(primeiroSlide.elementos)) {
-      for (const el of primeiroSlide.elementos) {
-        if (!headline && (el.tipo === 'titulo_principal' || el.tipo === 'titulo')) headline = el.texto || el.conteudo || '';
-        if (!narrativa && (el.tipo === 'card_principal' || el.tipo === 'subtitulo' || el.tipo === 'credibilidade_footer')) narrativa = el.texto || el.conteudo || '';
-      }
-    }
+    const primeiro = slides[0] ? _extractText(slides[0]) : { titulo: '', conteudo: '' };
+    const headline = saida.headline || primeiro.titulo;
+    const narrativa = saida.narrativa || primeiro.conteudo;
     const ultimoSlide = slides[slides.length - 1] ?? {};
     const cta = saida.cta || (ultimoSlide.tipo === 'cta' ? ultimoSlide.texto || ultimoSlide.titulo : '') || '';
 
@@ -50,14 +80,7 @@ export class CopyRepository {
       provider: saida._provider ?? 'anthropic',
       model: saida._model ?? '',
       sequencia_slides: slides.map((s: any, i: number) => {
-        let titulo = s.titulo ?? '';
-        let conteudo = s.corpo ?? s.conteudo ?? s.texto ?? s.texto_principal ?? s.subtitulo ?? '';
-        if ((!titulo || !conteudo) && Array.isArray(s.elementos)) {
-          for (const el of s.elementos) {
-            if (!titulo && (el.tipo === 'titulo_principal' || el.tipo === 'titulo')) titulo = el.texto || el.conteudo || '';
-            if (!conteudo && (el.tipo === 'card_principal' || el.tipo === 'corpo')) conteudo = el.texto || el.conteudo || '';
-          }
-        }
+        const { titulo, conteudo } = _extractText(s);
         return {
           titulo,
           conteudo,

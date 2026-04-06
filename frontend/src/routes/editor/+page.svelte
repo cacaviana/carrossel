@@ -61,14 +61,27 @@
 							if (v && typeof v === 'object' && !Array.isArray(v) && v.titulo) { copySlides = [v]; break; }
 						}
 					}
+					// Extrair texto de qualquer estrutura que o LLM retornar
+					function extractStr(val: any): string {
+						if (typeof val === 'string') return val;
+						if (!val) return '';
+						if (Array.isArray(val)) return val.map((item: any) => extractStr(item?.texto ?? item?.conteudo ?? item)).filter(Boolean).join(' ');
+						if (typeof val !== 'object') return '';
+						if (typeof val.texto === 'string') return val.texto;
+						if (typeof val.conteudo === 'string') return val.conteudo;
+						if (Array.isArray(val.conteudo)) return extractStr(val.conteudo);
+						for (const k of Object.keys(val)) { if (typeof val[k] === 'string' && val[k].length > 3) return val[k]; }
+						return '';
+					}
 					textos = copySlides.map((s: any) => {
-						let titulo = s.titulo || s.headline || '';
-						let corpo = s.corpo || s.conteudo || s.texto || s.texto_principal || s.subtitulo || '';
-						// Fallback: buscar em elementos[] (LLM às vezes retorna texto lá)
+						let titulo = extractStr(s.titulo) || extractStr(s.headline) || '';
+						let corpo = extractStr(s.corpo) || extractStr(s.conteudo) || extractStr(s.texto) || extractStr(s.texto_principal) || '';
 						if ((!titulo || !corpo) && Array.isArray(s.elementos)) {
 							for (const el of s.elementos) {
-								if (!titulo && (el.tipo === 'titulo_principal' || el.tipo === 'titulo')) titulo = el.texto || el.conteudo || '';
-								if (!corpo && (el.tipo === 'card_principal' || el.tipo === 'corpo' || el.tipo === 'subtitulo')) corpo = el.texto || el.conteudo || '';
+								const t = el.tipo ?? '';
+								const val = extractStr(el.texto) || extractStr(el.conteudo) || extractStr(el);
+								if (!titulo && t.includes('titulo')) titulo = val;
+								if (!corpo && (t.includes('card') || t === 'corpo' || t === 'subtitulo' || t === 'call_to_action')) corpo = val;
 							}
 						}
 						return { titulo, corpo };
