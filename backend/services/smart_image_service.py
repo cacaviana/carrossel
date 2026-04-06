@@ -115,16 +115,9 @@ async def _gerar_slide_smart(
 
     # Passo 3: Texto errado — corrigir preservando o visual (mesma imagem, so muda texto)
     from utils.image_text_fixer import corrigir_texto_na_imagem
+    from utils.slide_text_extractor import extrair_texto_slide
 
-    titulo = slide.get("headline") or slide.get("title", "")
-    corpo = ""
-    bullets = slide.get("bullets", [])
-    if bullets:
-        corpo = "\n".join(bullets)
-    elif slide.get("subline"):
-        corpo = slide["subline"]
-    elif slide.get("code"):
-        corpo = slide["code"]
+    titulo, corpo = extrair_texto_slide(slide)
 
     try:
         print(f"  Slide {position}: texto errado, corrigindo preservando visual...")

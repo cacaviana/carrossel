@@ -50,7 +50,16 @@
 
 	// Texto pronto — slide a slide
 	type SlideTexto = { principal: string; alternativo: string };
+	const FORMATOS_SLIDE_UNICO = ['post_unico', 'thumbnail_youtube', 'capa_reels'];
+	const isSlideUnico = $derived(FORMATOS_SLIDE_UNICO.includes(formatoAtual));
 	let slidesTexto = $state<SlideTexto[]>(Array.from({ length: 3 }, () => ({ principal: '', alternativo: '' })));
+
+	// Quando muda pra formato de slide unico, ajustar pra 1 slide
+	$effect(() => {
+		if (isSlideUnico && slidesTexto.length > 1) {
+			slidesTexto = [slidesTexto[0]];
+		}
+	});
 
 	function adicionarSlide() {
 		if (slidesTexto.length >= 7) return;
@@ -220,7 +229,7 @@
 
 		{#if modoEntrada === 'texto_pronto'}
 			<div class="bg-bg-card rounded-xl border border-border-default p-5">
-				<p class="text-xs text-text-secondary mb-3">Preencha slide a slide. O texto vai direto pro visual — sem reescrita.</p>
+				<p class="text-xs text-text-secondary mb-3">{isSlideUnico ? 'Escreva o texto que vai na imagem (max 4-6 palavras).' : 'Preencha slide a slide. O texto vai direto pro visual — sem reescrita.'}</p>
 
 				<!-- Slides -->
 				<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -229,9 +238,9 @@
 							<div class="flex items-center gap-2 mb-2">
 								<span class="w-6 h-6 rounded-full bg-purple text-bg-global text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
 								<span class="text-xs text-text-muted">
-									{i === 0 ? 'Capa' : i === slidesTexto.length - 1 ? 'CTA' : `Slide ${i + 1}`}
+									{isSlideUnico ? 'Texto da imagem' : (i === 0 ? 'Capa' : i === slidesTexto.length - 1 ? 'CTA' : `Slide ${i + 1}`)}
 								</span>
-								{#if slidesTexto.length > 1}
+								{#if !isSlideUnico && slidesTexto.length > 1}
 									<button
 										onclick={() => removerSlide(i)}
 										class="ml-auto px-2 py-0.5 rounded-full text-xs text-red-400 hover:bg-red-50 transition-all cursor-pointer"
@@ -260,7 +269,7 @@
 					{/each}
 				</div>
 
-				{#if slidesTexto.length < 7}
+				{#if !isSlideUnico && slidesTexto.length < 7}
 					<button
 						onclick={adicionarSlide}
 						disabled={criando}
@@ -269,9 +278,11 @@
 					>+ Adicionar slide</button>
 				{/if}
 
-				<p class="text-xs text-text-muted mt-2">
-					{slidesTexto.filter(s => s.principal.trim().length > 0).length}/{slidesTexto.length} slides preenchidos
-				</p>
+				{#if !isSlideUnico}
+					<p class="text-xs text-text-muted mt-2">
+						{slidesTexto.filter(s => s.principal.trim().length > 0).length}/{slidesTexto.length} slides preenchidos
+					</p>
+				{/if}
 			</div>
 		{:else if modoEntrada === 'ideia'}
 			<div class="bg-bg-card rounded-xl border border-border-default p-5">

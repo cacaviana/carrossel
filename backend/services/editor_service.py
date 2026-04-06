@@ -97,16 +97,10 @@ def buscar_slides_limpos(brand: str) -> dict | None:
 async def corrigir_texto(image: str, slide: dict) -> dict | None:
     """Tenta corrigir texto ate 3x preservando visual. Usa utils/image_text_fixer (DRY)."""
     from utils.image_text_fixer import corrigir_texto_na_imagem
+    from utils.slide_text_extractor import extrair_texto_slide
 
     api_key = os.getenv("GEMINI_API_KEY", "")
-
-    titulo = slide.get("headline") or slide.get("title", "")
-    corpo = ""
-    bullets = slide.get("bullets", [])
-    if bullets:
-        corpo = "\n".join(bullets)
-    elif slide.get("subline"):
-        corpo = slide["subline"]
+    titulo, corpo = extrair_texto_slide(slide)
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         result = await corrigir_texto_na_imagem(
