@@ -8,6 +8,7 @@
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import { API_BASE } from '$lib/api';
 
 	let tabAtiva = $state('marcas');
 	let salvando = $state(false);
@@ -109,7 +110,38 @@
 		}
 	}
 
+	let menuAberto = $state('');
 	let showClonarModal = $state(false);
+	let showRenomearModal = $state(false);
+	let renomearSlug = $state('');
+	let renomearNome = $state('');
+	let renomeando = $state(false);
+
+	function abrirRenomear(slug: string, nome: string) {
+		renomearSlug = slug;
+		renomearNome = nome;
+		showRenomearModal = true;
+	}
+
+	async function executarRenomear() {
+		if (!renomearNome) return;
+		renomeando = true;
+		try {
+			const res = await fetch(`${API_BASE}/api/brands/${renomearSlug}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ nome: renomearNome, slug: renomearSlug }),
+			});
+			if (!res.ok) throw new Error('Erro ao renomear');
+			showRenomearModal = false;
+			showSucesso(`Marca renomeada para "${renomearNome}"!`);
+			await carregarMarcas();
+		} catch (e) {
+			erro = e instanceof Error ? e.message : 'Erro ao renomear';
+		} finally {
+			renomeando = false;
+		}
+	}
 	let clonarOrigem = $state('');
 	let clonarSlug = $state('');
 	let clonarNome = $state('');
@@ -126,7 +158,7 @@
 		if (!clonarSlug || !clonarNome) return;
 		clonando = true;
 		try {
-			const res = await fetch(`${backendUrl}/api/brands/${clonarOrigem}/clonar`, {
+			const res = await fetch(`${API_BASE}/api/brands/${clonarOrigem}/clonar`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ slug_destino: clonarSlug, nome_destino: clonarNome }),
@@ -406,14 +438,24 @@
 										class="px-3 py-1 rounded-full text-xs font-medium text-purple border border-purple/20 hover:bg-purple/8 transition-all cursor-pointer">
 										{expandida ? 'Fechar' : 'Ver'}
 									</button>
-									<button onclick={() => abrirClonar(marca.slug, marca.nome)}
-										class="px-3 py-1 rounded-full text-xs font-medium text-green border border-green/20 hover:bg-green/8 transition-all cursor-pointer">
-										Clonar
-									</button>
-									<button onclick={() => removerMarca(marca.slug)}
-										class="px-3 py-1 rounded-full text-xs font-medium text-red border border-red/20 hover:bg-red/8 transition-all cursor-pointer">
-										Remover
-									</button>
+									<div class="relative">
+										<button onclick={() => menuAberto = menuAberto === marca.slug ? '' : marca.slug}
+											class="p-1.5 rounded-lg hover:bg-white/5 transition-all cursor-pointer text-text-muted">
+											<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+												<path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+											</svg>
+										</button>
+										{#if menuAberto === marca.slug}
+											<div class="absolute right-0 top-8 z-20 bg-bg-card border border-border-default rounded-xl shadow-xl py-1 min-w-[140px]">
+												<button onclick={() => { menuAberto = ''; abrirRenomear(marca.slug, marca.nome); }}
+													class="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-white/5 cursor-pointer">Renomear</button>
+												<button onclick={() => { menuAberto = ''; abrirClonar(marca.slug, marca.nome); }}
+													class="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-white/5 cursor-pointer">Clonar</button>
+												<button onclick={() => { menuAberto = ''; removerMarca(marca.slug); }}
+													class="w-full text-left px-4 py-2 text-xs text-red hover:bg-red/5 cursor-pointer">Remover</button>
+											</div>
+										{/if}
+									</div>
 								</div>
 
 								<!-- Detalhes expandidos -->
@@ -809,6 +851,27 @@
 			<button onclick={executarClonar} disabled={clonando || !clonarSlug || !clonarNome}
 				class="px-4 py-2 rounded-full text-sm font-medium text-bg-global bg-green hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
 				{clonando ? 'Clonando...' : 'Clonar Marca'}
+			</button>
+		</div>
+	</Modal>
+{/if}
+
+{#if showRenomearModal}
+	<Modal onclose={() => showRenomearModal = false}>
+		<h3 class="text-lg font-semibold text-text-primary mb-4">Renomear Marca</h3>
+		<div class="mb-6">
+			<label for="renomear-nome" class="block text-xs text-text-muted mb-1">Novo nome</label>
+			<input id="renomear-nome" type="text" bind:value={renomearNome}
+				class="w-full px-3 py-2 rounded-lg bg-bg-input border border-border-default text-sm text-text-primary focus:border-purple focus:outline-none" />
+		</div>
+		<div class="flex justify-end gap-3">
+			<button onclick={() => showRenomearModal = false}
+				class="px-4 py-2 rounded-full text-sm text-text-secondary border border-border-default hover:bg-white/4 cursor-pointer transition-all">
+				Cancelar
+			</button>
+			<button onclick={executarRenomear} disabled={renomeando || !renomearNome}
+				class="px-4 py-2 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
+				{renomeando ? 'Salvando...' : 'Salvar'}
 			</button>
 		</div>
 	</Modal>

@@ -17,6 +17,7 @@
 	let carregando = $state(true);
 	let regenerando = $state(false);
 	let logoBordaCor = $state('#A78BFA');
+	let logoVisivel = $state(true);
 	let logoBordaAtiva = $state(true);
 	let logoTamRodape = $state(60);
 	let logoTamCentral = $state(200);
@@ -304,12 +305,12 @@
 		return {
 			slides: slides.map((img, i) => ({
 				image: img,
-				logo_x: logoPositions[i]?.x ?? 50,
-				logo_y: logoPositions[i]?.y ?? 1280,
-				logo_size: logoSize[i] || 60,
+				logo_x: logoVisivel ? (logoPositions[i]?.x ?? 50) : 0,
+				logo_y: logoVisivel ? (logoPositions[i]?.y ?? 1280) : 0,
+				logo_size: logoVisivel ? (logoSize[i] || 60) : 0,
 			})),
-			logo: logoSrc,
-			borda_cor: logoBordaAtiva ? logoBordaCor : null,
+			logo: logoVisivel ? logoSrc : '',
+			borda_cor: logoVisivel && logoBordaAtiva ? logoBordaCor : null,
 			formato,
 		};
 	}
@@ -427,7 +428,7 @@
 		>
 			<img src={currentImage} alt="Slide {currentSlide + 1}" class="w-full h-full object-cover" />
 
-			{#if logoSrc && logoPositions[currentSlide]}
+			{#if logoVisivel && logoSrc && logoPositions[currentSlide]}
 				<div
 					class="absolute rounded-full overflow-hidden shadow-lg pointer-events-none"
 					style="
@@ -486,6 +487,13 @@
 		{:else}
 			<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-3" style="max-width: 540px;">
 				<div class="flex items-center justify-between gap-3">
+					<!-- Toggle logo -->
+					<label class="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer shrink-0">
+						<input type="checkbox" bind:checked={logoVisivel} class="rounded" />
+						Logo
+					</label>
+
+					{#if logoVisivel}
 					<!-- Modo: rodape ou central -->
 					<div class="flex gap-1">
 						<button onclick={() => { logoModo[currentSlide] = 'rodape'; logoSize[currentSlide] = logoTamRodape; }}
@@ -522,6 +530,7 @@
 							<span class="w-3 h-3 rounded-full" style="background: {logoBordaCor}"></span>
 						{/if}
 					</label>
+					{/if}
 				</div>
 			</div>
 			{#if driveSalvo}
