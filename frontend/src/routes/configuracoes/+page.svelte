@@ -828,7 +828,7 @@
 </div>
 
 {#if showClonarModal}
-	<Modal onclose={() => showClonarModal = false}>
+	<Modal open={true} onclose={() => showClonarModal = false}>
 		<h3 class="text-lg font-semibold text-text-primary mb-4">Clonar Marca</h3>
 		<p class="text-sm text-text-secondary mb-4">Criando copia de <strong>{clonarOrigem}</strong> com novo nome e slug.</p>
 		<div class="space-y-3 mb-6">
@@ -857,7 +857,7 @@
 {/if}
 
 {#if showRenomearModal}
-	<Modal onclose={() => showRenomearModal = false}>
+	<Modal open={true} onclose={() => showRenomearModal = false}>
 		<h3 class="text-lg font-semibold text-text-primary mb-4">Renomear Marca</h3>
 		<div class="mb-6">
 			<label for="renomear-nome" class="block text-xs text-text-muted mb-1">Novo nome</label>
