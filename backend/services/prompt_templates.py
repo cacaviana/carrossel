@@ -10,6 +10,13 @@ FOTO_INSTRUCTION = (
     "NAO desenhar rosto humano. A foto real e adicionada na pos-producao."
 )
 
+FOTO_INSTRUCTION_THUMBNAIL = (
+    "Draw a LARGE photorealistic portrait of a young male tech creator (beard, friendly smile) "
+    "occupying 40% of the right side of the image. Strong facial expression (excited/surprised). "
+    "This is a YouTube thumbnail — the creator's face is the MAIN element. "
+    "Face must be well-lit, high contrast, looking at camera."
+)
+
 DESIGN_SYSTEM = (
     "Dark mode premium cinematico. "
     "Fundo: preto profundo (#0A0A0F) com gradiente diagonal roxo/azul escuro. "
@@ -34,6 +41,10 @@ def build_prompt(slide: dict, position: int, total: int, design_system: str | No
     size_str = get_prompt_size_str(formato)
     dims = get_dims(formato)
     ratio = dims["ratio"]
+
+    # Thumbnail YouTube — prompt especial com avatar GRANDE
+    if formato == "thumbnail_youtube":
+        return _thumbnail_prompt(slide, ds, size_str, ratio)
 
     # Slides com ilustração
     illustration = slide.get("illustration_description", "")
@@ -181,4 +192,31 @@ def _infographic_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 
         f"Icones clean (outline, fundo #16162A, radius). SEM emojis. SEM clipart. "
         f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana — IT Valley School'. "
         f"O slide deve ser RICO visualmente, com muita informacao organizada de forma clara."
+    )
+
+
+def _thumbnail_prompt(slide: dict, ds: str, size_str: str = "1280x720px, 16:9 landscape", ratio: str = "16:9") -> str:
+    headline = slide.get("headline", "") or slide.get("title", "") or slide.get("titulo", "")
+    subline = slide.get("subline", "") or slide.get("corpo", "") or slide.get("conteudo", "")
+    # Buscar em elementos se vazio
+    if not headline and isinstance(slide.get("elementos"), list):
+        for el in slide["elementos"]:
+            t = el.get("tipo", "")
+            if "titulo" in t:
+                headline = el.get("texto", el.get("conteudo", ""))
+                if isinstance(headline, list):
+                    headline = " ".join(x.get("texto", "") if isinstance(x, dict) else str(x) for x in headline)
+                break
+    if not headline:
+        headline = subline or "TECH"
+    return (
+        f"YouTube thumbnail, {ratio} horizontal landscape ({size_str}). "
+        f"LAYOUT: RIGHT SIDE (40% of image) = {FOTO_INSTRUCTION_THUMBNAIL} "
+        f"LEFT SIDE (60% of image) = HUGE bold text: '{headline}' in white (#FFFFFF) with black outline/shadow. "
+        f"Font: ultra bold, massive, filling the left side. "
+        f"Background: vibrant gradient, NOT dark — use bright saturated colors (electric blue, orange, purple). "
+        f"High contrast, eye-catching, designed to maximize click-through rate. "
+        f"Style: modern YouTube thumbnail 2024/2025. Clean, impactful, professional. "
+        f"NO small text. NO decorative elements that distract from face + text. "
+        f"The creator's face and the big text are the ONLY two elements."
     )

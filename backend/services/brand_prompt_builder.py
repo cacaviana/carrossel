@@ -195,6 +195,29 @@ def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "", f
     slide_type = slide.get("type", "content")
     counter = f"{position}/{total}"
 
+    # Thumbnail YouTube — avatar GRANDE 40% da tela
+    if formato == "thumbnail_youtube":
+        from services.prompt_templates import FOTO_INSTRUCTION_THUMBNAIL
+        headline = slide.get("headline", "") or slide.get("title", "") or slide.get("titulo", "")
+        if not headline:
+            for el in slide.get("elementos", []):
+                if "titulo" in el.get("tipo", ""):
+                    h = el.get("texto", el.get("conteudo", ""))
+                    headline = " ".join(x.get("texto", "") if isinstance(x, dict) else str(x) for x in h) if isinstance(h, list) else h
+                    break
+        if not headline:
+            headline = slide.get("subline", "") or slide.get("corpo", "") or "TECH"
+        principal = cores.get("acento_principal", "#A78BFA")
+        fundo = cores.get("fundo", "#0A0A0F")
+        return (
+            f"YouTube thumbnail, {ratio} horizontal landscape ({size_str}). "
+            f"RIGHT SIDE (40%) = {FOTO_INSTRUCTION_THUMBNAIL} "
+            f"LEFT SIDE (60%) = HUGE bold text: '{headline}' in white with dark outline. "
+            f"Background: vibrant gradient using brand colors {principal} and {fundo}. "
+            f"High contrast, eye-catching, modern YouTube 2025 style. "
+            f"ONLY two elements: creator's face + big text. Nothing else."
+        )
+
     # Illustration override
     illustration = slide.get("illustration_description", "")
     if illustration:
