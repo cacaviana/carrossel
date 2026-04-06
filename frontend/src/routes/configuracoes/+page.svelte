@@ -423,7 +423,7 @@
 						{#each marcas as marca, mi}
 							{@const expandida = marcaVisualizando === marca.slug}
 							{@const ds = marca}
-							<div class="bg-bg-card rounded-xl border {expandida ? 'border-purple/30' : 'border-border-default'} transition-all overflow-hidden">
+							<div class="bg-bg-card rounded-xl border {expandida ? 'border-purple/30' : 'border-border-default'} transition-all">
 								<!-- Header -->
 								<div class="flex items-center gap-3 p-4">
 									<!-- Bolinha de cor principal -->
