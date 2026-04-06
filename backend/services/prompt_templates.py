@@ -6,9 +6,7 @@ Fundo: #0A0A0F, cards: #12121A, gradiente: #1a0a2e -> #0a1628.
 
 from utils.dimensions import get_dims, get_prompt_size_str
 
-FOTO_INSTRUCTION = (
-    "NAO desenhar rosto humano. A foto real e adicionada na pos-producao."
-)
+FOTO_INSTRUCTION = ""
 
 FOTO_INSTRUCTION_THUMBNAIL = (
     "Draw a LARGE photorealistic portrait of a young male tech creator (beard, friendly smile) "
@@ -75,7 +73,7 @@ def _cover_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 portra
         f"Subline em cinza (#9896A3): '{subline}'. "
         f"Na parte inferior do slide: uma ilustracao 3D wireframe em linhas neon roxas "
         f"(ex: globo terrestre, rede de dados, estrutura tech) com glow sutil. "
-        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. "
+        f"Rodape: apenas texto 'Carlos Viana' no canto inferior. "
         f"Ao lado: 'Carlos Viana' + '1/N'. "
         f"TODO texto LEGIVEL."
     )
@@ -93,7 +91,7 @@ def _content_prompt(slide: dict, counter: str, ds: str, size_str: str = "1080x13
         f"Titulo GRANDE em branco bold: '{title}'. "
         f"Bullets em branco/cinza, palavras-chave em negrito ou roxo (#A78BFA):\n{bullets_text}\n"
         f"No fundo atras do card: wireframe 3D neon roxo sutil (holograma tech). "
-        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'. "
+        f"Rodape: apenas texto 'Carlos Viana' + '{counter}' no canto inferior. "
         f"Texto LEGIVEL."
     )
 
@@ -116,7 +114,7 @@ def _code_prompt(slide: dict, counter: str, ds: str, size_str: str = "1080x1350p
         f"CADA CARACTERE deve ser LEGIVEL. "
         f"Codigo:\n{code}\n"
         f"Caption abaixo da janela em cinza muted (#9896A3): '{caption}'. "
-        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'."
+        f"Rodape: apenas texto 'Carlos Viana' + '{counter}' no canto inferior."
     )
 
 
@@ -137,7 +135,7 @@ def _comparison_prompt(slide: dict, counter: str, ds: str, size_str: str = "1080
         f"Bloco DIREITO: fundo roxo escuro (rgba(167,139,250,0.1)), "
         f"borda 1px roxa (rgba(167,139,250,0.2)). "
         f"Header: '{right_label}' em roxo (#A78BFA). Items: {right_text}. "
-        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'."
+        f"Rodape: apenas texto 'Carlos Viana' + '{counter}' no canto inferior."
     )
 
 
@@ -148,7 +146,6 @@ def _cta_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 portrait
     tags_text = ", ".join(tags)
     return (
         f"Crie slide LinkedIn {ratio} ({size_str}). {ds} "
-        f"{FOTO_INSTRUCTION} Circulo GRANDE no topo (foto de perfil principal). "
         f"Headline GRANDE em branco bold: '{headline}'. "
         f"Texto em cinza (#9896A3): '{subline}'. "
         f"Tags em badges pill glassmorphism com texto roxo (#A78BFA): {tags_text}. "
@@ -170,7 +167,7 @@ def _visual_prompt(slide: dict, counter: str, ds: str, illustration: str, size_s
         f"verde (#34D399) para highlights positivos, amber (#FBBF24) para metricas, "
         f"branco para labels, cinza (#9896A3) para texto secundario. "
         f"O diagrama deve ser CLARO, PROFISSIONAL e LEGIVEL. "
-        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'."
+        f"Rodape: apenas texto 'Carlos Viana' + '{counter}' no canto inferior."
     )
 
 
@@ -190,7 +187,7 @@ def _infographic_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 
         f"Secoes separadas com linhas finas ou cards (#12121A) com borda roxa sutil. "
         f"Dados adicionais: {bullets_text}. "
         f"Icones clean (outline, fundo #16162A, radius). SEM emojis. SEM clipart. "
-        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana — IT Valley School'. "
+        f"Rodape: apenas texto 'Carlos Viana — IT Valley School' no canto inferior. "
         f"O slide deve ser RICO visualmente, com muita informacao organizada de forma clara."
     )
 

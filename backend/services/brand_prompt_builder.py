@@ -11,10 +11,6 @@ from utils.dimensions import get_dims, get_prompt_size_str
 
 DS_DIR = Path(__file__).parent.parent / "assets" / "design-systems"
 
-# Instrucao chroma key — o Gemini desenha circulo verde solido, o Pillow substitui pela foto real
-FOTO_INSTRUCTION = (
-    "NAO desenhar rosto humano no rodape. A foto real e adicionada na pos-producao."
-)
 
 def carregar_brand(slug: str) -> dict | None:
     """Carrega brand profile do JSON. Sempre le do disco (sem cache)."""
@@ -164,13 +160,7 @@ def _rodape_instruction(elementos: dict, counter: str, brand_slug: str | None = 
                 tem_foto = True
                 break
 
-    if tem_foto:
-        return (
-            f"Rodape: {FOTO_INSTRUCTION} Deixar espaco no canto inferior esquerdo para foto circular "
-            f"(sera adicionada na pos-producao). Ao lado: '{nome}' + '{counter}'."
-        )
-    else:
-        return f"Rodape simples: texto '{nome}' + '{counter}' no canto inferior. SEM circulo, SEM placeholder."
+    return f"Rodape: apenas texto '{nome}' + '{counter}' no canto inferior."
 
 
 def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "", formato: str = "carrossel") -> str:
