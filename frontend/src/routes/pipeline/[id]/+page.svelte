@@ -40,8 +40,7 @@
 
 	const etapasConfig = [
 		{ agente: 'strategist', label: 'Estrategia', sublabel: 'Strategist', icon: 'M13 10V3L4 14h7v7l9-11h-7z', rota: 'briefing', estimativa: '~15s' },
-		{ agente: 'copywriter', label: 'Copywriting', sublabel: 'Copywriter', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', rota: null, estimativa: '~20s', autoAprovar: true },
-		{ agente: 'hook_specialist', label: 'Hooks', sublabel: 'Hook Specialist', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101', rota: 'copy', estimativa: '~10s' },
+		{ agente: 'copywriter', label: 'Copywriting', sublabel: 'Copywriter', icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', rota: 'copy', estimativa: '~20s' },
 		{ agente: 'art_director', label: 'Direcao de Arte', sublabel: 'Art Director', icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01', rota: 'visual', estimativa: '~15s' },
 		{ agente: 'image_generator', label: 'Imagens', sublabel: 'Image Generator', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', rota: null, estimativa: '~2min', autoAprovar: true },
 		{ agente: 'brand_gate', label: 'Brand Gate', sublabel: 'Validacao de Marca', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', rota: null, estimativa: '~5s' },
@@ -156,15 +155,26 @@
 		}
 	}
 
+	function pararPolling() {
+		if (pollingInterval) {
+			clearInterval(pollingInterval);
+			pollingInterval = null;
+		}
+	}
+
 	function iniciarPolling() {
 		if (pollingInterval) return;
 		pollingInterval = setInterval(async () => {
 			await recarregar();
-			// Parar polling só quando pipeline estiver completo, cancelado ou com erro terminal
 			const status = pipeline?.status;
-			if (status === 'completo' || status === 'cancelado') {
-				clearInterval(pollingInterval!);
-				pollingInterval = null;
+			// Parar polling quando completo, cancelado, ou aguardando aprovacao humana
+			const temAguardandoHumano = steps.some(st => {
+				if (st.status !== 'aguardando_aprovacao') return false;
+				const cfg = etapasConfig.find(e => e.agente === st.agente);
+				return cfg && !('autoAprovar' in cfg && (cfg as any).autoAprovar);
+			});
+			if (status === 'completo' || status === 'cancelado' || temAguardandoHumano) {
+				pararPolling();
 			}
 		}, 3000);
 	}

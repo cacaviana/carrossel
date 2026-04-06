@@ -15,26 +15,51 @@ export class BriefingRepository {
     if (!res.ok) throw new Error('Erro ao carregar briefing');
     const data = await res.json();
     const saida = data.saida ?? {};
-    const briefingObj = saida.briefing ?? {};
+    // Strategist pode retornar {briefing: {...}} ou o JSON direto na saida
+    const briefingObj = saida.briefing ?? saida;
     const funil = saida.funil ?? [];
 
     // Montar briefing_completo como texto legivel a partir do JSON estruturado
+    // Resiliente a diferentes chaves que o LLM pode retornar
     const partes: string[] = [];
-    if (briefingObj.tema_principal) partes.push(`Tema: ${briefingObj.tema_principal}`);
-    if (briefingObj.angulo) partes.push(`Angulo: ${briefingObj.angulo}`);
-    if (briefingObj.publico_alvo) partes.push(`Publico-alvo: ${briefingObj.publico_alvo}`);
-    if (briefingObj.objetivo) partes.push(`Objetivo: ${briefingObj.objetivo}`);
-    if (briefingObj.tom) partes.push(`Tom: ${briefingObj.tom}`);
-    if (briefingObj.palavras_chave?.length) partes.push(`Palavras-chave: ${briefingObj.palavras_chave.join(', ')}`);
-    if (briefingObj.referencias?.length) partes.push(`Referencias: ${briefingObj.referencias.join(', ')}`);
+    const tema = briefingObj.tema_principal ?? briefingObj.tema ?? '';
+    const angulo = briefingObj.angulo ?? briefingObj.hook ?? '';
+    const publico = briefingObj.publico_alvo ?? briefingObj.publico ?? '';
+    const objetivo = briefingObj.objetivo ?? '';
+    const tom = briefingObj.tom ?? briefingObj.tom_voz ?? '';
+    const linguagem = briefingObj.linguagem ?? '';
+    const cta = briefingObj.call_to_action ?? briefingObj.cta ?? '';
+    const emocoes = briefingObj.emocoes_despertar ?? briefingObj.emocoes ?? '';
+    const visuais = briefingObj.elementos_visuais ?? '';
+    const palavras = briefingObj.palavras_chave ?? [];
+    const hashtags = briefingObj.hashtags_sugeridas ?? briefingObj.hashtags ?? [];
+    const referencias = briefingObj.referencias ?? [];
+
+    if (tema) partes.push(`Tema: ${tema}`);
+    if (angulo) partes.push(`Angulo: ${angulo}`);
+    if (publico) partes.push(`Publico-alvo: ${publico}`);
+    if (objetivo) partes.push(`Objetivo: ${objetivo}`);
+    if (tom) partes.push(`Tom: ${tom}`);
+    if (linguagem) partes.push(`Linguagem: ${linguagem}`);
+    if (cta) partes.push(`CTA: ${cta}`);
+    if (emocoes) partes.push(`Emocoes: ${emocoes}`);
+    if (visuais) partes.push(`Elementos visuais: ${visuais}`);
+    if (palavras.length) partes.push(`Palavras-chave: ${Array.isArray(palavras) ? palavras.join(', ') : palavras}`);
+    if (hashtags.length) partes.push(`Hashtags: ${Array.isArray(hashtags) ? hashtags.join(', ') : hashtags}`);
+    if (referencias.length) partes.push(`Referencias: ${Array.isArray(referencias) ? referencias.join(', ') : referencias}`);
+
+    // Fallback: se nenhuma parte foi extraida, mostrar JSON formatado
+    const textoFinal = partes.length > 0
+      ? partes.join('\n\n')
+      : JSON.stringify(briefingObj, null, 2);
 
     return new BriefingDTO({
       pipeline_id: pipelineId,
-      briefing_completo: partes.join('\n\n'),
-      tema_original: data.entrada?.tema ?? briefingObj.tema_principal ?? '',
+      briefing_completo: textoFinal,
+      tema_original: data.entrada?.tema ?? tema,
       formato_alvo: data.entrada?.formato ?? '',
       pecas_funil: funil,
-      tendencias_usadas: briefingObj.referencias ?? [],
+      tendencias_usadas: referencias,
     });
   }
 

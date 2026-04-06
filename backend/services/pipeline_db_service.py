@@ -11,12 +11,13 @@ from data.connections.database import get_sql_session_context
 ETAPAS_PIPELINE = [
     ("strategist", 1),
     ("copywriter", 2),
-    ("hook_specialist", 3),
-    ("art_director", 4),
-    ("image_generator", 5),
-    ("brand_gate", 6),
-    ("content_critic", 7),
+    ("art_director", 3),
+    ("image_generator", 4),
+    ("brand_gate", 5),
+    ("content_critic", 6),
 ]
+
+FORMATOS_SLIDE_UNICO = ("post_unico", "thumbnail_youtube", "capa_reels")
 
 
 async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_entrada="ideia", slides_texto_pronto=None, brand_slug=None, avatar_mode="livre"):
@@ -116,31 +117,6 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
                         "status": "aprovado",
                         "entrada": json.dumps({"texto_pronto": True}, ensure_ascii=False),
                         "saida": copy_json,
-                        "created_at": now,
-                        "started_at": now,
-                        "finished_at": now,
-                    },
-                )
-            elif is_texto_pronto and agente == "hook_specialist":
-                hook_json = json.dumps({
-                    "hooks": [{
-                        "letra": "A",
-                        "texto": (slides_texto_pronto[0].get("principal", "") if slides_texto_pronto and isinstance(slides_texto_pronto[0], dict) else tema),
-                        "abordagem": "Texto original do usuario",
-                    }],
-                }, ensure_ascii=False)
-                await session.execute(
-                    text("""INSERT INTO carrossel.pipeline_step
-                    (id, pipeline_id, agente, ordem, status, entrada, saida, created_at, started_at, finished_at)
-                    VALUES (:id, :pipeline_id, :agente, :ordem, :status, :entrada, :saida, :created_at, :started_at, :finished_at)"""),
-                    {
-                        "id": step_id,
-                        "pipeline_id": pipeline_id,
-                        "agente": agente,
-                        "ordem": ordem,
-                        "status": "aprovado",
-                        "entrada": json.dumps({"texto_pronto": True}, ensure_ascii=False),
-                        "saida": hook_json,
                         "created_at": now,
                         "started_at": now,
                         "finished_at": now,

@@ -15,14 +15,27 @@ export class VisualRepository {
     if (!res.ok) throw new Error('Erro ao carregar prompts visuais');
     const data = await res.json();
     const saida = data.saida ?? {};
-    // Backend retorna prompt/tipo_slide, DTO espera prompt_imagem/titulo/modelo_sugerido
-    const prompts = (saida.prompts ?? []).map((p: any, i: number) => ({
-      slide_index: p.slide_index ?? i,
-      titulo: p.titulo ?? p.tipo_slide ?? `Slide ${(p.slide_index ?? i) + 1}`,
-      prompt_imagem: p.prompt_imagem ?? p.prompt ?? '',
-      modelo_sugerido: p.modelo_sugerido ??
-        (p.slide_index === 1 || p.tipo_slide === 'capa' || p.tipo_slide === 'cta' || p.tipo_slide === 'codigo' ? 'pro' : 'flash'),
-    }));
+    // Backend retorna formatos variados: [{prompt, slide_index}], ["string", ...], etc
+    const rawPrompts = saida.prompts ?? [];
+    const prompts = rawPrompts.map((p: any, i: number) => {
+      // Se p e string, o art_director retornou lista de strings
+      if (typeof p === 'string') {
+        return {
+          slide_index: i + 1,
+          titulo: `Slide ${i + 1}`,
+          prompt_imagem: p,
+          modelo_sugerido: (i === 0 || i === rawPrompts.length - 1) ? 'pro' : 'flash',
+        };
+      }
+      // Se p e objeto
+      return {
+        slide_index: p.slide_index ?? p.slide ?? i + 1,
+        titulo: p.titulo ?? p.tipo_slide ?? `Slide ${(p.slide_index ?? p.slide ?? i) + 1}`,
+        prompt_imagem: p.prompt_imagem ?? p.prompt ?? '',
+        modelo_sugerido: p.modelo_sugerido ??
+          (p.slide_index === 1 || p.tipo_slide === 'capa' || p.tipo_slide === 'cta' || p.tipo_slide === 'codigo' ? 'pro' : 'flash'),
+      };
+    });
     return new PromptVisualDTO({ pipeline_id: pipelineId, prompts });
   }
 
@@ -32,7 +45,7 @@ export class VisualRepository {
       await new Promise(r => setTimeout(r, 200));
       return preferenciasVisuaisMock;
     }
-    const res = await fetch(`${API_BASE}/api/visual-preferences`);
+    const res = await fetch(`${API_BASE}/api/visual-preferences/`);
     if (!res.ok) return [];
     return res.json();
   }

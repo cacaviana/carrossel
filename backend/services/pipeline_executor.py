@@ -145,10 +145,8 @@ def _build_entrada(agente: str, tema: str, context: dict) -> dict:
         return {"tema": tema}
     if agente == "copywriter":
         return {"briefing_from": "strategist"}
-    if agente == "hook_specialist":
-        return {"copy_from": "copywriter"}
     if agente == "art_director":
-        return {"copy_from": "copywriter", "hook_from": "hook_specialist"}
+        return {"copy_from": "copywriter"}
     if agente == "image_generator":
         return {"prompts_from": "art_director"}
     if agente == "brand_gate":
@@ -181,7 +179,9 @@ async def _executar_agente(
         return await _exec_copywriter(context, formato, claude_api_key, brand_slug=brand_slug)
 
     if agente == "hook_specialist":
-        return await _exec_hook_specialist(context, formato, claude_api_key, brand_slug=brand_slug)
+        # Hook removido — auto-completar pra pipelines legados que ainda tem essa etapa
+        copy = context.get("copywriter", {})
+        return {"hooks": [{"letra": "A", "texto": copy.get("headline", tema), "abordagem": "Auto"}]}
 
     if agente == "art_director":
         return await _exec_art_director(context, formato, claude_api_key, brand_slug=brand_slug)
@@ -277,12 +277,9 @@ async def _exec_hook_specialist(context, formato, api_key, brand_slug=None):
 
 async def _exec_art_director(context, formato, api_key, brand_slug=None):
     copy = context.get("copywriter", {})
-    hooks_data = context.get("hook_specialist", {})
 
-    hook_texto = ""
-    hooks = hooks_data.get("hooks", [])
-    if hooks:
-        hook_texto = hooks[0].get("texto", "")
+    # Hook removido do pipeline — usar headline da copy como hook
+    hook_texto = copy.get("headline", "")
 
     # Montar palette compacta (sem campos pesados como _raw_content)
     brand_palette_dict = None
@@ -449,7 +446,6 @@ async def _exec_content_critic(context, formato, api_key):
     conteudo = {
         "briefing": context.get("strategist", {}),
         "copy": context.get("copywriter", {}),
-        "hooks": context.get("hook_specialist", {}),
         "art_direction": context.get("art_director", {}),
         "brand_gate": context.get("brand_gate", {}),
     }

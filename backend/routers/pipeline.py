@@ -44,7 +44,7 @@ async def listar(formato: str | None = None, status: str | None = None, limit: i
 
 
 @router.post("/{pipeline_id}/executar")
-@limiter.limit("3/minute")
+@limiter.limit("15/minute")
 async def executar(request: Request, pipeline_id: str):
     """Executa a proxima etapa pendente do pipeline."""
     try:

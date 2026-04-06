@@ -45,7 +45,12 @@ def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
     if feedback:
         user_prompt += f"\nFEEDBACK DO USUARIO (versao anterior rejeitada): {feedback}\n"
         user_prompt += "GERE copy COMPLETAMENTE DIFERENTE, seguindo o feedback acima.\n"
-    user_prompt += "Gere a copy completa com NO MAXIMO 7 slides. Responda em JSON."
+    FORMATOS_SLIDE_UNICO = ("post_unico", "thumbnail_youtube", "capa_reels")
+    if formato in FORMATOS_SLIDE_UNICO:
+        user_prompt += f"ATENCAO: formato '{formato}' = APENAS 1 SLIDE. Gere exatamente 1 slide. NAO gere multiplos slides."
+        user_prompt += " Responda em JSON."
+    else:
+        user_prompt += "Gere a copy completa com NO MAXIMO 7 slides. Responda em JSON."
     user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
     return user_prompt
 

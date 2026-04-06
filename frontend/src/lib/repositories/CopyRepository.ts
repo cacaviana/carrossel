@@ -5,19 +5,46 @@ import { HookDTO } from '$lib/dtos/HookDTO';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
 
+/** Busca array de slides em qualquer nivel da saida do LLM. */
+function _findSlides(obj: any): any[] {
+  if (!obj || typeof obj !== 'object') return [];
+  // Nivel raiz
+  if (Array.isArray(obj.slides) && obj.slides.length > 0) return obj.slides;
+  if (Array.isArray(obj.sequencia_slides) && obj.sequencia_slides.length > 0) return obj.sequencia_slides;
+  if (obj.slide && typeof obj.slide === 'object' && !Array.isArray(obj.slide)) return [obj.slide];
+  // Um nivel abaixo (ex: saida.carrossel.slides, saida.post_unico.slides)
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      if (Array.isArray(val.slides) && val.slides.length > 0) return val.slides;
+      if (val.slide && typeof val.slide === 'object') return [val.slide];
+    }
+  }
+  return [];
+}
+
 export class CopyRepository {
   static _mapSaidaToCopy(saida: any, pipelineId: string): CopyDTO {
-    const slides = saida.slides ?? saida.sequencia_slides ?? [];
+    // LLM retorna em formatos variados — buscar slides em qualquer estrutura
+    const slides = _findSlides(saida);
+
+    // headline/narrativa/cta podem estar no nivel raiz ou no primeiro slide
+    const primeiroSlide = slides[0] ?? {};
+    const headline = saida.headline || primeiroSlide.titulo || primeiroSlide.headline || '';
+    const narrativa = saida.narrativa || primeiroSlide.subtitulo || primeiroSlide.narrativa || '';
+    const ultimoSlide = slides[slides.length - 1] ?? {};
+    const cta = saida.cta || (ultimoSlide.tipo === 'cta' ? ultimoSlide.texto || ultimoSlide.titulo : '') || '';
+
     return new CopyDTO({
       pipeline_id: pipelineId,
-      headline: saida.headline ?? '',
-      narrativa: saida.narrativa ?? '',
-      cta: saida.cta ?? '',
+      headline,
+      narrativa,
+      cta,
       provider: saida._provider ?? 'anthropic',
       model: saida._model ?? '',
       sequencia_slides: slides.map((s: any, i: number) => ({
         titulo: s.titulo ?? '',
-        conteudo: s.corpo ?? s.conteudo ?? '',
+        conteudo: s.corpo ?? s.conteudo ?? s.texto ?? s.texto_principal ?? s.subtitulo ?? '',
         tipo: s.tipo ?? 'content',
         ordem: s.indice ?? s.ordem ?? i,
       })),
@@ -67,7 +94,7 @@ export class CopyRepository {
     const hooks = saida.hooks ?? [];
     const hookMap: Record<string, string> = {};
     for (const h of hooks) {
-      hookMap[h.letra ?? h.opcao ?? ''] = h.texto ?? '';
+      hookMap[h.letra ?? h.id ?? h.opcao ?? ''] = h.texto ?? '';
     }
     return new HookDTO({
       pipeline_id: pipelineId,

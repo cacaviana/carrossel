@@ -6,7 +6,6 @@
 	import { CopyService } from '$lib/services/CopyService';
 	import { PipelineService } from '$lib/services/PipelineService';
 	import { CopyDTO } from '$lib/dtos/CopyDTO';
-	import { HookDTO, type HookOpcao } from '$lib/dtos/HookDTO';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
@@ -19,8 +18,6 @@
 	let copy = $state<CopyDTO | null>(null);
 	let versoes = $state<CopyDTO[]>([]);
 	let versaoAtiva = $state(0);
-	let hooks = $state<HookDTO | null>(null);
-	let hookSelecionado = $state<HookOpcao | null>(null);
 	let headline = $state('');
 	let narrativa = $state('');
 	let cta = $state('');
@@ -44,59 +41,27 @@
 		slideExpandido = -1;
 	}
 
-	const hookCores: Record<HookOpcao, string> = { A: 'text-purple', B: 'text-amber', C: 'text-green' };
-
 	const API = API_BASE;
 
 	onMount(async () => {
 		try {
-			// 1. Carregar versoes da copy
 			const vs = await CopyService.buscarVersoes(pipelineId);
 			versoes = vs.length > 0 ? vs : [await CopyService.buscarCopy(pipelineId)];
 			selecionarVersao(0);
-			carregando = false;
-
-			// 2. Verificar se hooks existem
-			let hooksCarregados = false;
-			try {
-				const h = await CopyService.buscarHooks(pipelineId);
-				if (h.hook_a) { hooks = h; hooksCarregados = true; }
-			} catch { /* hooks nao existem ainda */ }
-
-			if (!hooksCarregados) {
-				// 3. Aprovar copywriter se necessario (auto-approve)
-				regerando = true;
-				await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter/aprovar`, {
-					method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
-				}).catch(() => {});
-
-				// 4. Executar hook_specialist
-				await PipelineService.executar(pipelineId);
-
-				// 5. Carregar hooks gerados
-				const h = await CopyService.buscarHooks(pipelineId);
-				hooks = h;
-				regerando = false;
-			}
 		} catch {
-			erro = 'Erro ao carregar copy e hooks';
+			erro = 'Erro ao carregar copy';
 		} finally {
 			carregando = false;
-			regerando = false;
 		}
 	});
 
 	async function aprovar() {
-		if (!hookSelecionado) {
-			erro = 'Selecione um dos 3 hooks para continuar.';
-			return;
-		}
 		aprovando = true;
 		try {
-			await CopyService.aprovar(pipelineId, {
-				headline, narrativa, cta,
-				hook_selecionado: hookSelecionado,
-				sequencia_slides: slides,
+			await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter/aprovar`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ saida_editada: JSON.stringify({ headline, narrativa, cta, slides }) })
 			});
 			PipelineService.executar(pipelineId).catch(() => {});
 			goto(`/pipeline/${pipelineId}`);
@@ -114,33 +79,20 @@
 		showRejectModal = false;
 		regerando = true;
 		try {
-			// Tentar rejeitar (pode falhar se etapa nao esta aguardando_aprovacao)
-			await CopyService.rejeitar(pipelineId, feedbackRejeicao).catch(() => {});
+			await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter/rejeitar`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ motivo: feedbackRejeicao || 'Rejeitado pelo usuario' })
+			});
 			feedbackRejeicao = '';
 			aprovando = false;
 
-			// Re-executar a etapa (backend gera novo conteudo)
 			await PipelineService.executar(pipelineId);
 
-			// Se copywriter tambem foi re-executado, auto-aprovar e executar hooks
-			const pipeline = await PipelineService.buscar(pipelineId);
-			if (pipeline.etapa_atual === 'copywriter') {
-				// Copywriter re-executou, precisa auto-aprovar e rodar hooks
-				await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter/aprovar`, {
-					method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
-				});
-				await PipelineService.executar(pipelineId);
-			}
-
-			// Buscar dados novos
-			const [c, h] = await Promise.all([
-				CopyService.buscarCopy(pipelineId),
-				CopyService.buscarHooks(pipelineId)
-			]);
-			copy = c; hooks = h;
+			const c = await CopyService.buscarCopy(pipelineId);
+			copy = c;
 			headline = c.headline; narrativa = c.narrativa; cta = c.cta;
 			slides = c.sequencia_slides.map(s => ({ titulo: s.titulo, conteudo: s.conteudo, tipo: s.tipo }));
-			hookSelecionado = null;
 		} catch (e) {
 			erro = e instanceof Error ? e.message : 'Erro ao regerar copy';
 		} finally {
@@ -151,14 +103,14 @@
 </script>
 
 <svelte:head>
-	<title>Copy + Hook (AP-2) — Content Factory</title>
+	<title>Revisar Copy (AP-2) — Content Factory</title>
 </svelte:head>
 
 <div class="animate-fade-up max-w-[900px] mx-auto">
-	<PipelineBreadcrumb {pipelineId} etapaLabel="Copy + Hook (AP-2)" />
+	<PipelineBreadcrumb {pipelineId} etapaLabel="Revisar Copy (AP-2)" />
 
 	<div class="flex items-center gap-3 mb-6">
-		<h1 class="text-xl font-semibold text-text-primary">Revisar Copy e Hook</h1>
+		<h1 class="text-xl font-semibold text-text-primary">Revisar Copy</h1>
 		<span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-amber/10 text-amber border border-amber/25">AP-2</span>
 	</div>
 
@@ -173,7 +125,7 @@
 			{#each Array(3) as _}<Skeleton variant="block" height="h-40" />{/each}
 		</div>
 		<Skeleton variant="block" height="h-60" />
-	{:else if hooks && copy}
+	{:else if copy}
 		{#if erro}
 			<div class="mb-4"><Banner type="error" ondismiss={() => erro = ''}>{erro}</Banner></div>
 		{/if}
@@ -198,35 +150,6 @@
 				</div>
 			</div>
 		{/if}
-
-		<!-- Hook Selector -->
-		<p class="label-upper mb-3">Escolha o hook</p>
-		{@const hookList = hooks.hooks}
-		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-			{#each hookList as hook}
-				{@const selected = hookSelecionado === hook.opcao}
-				<button
-					onclick={() => { hookSelecionado = hook.opcao; }}
-					class="text-left p-6 rounded-xl border-2 transition-all cursor-pointer relative
-						{selected
-							? 'border-purple bg-bg-card shadow-[0_0_24px_rgba(167,139,250,0.12)]'
-							: 'border-border-default bg-bg-card hover:border-purple/40'}"
-				>
-					<!-- Radio visual -->
-					<div class="absolute top-4 right-4 w-5 h-5 rounded-full border-2 flex items-center justify-center
-						{selected ? 'border-purple bg-purple' : 'border-text-muted'}">
-						{#if selected}
-							<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-							</svg>
-						{/if}
-					</div>
-
-					<span class="block text-2xl font-bold font-mono {hookCores[hook.opcao]} mb-3">{hook.opcao}</span>
-					<p class="text-sm text-text-primary leading-relaxed">{hook.texto}</p>
-				</button>
-			{/each}
-		</div>
 
 		<!-- Copy editavel -->
 		<div class="bg-bg-card rounded-xl border border-border-default p-5 mb-6">

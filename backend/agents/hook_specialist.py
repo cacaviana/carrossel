@@ -29,6 +29,20 @@ async def executar(
     if feedback:
         user_prompt += f"\nFEEDBACK DO USUARIO (versao anterior foi rejeitada): {feedback}\n"
         user_prompt += "GERE hooks COMPLETAMENTE DIFERENTES da versao anterior, seguindo o feedback acima.\n"
+    # Tamanho do hook varia por formato
+    if formato in ("post_unico", "thumbnail_youtube", "capa_reels"):
+        user_prompt += (
+            "\nATENCAO: Este e um formato de IMAGEM UNICA (nao carrossel). "
+            "O hook sera o TEXTO PRINCIPAL que aparece NA IMAGEM. "
+            "Deve ser CURTISSIMO: maximo 6-8 palavras. "
+            "Exemplos: 'Dia das Maes 15% OFF', 'Mamae merece o melhor', 'Presenteie com amor'. "
+            "NAO escreva paragrafos. NAO use emojis. Apenas o texto que vai NA imagem.\n"
+        )
+    else:
+        user_prompt += (
+            "\nEste e um carrossel. O hook sera o texto da CAPA (primeiro slide). "
+            "Pode ter ate 2 frases curtas (max 15 palavras total).\n"
+        )
     user_prompt += "Gere 3 ganchos (A, B, C) com abordagens diferentes. Responda em JSON com array 'hooks'."
     user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
 
