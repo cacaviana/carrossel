@@ -1,18 +1,20 @@
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from dtos.conteudo.gerar_conteudo.request import GerarConteudoRequest
 from dtos.conteudo.gerar_conteudo.response import GerarConteudoResponse
 from services.conteudo_service import gerar_conteudo
 from services.conteudo_openai_service import gerar_conteudo_openai
 from services.conteudo_cli_service import gerar_conteudo_cli
+from middleware.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.post("/gerar-conteudo", response_model=GerarConteudoResponse)
-async def api_gerar_conteudo(req: GerarConteudoRequest):
+@limiter.limit("5/minute")
+async def api_gerar_conteudo(request: Request, req: GerarConteudoRequest):
     openai_key = os.getenv("OPENAI_API_KEY")
     claude_key = os.getenv("CLAUDE_API_KEY")
     if not openai_key and not claude_key:
@@ -45,7 +47,8 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
 
 
 @router.post("/gerar-conteudo-cli", response_model=GerarConteudoResponse)
-async def api_gerar_conteudo_cli(req: GerarConteudoRequest):
+@limiter.limit("5/minute")
+async def api_gerar_conteudo_cli(request: Request, req: GerarConteudoRequest):
     try:
         total = 1 if req.tipo_carrossel == "infografico" else req.total_slides
         result = await gerar_conteudo_cli(

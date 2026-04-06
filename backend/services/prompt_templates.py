@@ -4,20 +4,23 @@ Paleta: roxo lilas (#A78BFA), verde neon (#34D399), amber (#FBBF24), vermelho (#
 Fundo: #0A0A0F, cards: #12121A, gradiente: #1a0a2e -> #0a1628.
 """
 
+FOTO_INSTRUCTION = (
+    "NAO desenhar rosto humano. A foto real e adicionada na pos-producao."
+)
+
 DESIGN_SYSTEM = (
-    "Dark mode premium tech. "
-    "Fundo: preto profundo (#0A0A0F), NUNCA 100% preto. "
-    "Gradiente sutil diagonal: #1a0a2e (topo esquerdo) para #0a1628 (base direito). "
-    "Cards: fundo (#12121A) com borda roxa sutil (rgba(167,139,250,0.2)), radius 14px. "
-    "Acento principal: roxo lilas (#A78BFA) para keywords, bordas ativas, pontos focais. "
-    "Acento secundario: verde neon (#34D399) para badges de codigo, numeros positivos. "
-    "Acento terciario: amber (#FBBF24) para metricas de impacto, atencao. "
-    "Acento negativo: vermelho (#F87171) para limitacoes, alertas. "
+    "Dark mode premium cinematico. "
+    "Fundo: preto profundo (#0A0A0F) com gradiente diagonal roxo/azul escuro. "
+    "O fundo deve ter PROFUNDIDADE — luzes difusas roxas e azuis com bokeh, "
+    "como pontos de luz desfocados em diferentes camadas. NAO chapado. "
+    "OBRIGATORIO: uma ilustracao 3D wireframe em linhas neon roxas (#A78BFA) com glow sutil, "
+    "representando algo tech (globo terrestre, rede neural, estrutura molecular, etc). "
+    "As linhas devem ser FINAS e LUMINOSAS, estilo holograma. "
+    "Cards: efeito glassmorphism (vidro fosco semi-transparente, backdrop-blur, borda roxa sutil). "
+    "Acento principal: roxo lilas (#A78BFA). Acento secundario: verde neon (#34D399). "
     "Texto principal: branco (#FFFFFF). Texto secundario: cinza muted (#9896A3). "
-    "Fonte editorial: Outfit, Light (300) para titulos, Semibold (600) para destaques. "
-    "Fonte tecnica: JetBrains Mono para badges, codigo, metricas. "
-    "Glows: circulos com blur extremo e 6-10% opacidade nos cantos para atmosfera. "
-    "Estilo: premium, minimalista, tech. SEM emojis. SEM stock vibes. SEM clipart."
+    "Palavras-chave em negrito branco ou roxo (#A78BFA). "
+    "Estilo: premium, minimalista, tech, cinematico. SEM emojis. SEM clipart. SEM icones flat."
 )
 
 
@@ -49,17 +52,16 @@ def _cover_prompt(slide: dict, ds: str) -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
-        f"FUNDO: gradiente diagonal (#1a0a2e topo esquerdo para #0a1628 base direito) "
-        f"com glows sutis de roxo (#A78BFA, 8% opacidade, blur extremo) nos cantos. "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
         f"Badge pill verde (#34D399) no topo: 'Carlos Viana'. "
-        f"Borda do badge: 1px #34D399, fundo: #34D399 com 10% opacidade. "
-        f"Headline em branco (#FFFFFF), grande, fonte Outfit Light (300), "
-        f"com palavras-chave em roxo lilas (#A78BFA) Semibold (600): '{headline}'. "
-        f"Subline em cinza muted (#9896A3): '{subline}'. "
-        f"Rodape: foto circular com borda roxa (#A78BFA) + 'Carlos Viana' em branco + "
-        f"'DESLIZA →' em roxo (#A78BFA) monospace. "
-        f"TODO texto deve ser LEGIVEL sobre o fundo escuro."
+        f"Headline ENORME em branco, ocupando a maior parte do slide, "
+        f"com palavras-chave em roxo (#A78BFA) bold: '{headline}'. "
+        f"Subline em cinza (#9896A3): '{subline}'. "
+        f"Na parte inferior do slide: uma ilustracao 3D wireframe em linhas neon roxas "
+        f"(ex: globo terrestre, rede de dados, estrutura tech) com glow sutil. "
+        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. "
+        f"Ao lado: 'Carlos Viana' + '1/N'. "
+        f"TODO texto LEGIVEL."
     )
 
 
@@ -69,15 +71,14 @@ def _content_prompt(slide: dict, counter: str, ds: str) -> str:
     bullets = slide.get("bullets", [])
     bullets_text = "\n".join(f"→ {b}" for b in bullets)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
-        f"FUNDO: preto profundo (#0A0A0F). Card central com fundo (#12121A), "
-        f"borda 1px roxa sutil (rgba(167,139,250,0.2)), radius 14px. "
+        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"Card central GRANDE glassmorphism (vidro fosco semi-transparente, borda roxa sutil). "
         f"Badge pill roxo no topo do card: '{etapa}'. "
-        f"Borda: 1px rgba(167,139,250,0.2), fundo: rgba(167,139,250,0.1), texto roxo (#A78BFA). "
-        f"Titulo em branco (#FFFFFF), Outfit Semibold: '{title}'. "
-        f"Bullets em cinza muted (#9896A3), com palavras-chave em roxo (#A78BFA) bold:\n{bullets_text}\n"
-        f"Rodape: foto circular com borda roxa + 'Carlos Viana' + '{counter}' em cinza (#5A5A66) monospace. "
-        f"Hierarquia visual clara. Layout limpo."
+        f"Titulo GRANDE em branco bold: '{title}'. "
+        f"Bullets em branco/cinza, palavras-chave em negrito ou roxo (#A78BFA):\n{bullets_text}\n"
+        f"No fundo atras do card: wireframe 3D neon roxo sutil (holograma tech). "
+        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'. "
+        f"Texto LEGIVEL."
     )
 
 
@@ -99,7 +100,7 @@ def _code_prompt(slide: dict, counter: str, ds: str) -> str:
         f"CADA CARACTERE deve ser LEGIVEL. "
         f"Codigo:\n{code}\n"
         f"Caption abaixo da janela em cinza muted (#9896A3): '{caption}'. "
-        f"Rodape: foto circular com borda roxa + 'Carlos Viana' + '{counter}' em cinza (#5A5A66) monospace."
+        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'."
     )
 
 
@@ -120,7 +121,7 @@ def _comparison_prompt(slide: dict, counter: str, ds: str) -> str:
         f"Bloco DIREITO: fundo roxo escuro (rgba(167,139,250,0.1)), "
         f"borda 1px roxa (rgba(167,139,250,0.2)). "
         f"Header: '{right_label}' em roxo (#A78BFA). Items: {right_text}. "
-        f"Rodape: foto circular com borda roxa + 'Carlos Viana' + '{counter}' em cinza (#5A5A66) monospace."
+        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'."
     )
 
 
@@ -130,16 +131,14 @@ def _cta_prompt(slide: dict, ds: str) -> str:
     tags = slide.get("tags", [])
     tags_text = ", ".join(tags)
     return (
-        f"Crie slide LinkedIn 4:5 (1080x1350px). DESIGN: {ds} "
-        f"FUNDO: gradiente diagonal (#1a0a2e para #0a1628) com glows roxos sutis nos cantos. "
-        f"Linha horizontal roxa (#A78BFA) fina decorativa no topo. "
-        f"Se houver foto da pessoa, colocar no centro com moldura circular (40-48px) "
-        f"e borda fina roxa (#A78BFA). Pessoa NATURAL e CONFIANTE. "
-        f"Headline em branco (#FFFFFF), Outfit Semibold: '{headline}'. "
-        f"Texto em cinza muted (#9896A3): '{subline}'. "
-        f"Tags em badges pill com fundo (#12121A), borda roxa sutil, texto roxo (#A78BFA): {tags_text}. "
-        f"Rodape: 'Carlos Viana — IT Valley School — Pos IA & ML' em cinza (#9896A3). "
-        f"Card de convite com borda roxa sutil."
+        f"Crie slide LinkedIn 4:5 (1080x1350px). {ds} "
+        f"{FOTO_INSTRUCTION} Circulo GRANDE no topo (foto de perfil principal). "
+        f"Headline GRANDE em branco bold: '{headline}'. "
+        f"Texto em cinza (#9896A3): '{subline}'. "
+        f"Tags em badges pill glassmorphism com texto roxo (#A78BFA): {tags_text}. "
+        f"Wireframe 3D neon roxo sutil no fundo (globo, rede, holograma). "
+        f"Rodape: 'Carlos Viana — IT Valley School — Pos IA & ML' em cinza. "
+        f"Atmosfera cinematica, premium."
     )
 
 
@@ -155,7 +154,7 @@ def _visual_prompt(slide: dict, counter: str, ds: str, illustration: str) -> str
         f"verde (#34D399) para highlights positivos, amber (#FBBF24) para metricas, "
         f"branco para labels, cinza (#9896A3) para texto secundario. "
         f"O diagrama deve ser CLARO, PROFISSIONAL e LEGIVEL. "
-        f"Rodape: foto circular com borda roxa + 'Carlos Viana' + '{counter}' em cinza (#5A5A66) monospace."
+        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana' + '{counter}'."
     )
 
 
@@ -175,6 +174,6 @@ def _infographic_prompt(slide: dict, ds: str) -> str:
         f"Secoes separadas com linhas finas ou cards (#12121A) com borda roxa sutil. "
         f"Dados adicionais: {bullets_text}. "
         f"Icones clean (outline, fundo #16162A, radius). SEM emojis. SEM clipart. "
-        f"Rodape: foto circular com borda roxa + 'Carlos Viana — IT Valley School'. "
+        f"Rodape: {FOTO_INSTRUCTION} Circulo pequeno inferior esquerdo. Ao lado: 'Carlos Viana — IT Valley School'. "
         f"O slide deve ser RICO visualmente, com muita informacao organizada de forma clara."
     )

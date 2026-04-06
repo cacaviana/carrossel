@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import type { Slide } from '$lib/stores/carrossel';
+	import SlideDotsNav from '$lib/components/ui/SlideDotsNav.svelte';
 
 	let legendaCopiada = $state(false);
 	let erro = $state('');
@@ -118,6 +119,9 @@
 		erro = '';
 
 		try {
+			// Usa a imagem da capa como referencia visual (se existir e nao for a propria capa)
+			const coverImage = index > 0 ? $carrosselAtual.slides[0]?.imageBase64 : undefined;
+
 			const res = await fetch(`${currentConfig.backendUrl}/api/gerar-imagem-slide`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -126,7 +130,8 @@
 					slide_index: index,
 					total_slides: $carrosselAtual.slides.length,
 					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
-					design_system: designSystemConteudo || undefined
+					design_system: designSystemConteudo || undefined,
+					reference_image: coverImage || undefined
 				})
 			});
 			if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
@@ -183,18 +188,44 @@
 		}
 	}
 
+	async function aplicarFotoNosSlides(slides: typeof $carrosselAtual.slides): Promise<string[]> {
+		/**  Aplica a foto real do criador nos slides via backend (pos-producao). */
+		let currentConfig: typeof $config | undefined;
+		config.subscribe((v) => (currentConfig = v))();
+
+		const fotoCriador = currentConfig?.fotoCriadorBase64;
+		const images = slides.filter(s => s.imageBase64).map(s => s.imageBase64!);
+
+		if (!fotoCriador || images.length === 0) return images;
+
+		try {
+			const res = await fetch(`${currentConfig.backendUrl}/api/aplicar-foto-batch`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ slides: images, foto_criador: fotoCriador })
+			});
+			if (res.ok) {
+				const data = await res.json();
+				return data.images;
+			}
+		} catch {}
+		// Fallback: retorna sem overlay
+		return images;
+	}
+
 	async function exportarPDF() {
 		if (!$carrosselAtual) return;
 		const imagesWithData = $carrosselAtual.slides.filter((s) => s.imageBase64);
 		if (imagesWithData.length === 0) { erro = 'Gere as imagens primeiro.'; return; }
 
+		// Aplica foto real do criador antes de exportar
+		const finalImages = await aplicarFotoNosSlides($carrosselAtual.slides);
+
 		const { jsPDF } = await import('jspdf');
 		const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [1080, 1350] });
-		for (let i = 0; i < $carrosselAtual.slides.length; i++) {
-			const slide = $carrosselAtual.slides[i];
-			if (!slide.imageBase64) continue;
+		for (let i = 0; i < finalImages.length; i++) {
 			if (i > 0) pdf.addPage([1080, 1350]);
-			pdf.addImage(slide.imageBase64, 'PNG', 0, 0, 1080, 1350);
+			pdf.addImage(finalImages[i], 'PNG', 0, 0, 1080, 1350);
 		}
 		pdf.save(`${$carrosselAtual.title || 'carrossel'}.pdf`);
 	}
@@ -210,16 +241,17 @@
 		erro = ''; driveSalvo = ''; salvandoDrive = true;
 
 		try {
+			// Aplica foto real do criador antes de exportar
+			const finalImages = await aplicarFotoNosSlides($carrosselAtual.slides);
+
 			const { jsPDF } = await import('jspdf');
 			const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [1080, 1350] });
-			for (let i = 0; i < $carrosselAtual.slides.length; i++) {
-				const slide = $carrosselAtual.slides[i];
-				if (!slide.imageBase64) continue;
+			for (let i = 0; i < finalImages.length; i++) {
 				if (i > 0) pdf.addPage([1080, 1350]);
-				pdf.addImage(slide.imageBase64, 'PNG', 0, 0, 1080, 1350);
+				pdf.addImage(finalImages[i], 'PNG', 0, 0, 1080, 1350);
 			}
 			const pdfBase64 = pdf.output('datauristring').split(',')[1];
-			const images = $carrosselAtual.slides.map((s) => s.imageBase64 || null);
+			const images = finalImages.map((img) => img || null);
 
 			const res = await fetch(`${currentConfig.backendUrl}/api/google-drive/carrossel`, {
 				method: 'POST',
@@ -497,14 +529,7 @@
 								class="px-4 py-2 rounded-full text-sm font-medium bg-teal-3 text-steel-5 hover:bg-teal-4 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
 								Anterior
 							</button>
-							<div class="flex gap-1.5">
-								{#each Array(totalSlides) as _, i}
-									<button onclick={() => slideAtual.set(i)}
-										class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer
-											{i === $slideAtual ? 'bg-steel-3 scale-125' : 'bg-teal-4 hover:bg-teal-5'}">
-									</button>
-								{/each}
-							</div>
+							<SlideDotsNav total={totalSlides} current={$slideAtual} onSelect={(i) => slideAtual.set(i)} activeClass="bg-steel-3 scale-125" inactiveClass="bg-teal-4 hover:bg-teal-5" />
 							<button onclick={nextSlide} disabled={$slideAtual === totalSlides - 1}
 								class="px-4 py-2 rounded-full text-sm font-medium bg-teal-3 text-steel-5 hover:bg-teal-4 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
 								Próximo

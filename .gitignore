@@ -29,5 +29,30 @@ Thumbs.db
 
 # Claude
 .claude/
-node_modules/
 test-results/
+playwright-report/
+
+# Imagens de teste e preview (geradas durante dev)
+backend/*.png
+backend/*.pdf
+backend/uvicorn.log
+backend/test_output/
+backend/*_slides.json
+test_output/
+
+# HTMLs de preview (geradas durante dev)
+*.preview.html
+*_preview.html
+preview_*.html
+final_preview.html
+final_*.html
+carlos_preview.html
+pure_preview.html
+overlay_preview.html
+pipeline_preview.html
+pipeline_foto_preview.html
+v*_preview.html
+
+# PDFs de teste
+carrossel_*.pdf
+carrossel_final.pdf

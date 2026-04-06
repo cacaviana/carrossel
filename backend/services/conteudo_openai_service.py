@@ -1,20 +1,7 @@
-import json
-import re
-
 import openai
 
 from factories.conteudo_factory import build_system_prompt, build_user_prompt
-
-
-def _parse_json(response_text: str) -> dict:
-    fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL)
-    if fence_match:
-        return json.loads(fence_match.group(1))
-    start = response_text.find("{")
-    end = response_text.rfind("}") + 1
-    if start == -1 or end == 0:
-        raise ValueError("OpenAI não retornou JSON válido")
-    return json.loads(response_text[start:end])
+from utils.json_parser import parse_llm_json
 
 
 async def gerar_conteudo_openai(
@@ -39,4 +26,4 @@ async def gerar_conteudo_openai(
         ],
     )
 
-    return _parse_json(response.choices[0].message.content)
+    return parse_llm_json(response.choices[0].message.content)

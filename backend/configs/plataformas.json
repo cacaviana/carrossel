@@ -1,0 +1,114 @@
+{
+  "plataformas": [
+    {
+      "id": "linkedin",
+      "nome": "LinkedIn",
+      "ativo": true,
+      "rules": {
+        "max_caracteres": 3000,
+        "hashtags_max": 5,
+        "specs": "Carrossel PDF ou imagens 1080x1350. Post unico 1080x1080. Legenda ate 3000 chars."
+      },
+      "brand_palette": {
+        "cores": {
+          "fundo_principal": "#0A0A0F",
+          "destaque_primario": "#A78BFA",
+          "destaque_secundario": "#6D28D9",
+          "texto_principal": "#FFFFFF",
+          "texto_secundario": "#94A3B8"
+        },
+        "fonte": "Outfit",
+        "estilo": "dark_mode_premium",
+        "elementos_obrigatorios": ["foto_carlos_redonda", "logo_itvalley"]
+      }
+    },
+    {
+      "id": "instagram",
+      "nome": "Instagram",
+      "ativo": true,
+      "rules": {
+        "max_caracteres": 2200,
+        "hashtags_max": 30,
+        "specs": "Carrossel ate 10 imagens 1080x1350. Post unico 1080x1080. Reels cover 1080x1920."
+      },
+      "brand_palette": {
+        "cores": {
+          "fundo_principal": "#0A0A0F",
+          "destaque_primario": "#A78BFA",
+          "destaque_secundario": "#6D28D9",
+          "texto_principal": "#FFFFFF",
+          "texto_secundario": "#94A3B8"
+        },
+        "fonte": "Outfit",
+        "estilo": "dark_mode_premium",
+        "elementos_obrigatorios": ["foto_carlos_redonda"]
+      }
+    },
+    {
+      "id": "youtube",
+      "nome": "YouTube",
+      "ativo": false,
+      "rules": {
+        "max_caracteres": 5000,
+        "hashtags_max": 15,
+        "specs": "Thumbnail 1280x720. Titulo ate 100 chars. Descricao ate 5000 chars."
+      },
+      "brand_palette": {
+        "cores": {
+          "fundo_principal": "#0F0F0F",
+          "destaque_primario": "#FF0000",
+          "destaque_secundario": "#CC0000",
+          "texto_principal": "#FFFFFF",
+          "texto_secundario": "#AAAAAA"
+        },
+        "fonte": "Outfit",
+        "estilo": "dark_mode_youtube",
+        "elementos_obrigatorios": []
+      }
+    },
+    {
+      "id": "facebook",
+      "nome": "Facebook",
+      "ativo": false,
+      "rules": {
+        "max_caracteres": 63206,
+        "hashtags_max": 10,
+        "specs": "Post unico 1080x1080. Legenda sem limite pratico."
+      },
+      "brand_palette": {
+        "cores": {
+          "fundo_principal": "#0A0A0F",
+          "destaque_primario": "#1877F2",
+          "destaque_secundario": "#0E5FC7",
+          "texto_principal": "#FFFFFF",
+          "texto_secundario": "#94A3B8"
+        },
+        "fonte": "Outfit",
+        "estilo": "dark_mode_premium",
+        "elementos_obrigatorios": []
+      }
+    },
+    {
+      "id": "meta_ads",
+      "nome": "Meta Ads",
+      "ativo": false,
+      "rules": {
+        "max_caracteres": 125,
+        "hashtags_max": 0,
+        "specs": "Imagem 1080x1080. Texto primario ate 125 chars. Headline ate 40 chars."
+      },
+      "brand_palette": {
+        "cores": {
+          "fundo_principal": "#0A0A0F",
+          "destaque_primario": "#A78BFA",
+          "destaque_secundario": "#6D28D9",
+          "texto_principal": "#FFFFFF",
+          "texto_secundario": "#94A3B8"
+        },
+        "fonte": "Outfit",
+        "estilo": "dark_mode_premium",
+        "elementos_obrigatorios": []
+      }
+    }
+  ]
+}

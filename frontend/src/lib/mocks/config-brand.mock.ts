@@ -1,0 +1,12 @@
+export const brandPaletteMock = {
+  cores: {
+    fundo_principal: '#0A0A0F',
+    destaque_primario: '#A78BFA',
+    destaque_secundario: '#6D28D9',
+    texto_principal: '#FFFFFF',
+    texto_secundario: '#94A3B8'
+  },
+  fonte: 'Outfit',
+  elementos_obrigatorios: ['foto_carlos_redonda', 'logo_itvalley'],
+  estilo: 'dark_mode_premium'
+};

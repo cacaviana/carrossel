@@ -1,0 +1,20 @@
+{
+  "carrossel": {
+    "campos": ["capa", "conteudo", "codigo", "dados", "cta"],
+    "min_slides": 3,
+    "max_slides": 10,
+    "default_slides": 7
+  },
+  "post_unico": {
+    "campos": ["imagem_unica"],
+    "min_slides": 1,
+    "max_slides": 1,
+    "default_slides": 1
+  },
+  "thumbnail_youtube": {
+    "campos": ["thumbnail"],
+    "min_slides": 1,
+    "max_slides": 1,
+    "default_slides": 1
+  }
+}

@@ -51,7 +51,8 @@ export class CarrosselRepository {
 		slide: Record<string, unknown>,
 		slideIndex: number,
 		totalSlides: number,
-		fotoCriador?: string
+		fotoCriador?: string,
+		referenceImage?: string
 	): Promise<{ image: string | null }> {
 		if (USE_MOCK) {
 			const { imagemSlideMock } = await import('$lib/mocks/carrossel-mock');
@@ -64,7 +65,8 @@ export class CarrosselRepository {
 				slide,
 				slide_index: slideIndex,
 				total_slides: totalSlides,
-				foto_criador: fotoCriador || undefined
+				foto_criador: fotoCriador || undefined,
+				reference_image: referenceImage || undefined
 			})
 		});
 		if (!res.ok) {

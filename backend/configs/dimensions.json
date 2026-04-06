@@ -1,0 +1,7 @@
+{
+  "carrossel": { "width": 1080, "height": 1350 },
+  "post_unico": { "width": 1080, "height": 1080 },
+  "capa_reels": { "width": 1080, "height": 1920 },
+  "thumbnail_youtube": { "width": 1280, "height": 720 },
+  "anuncio": { "width": 1080, "height": 1080 }
+}
