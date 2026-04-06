@@ -18,9 +18,12 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
     target_w = dims["width"]
     target_h = dims["height"]
 
-    # Decodificar logo
-    logo_raw = logo_data.split(",")[1] if "," in logo_data else logo_data
-    logo_img = Image.open(io.BytesIO(b64.b64decode(logo_raw))).convert("RGBA")
+    # Decodificar logo (pode ser vazio se toggle "Logo" desligado)
+    logo_img = None
+    if logo_data:
+        logo_raw = logo_data.split(",")[1] if "," in logo_data else logo_data
+        if logo_raw:
+            logo_img = Image.open(io.BytesIO(b64.b64decode(logo_raw))).convert("RGBA")
 
     def _hex_rgba(hex_color):
         h = hex_color.lstrip("#")
@@ -33,45 +36,44 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
         img_raw = s["image"].split(",")[1] if "," in s["image"] else s["image"]
         slide_img = Image.open(io.BytesIO(b64.b64decode(img_raw))).convert("RGBA")
 
-        logo_size = int(s.get("logo_size", 60))
-        logo_x = int(s.get("logo_x", 50))
-        logo_y = int(s.get("logo_y", 1290))
+        logo_size = int(s.get("logo_size", 0))
 
-        w, h = slide_img.size
-        scale_x = w / target_w
-        scale_y = h / target_h
-        actual_size = int(logo_size * scale_x)
-        actual_x = int(logo_x * scale_x)
-        actual_y = int(logo_y * scale_y)
+        # Aplicar logo apenas se existe e tamanho > 0
+        if logo_img and logo_size > 0:
+            logo_x = int(s.get("logo_x", 50))
+            logo_y = int(s.get("logo_y", 1290))
+            w, h = slide_img.size
+            scale_x = w / target_w
+            scale_y = h / target_h
+            actual_size = int(logo_size * scale_x)
+            actual_x = int(logo_x * scale_x)
+            actual_y = int(logo_y * scale_y)
 
-        # Logo circular
-        logo_resized = logo_img.resize((actual_size, actual_size), Image.LANCZOS)
-        mask = Image.new("L", (actual_size, actual_size), 0)
-        ImageDraw.Draw(mask).ellipse([0, 0, actual_size - 1, actual_size - 1], fill=255)
-        circular = Image.new("RGBA", (actual_size, actual_size), (0, 0, 0, 0))
-        circular.paste(logo_resized, (0, 0), mask)
+            logo_resized = logo_img.resize((actual_size, actual_size), Image.LANCZOS)
+            mask = Image.new("L", (actual_size, actual_size), 0)
+            ImageDraw.Draw(mask).ellipse([0, 0, actual_size - 1, actual_size - 1], fill=255)
+            circular = Image.new("RGBA", (actual_size, actual_size), (0, 0, 0, 0))
+            circular.paste(logo_resized, (0, 0), mask)
 
-        if borda_cor_hex:
-            # Com borda anti-aliased + semi-transparente
-            AA = 4
-            border = max(2, actual_size // 20)
-            total = actual_size + border * 2
-            big = total * AA
-            border_big = border * AA
-            circ_big = circular.resize((actual_size * AA, actual_size * AA), Image.LANCZOS)
-            with_border_big = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-            r, g, b_val, _ = _hex_rgba(borda_cor_hex)
-            ImageDraw.Draw(with_border_big).ellipse([0, 0, big - 1, big - 1], fill=(r, g, b_val, 140))
-            with_border_big.paste(circ_big, (border_big, border_big), circ_big)
-            with_border = with_border_big.resize((total, total), Image.LANCZOS)
-            paste_x = actual_x - total // 2
-            paste_y = actual_y - total // 2
-            slide_img.paste(with_border, (paste_x, paste_y), with_border)
-        else:
-            # Sem borda
-            paste_x = actual_x - actual_size // 2
-            paste_y = actual_y - actual_size // 2
-            slide_img.paste(circular, (paste_x, paste_y), circular)
+            if borda_cor_hex:
+                AA = 4
+                border = max(2, actual_size // 20)
+                total = actual_size + border * 2
+                big = total * AA
+                border_big = border * AA
+                circ_big = circular.resize((actual_size * AA, actual_size * AA), Image.LANCZOS)
+                with_border_big = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+                r, g, b_val, _ = _hex_rgba(borda_cor_hex)
+                ImageDraw.Draw(with_border_big).ellipse([0, 0, big - 1, big - 1], fill=(r, g, b_val, 140))
+                with_border_big.paste(circ_big, (border_big, border_big), circ_big)
+                with_border = with_border_big.resize((total, total), Image.LANCZOS)
+                paste_x = actual_x - total // 2
+                paste_y = actual_y - total // 2
+                slide_img.paste(with_border, (paste_x, paste_y), with_border)
+            else:
+                paste_x = actual_x - actual_size // 2
+                paste_y = actual_y - actual_size // 2
+                slide_img.paste(circular, (paste_x, paste_y), circular)
 
         page = slide_img.convert("RGB")
         if page.size != (target_w, target_h):

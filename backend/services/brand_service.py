@@ -52,7 +52,13 @@ def deletar_brand_service(slug: str) -> bool:
 
 def clonar_brand(slug_origem: str, slug_destino: str, nome_destino: str) -> dict:
     """Clona uma marca existente com novo slug e nome. Copia JSON, foto e assets."""
+    import re
     import shutil
+
+    # Sanitizar slug: minusculo, sem espacos, so alfanumerico e hifen
+    slug_destino = re.sub(r'[^a-z0-9-]', '', slug_destino.lower().replace(' ', '-'))
+    if not slug_destino:
+        raise ValueError("Slug invalido")
 
     original = carregar_brand(slug_origem)
     if not original:
