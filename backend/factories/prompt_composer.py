@@ -11,15 +11,57 @@ Regras IT Valley:
 - Nenhum arquivo existente e alterado — este e um arquivo 100% novo.
 """
 
+import json
 import random
+from pathlib import Path
 
 from models.prompt_layer import SEGURANCA_TEXTO, SEGURANCA_IMAGEM
 from services.brand_prompt_builder import carregar_brand
 from utils.dimensions import get_dims, get_prompt_size_str
 
+_FORMATOS_PATH = Path(__file__).parent.parent / "configs" / "formatos.json"
+_formatos_cache: dict | None = None
+
+
+def _carregar_formatos() -> dict:
+    """Carrega e cacheia o JSON de formatos."""
+    global _formatos_cache
+    if _formatos_cache is not None:
+        return _formatos_cache
+    try:
+        if _FORMATOS_PATH.exists():
+            _formatos_cache = json.loads(_FORMATOS_PATH.read_text(encoding="utf-8"))
+            return _formatos_cache
+    except Exception:
+        pass
+    _formatos_cache = {"formatos": []}
+    return _formatos_cache
+
 
 class PromptComposer:
     """Compoe prompts em 4 camadas: seguranca + plataforma + marca + post."""
+
+    # ------------------------------------------------------------------
+    # Carregar formato do JSON
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _carregar_formato(formato: str) -> dict | None:
+        """Retorna config do formato pelo id. Mongo primeiro, fallback JSON."""
+        # Tentar Mongo primeiro
+        try:
+            from data.repositories.mongo.formato_repository import FormatoRepository
+            fmt = FormatoRepository.buscar(formato)
+            if fmt:
+                return fmt
+        except Exception:
+            pass
+
+        # Fallback: JSON no disco
+        data = _carregar_formatos()
+        for f in data.get("formatos", []):
+            if f["id"] == formato:
+                return f
+        return None
 
     # ------------------------------------------------------------------
     # Metodo principal — prompt de IMAGEM
@@ -74,8 +116,28 @@ class PromptComposer:
     ) -> str:
         """Pro para capa/codigo/CTA, Flash para content.
 
-        Mesma logica do select_model() em imagem_factory.py.
+        Le regras do configs/formatos.json; fallback hardcoded se JSON ausente.
         """
+        fmt = PromptComposer._carregar_formato(formato)
+        if fmt:
+            mp = fmt.get("modelo_por_posicao", {})
+            pro_pos = mp.get("pro_positions", "first,last,code")
+            modelo_pro = mp.get("modelo_pro", "gemini-3-pro-image-preview")
+            modelo_flash = mp.get("modelo_flash", "gemini-2.5-flash-image")
+
+            if pro_pos == "all":
+                return modelo_pro
+
+            slide_type = slide.get("type", "content")
+            if "first" in pro_pos and position == 1:
+                return modelo_pro
+            if "last" in pro_pos and position == total:
+                return modelo_pro
+            if "code" in pro_pos and slide_type == "code":
+                return modelo_pro
+            return modelo_flash
+
+        # Fallback hardcoded
         slide_type = slide.get("type", "content")
         if position == 1 or position == total or slide_type == "code":
             return "gemini-3-pro-image-preview"
@@ -135,38 +197,16 @@ class PromptComposer:
 
     @staticmethod
     def _camada_plataforma(formato: str) -> str:
-        """Dimensoes + layout rules do formato."""
+        """Dimensoes + layout rules do formato — le do configs/formatos.json."""
+        fmt = PromptComposer._carregar_formato(formato)
         dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
-        ratio = dims["ratio"]
-        label = dims["label"]
 
         regras: list[str] = []
-        regras.append(f"FORMATO: {size_str}, aspect ratio {ratio} ({label}).")
+        regras.append(f"FORMATO: {size_str}, aspect ratio {dims['ratio']} ({dims['label']}).")
 
-        if formato == "carrossel":
-            regras.append(
-                "Layout vertical (portrait). Conteudo centralizado. "
-                "Card grande ocupando maior parte do slide. "
-                "Rodape na parte inferior."
-            )
-        elif formato == "post_unico":
-            regras.append(
-                "Layout quadrado. Equilibrio visual entre elementos. "
-                "Texto grande e legivel mesmo em preview pequeno."
-            )
-        elif formato == "thumbnail_youtube":
-            regras.append(
-                "Layout horizontal (landscape). "
-                "APENAS dois elementos: rosto + texto grande. "
-                "Alto contraste, eye-catching, estilo YouTube 2025."
-            )
-        elif formato == "capa_reels":
-            regras.append(
-                "Layout vertical tall (9:16). "
-                "Texto grande no topo, visual no centro/inferior. "
-                "Legivel em mobile."
-            )
+        if fmt and fmt.get("layout_rules"):
+            regras.extend(fmt["layout_rules"])
 
         return " ".join(regras)
 
@@ -344,14 +384,17 @@ class PromptComposer:
         dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
         ratio = dims["ratio"]
-        counter = f"{position}/{total}"
+
+        fmt = PromptComposer._carregar_formato(formato)
+        tem_rodape = fmt.get("tem_rodape", True) if fmt else (formato == "carrossel")
+        counter = f"{position}/{total}" if tem_rodape else ""
 
         brand = carregar_brand(brand_slug) if brand_slug else None
         elementos = brand.get("elementos", {}) if brand else {}
         cores = brand.get("cores", {}) if brand else {}
         visual = brand.get("visual", {}) if brand else {}
 
-        rodape = _rodape_instruction(elementos, counter, brand_slug)
+        rodape = _rodape_instruction(elementos, counter, brand_slug) if tem_rodape else ""
 
         # Thumbnail YouTube — prompt especial
         if formato == "thumbnail_youtube":

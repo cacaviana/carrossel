@@ -1,0 +1,126 @@
+{
+  "formatos": [
+    {
+      "id": "carrossel",
+      "nome": "Carrossel",
+      "dimensoes": {"width": 1080, "height": 1350, "ratio": "4:5", "label": "portrait"},
+      "layout_rules": [
+        "Layout vertical (portrait). Conteudo centralizado.",
+        "Card grande ocupando maior parte do slide.",
+        "Rodape na parte inferior."
+      ],
+      "modelo_por_posicao": {
+        "regra": "Pro para capa (posicao 1), CTA (ultima posicao) e codigo. Flash para o resto.",
+        "pro_positions": "first,last,code",
+        "modelo_pro": "gemini-3-pro-image-preview",
+        "modelo_flash": "gemini-2.5-flash-image"
+      },
+      "estruturas": {
+        "3": [
+          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
+          {"posicao": 2, "tipo": "code", "etapa": "PROVA"},
+          {"posicao": 3, "tipo": "cta", "etapa": "CTA"}
+        ],
+        "7": [
+          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
+          {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
+          {"posicao": 3, "tipo": "content", "etapa": "REVELACAO"},
+          {"posicao": 4, "tipo": "code", "etapa": "CODIGO"},
+          {"posicao": 5, "tipo": "comparison", "etapa": "COMPARATIVO"},
+          {"posicao": 6, "tipo": "content", "etapa": "ESPELHO"},
+          {"posicao": 7, "tipo": "cta", "etapa": "CTA"}
+        ],
+        "10": [
+          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
+          {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
+          {"posicao": 3, "tipo": "content", "etapa": "STAKES"},
+          {"posicao": 4, "tipo": "content", "etapa": "FLUXO"},
+          {"posicao": 5, "tipo": "content", "etapa": "ANATOMIA"},
+          {"posicao": 6, "tipo": "code", "etapa": "CODIGO"},
+          {"posicao": 7, "tipo": "comparison", "etapa": "COMPARATIVO"},
+          {"posicao": 8, "tipo": "content", "etapa": "LICOES"},
+          {"posicao": 9, "tipo": "content", "etapa": "ESPELHO"},
+          {"posicao": 10, "tipo": "cta", "etapa": "CTA"}
+        ]
+      },
+      "tem_rodape": true,
+      "tem_paginacao": true,
+      "ativo": true
+    },
+    {
+      "id": "post_unico",
+      "nome": "Post Unico",
+      "dimensoes": {"width": 1080, "height": 1080, "ratio": "1:1", "label": "square"},
+      "layout_rules": [
+        "Layout quadrado. Equilibrio visual entre elementos.",
+        "Texto grande e legivel mesmo em preview pequeno.",
+        "Maximo 20 palavras na imagem."
+      ],
+      "modelo_por_posicao": {
+        "regra": "Sempre Pro (slide unico de alto impacto).",
+        "pro_positions": "all",
+        "modelo_pro": "gemini-3-pro-image-preview",
+        "modelo_flash": "gemini-2.5-flash-image"
+      },
+      "estruturas": {
+        "1": [
+          {"posicao": 1, "tipo": "cover", "etapa": "IMPACTO"}
+        ]
+      },
+      "tem_rodape": false,
+      "tem_paginacao": false,
+      "ativo": true
+    },
+    {
+      "id": "thumbnail_youtube",
+      "nome": "Thumbnail YouTube",
+      "dimensoes": {"width": 1280, "height": 720, "ratio": "16:9", "label": "landscape"},
+      "layout_rules": [
+        "Layout horizontal (landscape).",
+        "APENAS dois elementos: rosto grande (50-60% da imagem) + texto curto (max 4 palavras).",
+        "Alto contraste, eye-catching, estilo YouTube 2025.",
+        "Cores vibrantes, NAO usar dark mode sombrio.",
+        "Expressao facial forte (surpreso, animado, chocado)."
+      ],
+      "modelo_por_posicao": {
+        "regra": "Sempre Pro (thumbnail precisa de qualidade maxima).",
+        "pro_positions": "all",
+        "modelo_pro": "gemini-3-pro-image-preview",
+        "modelo_flash": "gemini-2.5-flash-image"
+      },
+      "estruturas": {
+        "1": [
+          {"posicao": 1, "tipo": "cover", "etapa": "THUMBNAIL"}
+        ]
+      },
+      "tem_rodape": false,
+      "tem_paginacao": false,
+      "ativo": true
+    },
+    {
+      "id": "capa_reels",
+      "nome": "Capa Reels",
+      "dimensoes": {"width": 1080, "height": 1920, "ratio": "9:16", "label": "tall portrait"},
+      "layout_rules": [
+        "Layout vertical tall (9:16).",
+        "Texto GRANDE no topo, visual no centro/inferior.",
+        "Legivel em mobile.",
+        "Impacto visual para scroll vertical."
+      ],
+      "modelo_por_posicao": {
+        "regra": "Sempre Pro (capa de alto impacto).",
+        "pro_positions": "all",
+        "modelo_pro": "gemini-3-pro-image-preview",
+        "modelo_flash": "gemini-2.5-flash-image"
+      },
+      "estruturas": {
+        "1": [
+          {"posicao": 1, "tipo": "cover", "etapa": "CAPA"}
+        ]
+      },
+      "tem_rodape": false,
+      "tem_paginacao": false,
+      "ativo": true
+    }
+  ]
+}
