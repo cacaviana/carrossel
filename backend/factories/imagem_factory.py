@@ -1,8 +1,12 @@
-"""Factory de imagem — monta prompts e payloads para Gemini usando Brand Profile."""
+"""Factory de imagem — monta prompts e payloads para Gemini usando PromptComposer (4 camadas).
+
+Fallback: se PromptComposer falhar, usa brand_build_prompt / legacy_build_prompt.
+"""
 
 import base64
 from pathlib import Path
 
+from factories.prompt_composer import PromptComposer
 from services.brand_prompt_builder import build_prompt as brand_build_prompt
 from services.brand_prompt_builder import get_reference_image_path
 from services.prompt_templates import build_prompt as legacy_build_prompt
@@ -36,11 +40,17 @@ def build_payload(
     """Retorna (model, payload) prontos para envio a API Gemini."""
     model = select_model(slide, position, total)
 
-    # Se tem brand_slug, usa Brand Profile. Senao, fallback legacy.
-    if brand_slug:
-        prompt = brand_build_prompt(slide, position, total, brand_slug, formato=formato)
-    else:
-        prompt = legacy_build_prompt(slide, position, total, design_system, formato=formato)
+    # PromptComposer (4 camadas) com fallback para codigo antigo
+    try:
+        prompt = PromptComposer.compor_prompt_imagem(
+            slide, position, total, brand_slug or "", formato=formato
+        )
+    except Exception as exc:
+        print(f"[WARN] PromptComposer falhou ({exc}), usando fallback antigo")
+        if brand_slug:
+            prompt = brand_build_prompt(slide, position, total, brand_slug, formato=formato)
+        else:
+            prompt = legacy_build_prompt(slide, position, total, design_system, formato=formato)
 
     slide_type = slide.get("type", "content")
 
