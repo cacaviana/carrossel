@@ -154,114 +154,96 @@
 </svelte:head>
 
 {#if showLanding}
-<!-- ========== LANDING ========== -->
-<div class="animate-fade-up max-w-4xl mx-auto">
-	<!-- Hero -->
-	<div class="text-center mb-12 pt-8">
-		<div class="inline-flex items-center gap-3 mb-6">
-			<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple to-purple-deep flex items-center justify-center text-white font-bold text-lg shadow-[0_0_30px_rgba(167,139,250,0.2)]">
-				CF
+<!-- ========== LANDING — HERO BANNER ========== -->
+<div class="hero-bg min-h-screen relative overflow-hidden">
+		<!-- Nebula blobs -->
+		<div class="absolute inset-0 overflow-hidden pointer-events-none">
+			<div class="absolute w-[500px] h-[500px] rounded-full top-[-10%] right-[-5%] opacity-30"
+				style="background: radial-gradient(circle, rgba(107,33,168,0.6) 0%, rgba(88,28,135,0.2) 40%, transparent 70%); filter: blur(80px);"></div>
+			<div class="absolute w-[400px] h-[400px] rounded-full bottom-[-15%] left-[10%] opacity-20"
+				style="background: radial-gradient(circle, rgba(167,139,250,0.5) 0%, rgba(109,40,217,0.15) 50%, transparent 70%); filter: blur(60px);"></div>
+			<div class="absolute w-[250px] h-[250px] rounded-full top-[30%] left-[40%] opacity-15"
+				style="background: radial-gradient(circle, rgba(196,181,253,0.4) 0%, transparent 60%); filter: blur(50px);"></div>
+		</div>
+
+		<!-- Stars -->
+		<div class="absolute inset-0 overflow-hidden pointer-events-none">
+			<div class="absolute w-[2px] h-[2px] bg-white/50 rounded-full top-[8%] left-[12%]"></div>
+			<div class="absolute w-[1px] h-[1px] bg-white/40 rounded-full top-[15%] left-[35%]"></div>
+			<div class="absolute w-[2px] h-[2px] bg-purple-soft/60 rounded-full top-[22%] left-[78%]"></div>
+			<div class="absolute w-[1px] h-[1px] bg-white/30 rounded-full top-[45%] left-[55%]"></div>
+			<div class="absolute w-[2px] h-[2px] bg-white/40 rounded-full top-[60%] left-[20%]"></div>
+			<div class="absolute w-[1px] h-[1px] bg-purple/40 rounded-full top-[75%] left-[88%]"></div>
+			<div class="absolute w-[1px] h-[1px] bg-white/25 rounded-full top-[35%] left-[92%]"></div>
+			<div class="absolute w-[2px] h-[2px] bg-white/35 rounded-full top-[85%] left-[65%]"></div>
+			<div class="absolute w-[1px] h-[1px] bg-purple-soft/30 rounded-full top-[50%] left-[8%]"></div>
+			<div class="absolute w-[1.5px] h-[1.5px] bg-white/45 rounded-full top-[12%] left-[60%] animate-pulse"></div>
+			<div class="absolute w-[1px] h-[1px] bg-white/30 rounded-full top-[70%] left-[42%] animate-pulse" style="animation-delay: 1.2s"></div>
+		</div>
+
+		<div class="max-w-[1200px] mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-24 lg:py-28">
+			<!-- Tag -->
+			<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-purple/20 mb-8">
+				<span class="text-xs font-medium text-purple-soft tracking-wide">IA + Design que converte</span>
 			</div>
-			<h1 class="text-3xl font-light text-text-primary tracking-tight">Content <span class="font-semibold bg-gradient-to-r from-purple to-green bg-clip-text text-transparent">Factory</span></h1>
-		</div>
-		<p class="text-lg text-text-secondary font-light max-w-md mx-auto">Crie conteudo visual profissional em minutos com IA</p>
-	</div>
 
-	<!-- O que voce quer criar hoje? -->
-	<div class="mb-8">
-		<p class="text-center text-sm text-text-muted uppercase tracking-widest mb-6">O que voce quer criar hoje?</p>
+			<!-- Headline -->
+			<h1 class="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold text-white leading-[1.1] mb-6 max-w-5xl">
+				Crie carrosseis virais<br>
+				<span class="hero-galaxy-text">em segundos com IA</span>
+			</h1>
 
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-			<!-- Carrossel -->
-			<a href="/?formato=carrossel" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-purple/40 hover:shadow-[0_0_30px_rgba(167,139,250,0.08)] transition-all duration-300 no-underline">
-				<div class="flex items-center gap-3 mb-3">
-					<div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center text-purple">
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-					</div>
-					<div>
-						<h3 class="text-base font-semibold text-text-primary group-hover:text-purple transition-colors">Carrossel</h3>
-						<p class="text-[11px] text-text-muted">1080 x 1350 · LinkedIn, Instagram</p>
-					</div>
-				</div>
-				<p class="text-xs text-text-secondary leading-relaxed">Crie carrosseis de ate 9 slides com texto tecnico real, codigo funcional e visual dark mode premium.</p>
+			<!-- Subtitle -->
+			<p class="text-xl sm:text-2xl lg:text-[1.7rem] text-text-secondary font-light mb-10 max-w-2xl">
+				Do zero ao post pronto para Instagram sem esforco.
+			</p>
+
+			<!-- Bullet points — staggered entrance -->
+			<ul class="space-y-3 mb-10">
+				{#each [
+					'Escolha o formato e deixe a IA montar o briefing pra voce',
+					'Decida o tema ou jogue uma ideia — o Strategist faz o resto',
+					'Aprove o texto, edite se quiser, sem surpresas no resultado',
+					'Gere imagens virais prontas pra postar em qualquer plataforma'
+				] as item, i}
+					<li class="hero-check flex items-center gap-3 text-base sm:text-lg text-text-secondary" style="animation-delay: {0.3 + i * 0.2}s">
+						<span class="w-6 h-6 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+							<svg class="w-3.5 h-3.5 text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+						</span>
+						{item}
+					</li>
+				{/each}
+			</ul>
+
+			<!-- O que voce quer criar -->
+			<p class="text-sm text-text-muted uppercase tracking-widest mb-4">O que voce quer criar hoje?</p>
+
+			<!-- CTA -->
+			<a
+				href="/?formato=carrossel"
+				class="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full font-semibold text-base text-white no-underline mb-8
+					border border-purple/40 transition-all duration-300
+					hover:shadow-[0_0_35px_rgba(167,139,250,0.25)] hover:border-purple/60"
+				style="background: linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(109,40,217,0.25) 100%);"
+			>
+				Gerar meu carrossel agora
+				<svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
 			</a>
 
-			<!-- Post Unico -->
-			<a href="/?formato=post_unico" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-green/40 hover:shadow-[0_0_30px_rgba(52,211,153,0.08)] transition-all duration-300 no-underline">
-				<div class="flex items-center gap-3 mb-3">
-					<div class="w-10 h-10 rounded-xl bg-green/10 flex items-center justify-center text-green">
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-					</div>
-					<div>
-						<h3 class="text-base font-semibold text-text-primary group-hover:text-green transition-colors">Post Unico</h3>
-						<p class="text-[11px] text-text-muted">1080 x 1080 · Instagram, Facebook, LinkedIn</p>
-					</div>
+			<!-- Social proof -->
+			<div class="flex items-center gap-3 mt-2">
+				<div class="flex -space-x-2">
+					<div class="w-8 h-8 rounded-full bg-purple/30 border-2 border-bg-global flex items-center justify-center text-[10px] text-purple font-bold">C</div>
+					<div class="w-8 h-8 rounded-full bg-green/30 border-2 border-bg-global flex items-center justify-center text-[10px] text-green font-bold">V</div>
+					<div class="w-8 h-8 rounded-full bg-amber/30 border-2 border-bg-global flex items-center justify-center text-[10px] text-amber font-bold">P</div>
 				</div>
-				<p class="text-xs text-text-secondary leading-relaxed">Uma imagem de impacto com texto grande e direto. Perfeita pra engajamento rapido no feed.</p>
-			</a>
-
-			<!-- Thumbnail YouTube -->
-			<a href="/?formato=thumbnail_youtube" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-red/40 hover:shadow-[0_0_30px_rgba(248,113,113,0.08)] transition-all duration-300 no-underline">
-				<div class="flex items-center gap-3 mb-3">
-					<div class="w-10 h-10 rounded-xl bg-red/10 flex items-center justify-center text-red">
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-					</div>
-					<div>
-						<h3 class="text-base font-semibold text-text-primary group-hover:text-red transition-colors">Thumbnail YouTube</h3>
-						<p class="text-[11px] text-text-muted">1280 x 720 · YouTube</p>
-					</div>
-				</div>
-				<p class="text-xs text-text-secondary leading-relaxed">Thumbnails com rosto grande e texto de impacto. Estilo YouTube moderno que maximiza CTR.</p>
-			</a>
-
-			<!-- Capa Reels -->
-			<a href="/?formato=capa_reels" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-amber/40 hover:shadow-[0_0_30px_rgba(251,191,36,0.08)] transition-all duration-300 no-underline">
-				<div class="flex items-center gap-3 mb-3">
-					<div class="w-10 h-10 rounded-xl bg-amber/10 flex items-center justify-center text-amber">
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-					</div>
-					<div>
-						<h3 class="text-base font-semibold text-text-primary group-hover:text-amber transition-colors">Capa Reels</h3>
-						<p class="text-[11px] text-text-muted">1080 x 1920 · Instagram Reels, TikTok</p>
-					</div>
-				</div>
-				<p class="text-xs text-text-secondary leading-relaxed">Capas verticais que param o scroll. Visual full-screen pra Reels e TikTok.</p>
-			</a>
-		</div>
-
-		<!-- Funil -->
-		<div class="block mt-4 p-5 rounded-2xl border border-dashed border-purple/15 bg-bg-card opacity-50 cursor-not-allowed text-center">
-			<div class="flex items-center justify-center gap-3">
-				<div class="w-8 h-8 rounded-lg bg-purple/10 flex items-center justify-center text-purple">
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-				</div>
-				<div class="text-left">
-					<h3 class="text-sm font-semibold text-text-primary group-hover:text-purple transition-colors">Funil de Conteudo</h3>
-					<p class="text-[11px] text-text-muted">3-5 pecas conectadas · Topo, Meio, Fundo, Conversao</p>
-				</div>
-				<span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple/8 text-purple border border-purple/20">Em breve</span>
+				<p class="text-sm text-text-muted">+2.847 criadores ja estao criando conteudo 10x mais rapido</p>
 			</div>
 		</div>
-	</div>
-
-	<!-- Stats -->
-	<div class="grid grid-cols-3 gap-4 mt-8">
-		<div class="text-center p-4 rounded-xl bg-bg-card border border-border-default">
-			<p class="text-2xl font-light text-purple">{brands.length}</p>
-			<p class="text-[11px] text-text-muted mt-1">Marcas</p>
-		</div>
-		<div class="text-center p-4 rounded-xl bg-bg-card border border-border-default">
-			<p class="text-2xl font-light text-green">4</p>
-			<p class="text-[11px] text-text-muted mt-1">Formatos</p>
-		</div>
-		<div class="text-center p-4 rounded-xl bg-bg-card border border-border-default">
-			<p class="text-2xl font-light text-amber">6</p>
-			<p class="text-[11px] text-text-muted mt-1">Agentes IA</p>
-		</div>
-	</div>
 </div>
 
 {:else}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 <!-- ========== WIZARD (formato selecionado) ========== -->
 <div class="animate-fade-up max-w-3xl mx-auto">
 	<!-- Header -->
@@ -495,5 +477,6 @@
 			{isFunil ? 'Criar Funil de Conteudo' : `Criar ${labelFormato}`}
 		{/if}
 	</button>
+</div>
 </div>
 {/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { tick } from 'svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 
@@ -8,6 +9,8 @@
 	let sidebarCollapsed = $state(false);
 	let mobileMenuOpen = $state(false);
 	let mainEl: HTMLElement;
+
+	const isHome = $derived(page.url.pathname === '/' && !page.url.searchParams.has('formato'));
 
 	afterNavigate(async () => {
 		await tick();
@@ -55,8 +58,12 @@
 
 	<!-- Content -->
 	<main bind:this={mainEl} class="flex-1 min-h-screen overflow-y-auto md:pt-0 pt-14">
-		<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+		{#if isHome}
 			{@render children()}
-		</div>
+		{:else}
+			<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+				{@render children()}
+			</div>
+		{/if}
 	</main>
 </div>
