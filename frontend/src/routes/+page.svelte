@@ -230,7 +230,7 @@
 		</div>
 
 		<!-- Funil -->
-		<a href="/?formato=funil" class="group block mt-4 p-5 rounded-2xl border border-dashed border-purple/30 bg-bg-card hover:border-purple/60 hover:shadow-[0_0_30px_rgba(167,139,250,0.05)] transition-all duration-300 no-underline text-center">
+		<div class="block mt-4 p-5 rounded-2xl border border-dashed border-purple/15 bg-bg-card opacity-50 cursor-not-allowed text-center">
 			<div class="flex items-center justify-center gap-3">
 				<div class="w-8 h-8 rounded-lg bg-purple/10 flex items-center justify-center text-purple">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
@@ -241,7 +241,7 @@
 				</div>
 				<span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple/8 text-purple border border-purple/20">Em breve</span>
 			</div>
-		</a>
+		</div>
 	</div>
 
 	<!-- Stats -->
