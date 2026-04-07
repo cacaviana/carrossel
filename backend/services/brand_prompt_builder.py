@@ -13,7 +13,17 @@ DS_DIR = Path(__file__).parent.parent / "assets" / "design-systems"
 
 
 def carregar_brand(slug: str) -> dict | None:
-    """Carrega brand profile do JSON. Sempre le do disco (sem cache)."""
+    """Carrega brand profile. Mongo primeiro, fallback JSON no disco."""
+    # Tentar Mongo primeiro
+    try:
+        from data.repositories.mongo.brand_repository import BrandRepository
+        brand = BrandRepository.buscar(slug)
+        if brand:
+            return brand
+    except Exception:
+        pass
+
+    # Fallback: JSON no disco
     path = DS_DIR / f"{slug}.json"
     if not path.exists():
         return None
@@ -21,27 +31,64 @@ def carregar_brand(slug: str) -> dict | None:
 
 
 def salvar_brand(slug: str, data: dict, overwrite: bool = False) -> dict:
-    """Salva brand profile no JSON."""
-    path = DS_DIR / f"{slug}.json"
-    if path.exists() and not overwrite:
-        raise FileExistsError(f"Marca '{slug}' ja existe")
-    DS_DIR.mkdir(parents=True, exist_ok=True)
+    """Salva brand profile. Mongo primeiro, sempre salva JSON como backup."""
     data["slug"] = slug
+
+    # Verificar existencia (Mongo ou disco)
+    existente = carregar_brand(slug)
+    if existente and not overwrite:
+        raise FileExistsError(f"Marca '{slug}' ja existe")
+
+    # Salvar no Mongo
+    try:
+        from data.repositories.mongo.brand_repository import BrandRepository
+        BrandRepository.salvar(data)
+    except Exception:
+        pass
+
+    # Sempre salvar JSON no disco como backup
+    DS_DIR.mkdir(parents=True, exist_ok=True)
+    path = DS_DIR / f"{slug}.json"
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return data
 
 
 def deletar_brand(slug: str) -> bool:
-    """Deleta brand profile."""
+    """Deleta brand profile. Remove do Mongo e do disco."""
+    deletado = False
+
+    # Deletar do Mongo
+    try:
+        from data.repositories.mongo.brand_repository import BrandRepository
+        if BrandRepository.deletar(slug):
+            deletado = True
+    except Exception:
+        pass
+
+    # Deletar do disco
     path = DS_DIR / f"{slug}.json"
-    if not path.exists():
-        return False
-    path.unlink()
-    return True
+    if path.exists():
+        path.unlink()
+        deletado = True
+
+    return deletado
 
 
 def listar_brands() -> list[dict]:
-    """Lista todas as marcas disponiveis."""
+    """Lista todas as marcas disponiveis. Mongo primeiro, fallback JSON."""
+    # Tentar Mongo primeiro
+    try:
+        from data.repositories.mongo.brand_repository import BrandRepository
+        mongo_brands = BrandRepository.listar()
+        if mongo_brands:
+            return [
+                {"slug": b.get("slug", ""), "nome": b.get("nome", "")}
+                for b in mongo_brands
+            ]
+    except Exception:
+        pass
+
+    # Fallback: JSON no disco
     brands = []
     for path in sorted(DS_DIR.glob("*.json")):
         try:
@@ -186,7 +233,8 @@ def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "", f
     elementos = brand.get("elementos", {})
     cores = brand.get("cores", {})
     slide_type = slide.get("type", "content")
-    counter = f"{position}/{total}"
+    is_single = formato in ("post_unico", "thumbnail_youtube", "capa_reels")
+    counter = "" if is_single else f"{position}/{total}"
 
     # Thumbnail YouTube — avatar GRANDE 40% da tela
     if formato == "thumbnail_youtube":

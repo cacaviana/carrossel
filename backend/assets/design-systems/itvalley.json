@@ -87,8 +87,8 @@
     "tom": "Tecnico mas acessivel. Direto, sem enrolacao. Anti-guru, anti-promessa facil. Autoridade real baseada em experiencia.",
     "linguagem": "Portugues BR informal tech. Usa termos tecnicos quando necessario mas explica. Frases curtas e impactantes. Quebra crencas.",
     "publico": "Devs brasileiros (iniciante a pleno) que querem trabalhar remoto ou no exterior. Sentem que estudam muito e nao avancam.",
-    "palavras_proibidas": ["facil", "simples", "guru", "hack", "segredo"],
-    "exemplos_frase": ["Ninguem te conta isso sobre trabalhar na gringa", "O mercado nao quer certificado, quer evidencia", "Consistencia > intensidade"],
+    "palavras_proibidas": ["facil", "simples", "hack", "segredo", "guru", "revolucionario", "truque", "milagre", "rapido"],
+    "exemplos_frase": ["Consistencia > intensidade", "GitHub pesa mais que certificado", "Ingles tecnico e obrigatorio", "Mercado internacional valoriza comunicacao e clareza", "Ninguem te conta isso sobre trabalhar na gringa", "O mercado nao quer certificado, quer evidencia"],
     "hooks_padrao": [
       "F1 HISTORIA + RESULTADO: historia real + numero que doi",
       "F2 RESULTADO IMPOSSIVEL: numero absurdo + custo zero",
@@ -106,12 +106,29 @@
       "Qualquer coisa que pareca guru"
     ],
     "cta_padrao": [
-      "Pergunta tecnica que gera comentario",
-      "Se voce quer aprender [TECH] na pratica, a gente ensina na Disciplina [X] da nossa pos de IA e ML."
+      "Siga @carlosviana_ai",
+      "Salve para consultar depois",
+      "Comenta ai se concorda",
+      "Pergunta tecnica que gera comentario + Se voce quer aprender [TECH] na pratica, a gente ensina na Disciplina [X] da nossa pos de IA e ML."
     ],
     "topicos_autoridade": ["IA aplicada", "MLOps", "Python", "Deep Learning", "NLP", "Cloud AWS/Azure", "carreira dev"],
-    "anti_patterns": ["promessa de resultado rapido", "linguagem de guru", "clickbait vazio", "conteudo generico sem experiencia real", "emojis excessivos", "CTA curte se concorda"]
+    "anti_patterns": ["promessa de resultado rapido", "linguagem de guru", "clickbait vazio", "conteudo generico sem experiencia real", "emojis excessivos", "CTA curte se concorda"],
+    "hashtags": ["#CodigoOuNaoAconteceu", "#NumerosOuEMentira", "#MostreOndeErrou", "#DevPraDevNaoGuruPraSeguidor", "#SemAutoajudaVazia", "#CarlosViana", "#ITValleySchool"],
+    "instituicao": "IT Valley School",
+    "curso": "Pos-graduacao em IA e Machine Learning",
+    "disciplinas": [
+      "D1 Linguagens (YOLO, OpenCV)",
+      "D2 ETL (Pipeline de dados)",
+      "D3 Fundamentos ML (XGBoost, SVM)",
+      "D4 Modelagem Preditiva (Feature Eng)",
+      "D5 Deep Learning (Transfer Learning)",
+      "D6 NLP (Whisper, Embeddings)",
+      "D7 IA Generativa (RAG, Agentes, LangChain)",
+      "D8 Cloud (AWS Serverless)",
+      "D9 MLOps (Data Drift, CI/CD)"
+    ]
   },
+  "regra_ouro": "NUNCA mentir. Nivel 1: experiencia real. Nivel 2: caso publico documentado. Nivel 3: fato tecnico verificavel. Se nao tem historia real, formato impessoal.",
   "referencia_imagem": "reference_slide.png",
   "referencia_content": "reference_content.png"
 }
