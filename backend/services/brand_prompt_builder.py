@@ -164,7 +164,10 @@ def _rodape_instruction(elementos: dict, counter: str, brand_slug: str | None = 
 
 
 def build_prompt(slide: dict, position: int, total: int, brand_slug: str = "", formato: str = "carrossel") -> str:
-    """Constroi prompt completo a partir do brand profile + tipo do slide."""
+    """DEPRECATED: usar PromptComposer. Ver factories/prompt_composer.py
+
+    Constroi prompt completo a partir do brand profile + tipo do slide.
+    """
     size_str = get_prompt_size_str(formato)
     dims = get_dims(formato)
     ratio = dims["ratio"]
