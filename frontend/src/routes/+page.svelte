@@ -353,7 +353,7 @@
 				<p class="text-sm text-text-secondary mb-3">Tenho uma ideia e preciso criar um design surpreendente.</p>
 
 				<!-- Slides -->
-				<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+				<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
 					{#each slidesTexto as slide, i}
 						<div class="rounded-lg border border-border-default p-4 bg-bg-global">
 							<div class="flex items-center gap-2 mb-2">
