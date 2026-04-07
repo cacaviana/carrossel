@@ -197,32 +197,32 @@
 			<div class="absolute w-[1px] h-[1px] bg-white/30 rounded-full top-[70%] left-[42%] animate-pulse" style="animation-delay: 1.2s"></div>
 		</div>
 
-		<div class="max-w-[1200px] mx-auto px-6 sm:px-8 lg:px-10 py-16 sm:py-24 lg:py-28">
+		<div class="max-w-[1200px] mx-auto px-6 sm:px-8 lg:px-10 py-2 sm:py-6 lg:py-10">
 			<!-- Tag -->
 			<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-purple/20 mb-8">
 				<span class="text-xs font-medium text-purple-soft tracking-wide">IA + Design que converte</span>
 			</div>
 
 			<!-- Headline -->
-			<h1 class="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold text-white leading-[1.1] mb-6 max-w-5xl">
+			<h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] mb-5 max-w-5xl">
 				Crie conteúdos virais<br>
 				<span class="hero-galaxy-text">em segundos com IA</span>
 			</h1>
 
 			<!-- Subtitle -->
-			<p class="text-xl sm:text-2xl lg:text-[1.7rem] text-text-secondary font-light mb-10 max-w-2xl">
+			<p class="text-lg sm:text-xl lg:text-2xl text-text-secondary font-light mb-8 max-w-2xl">
 				Do zero ao post pronto para Instagram sem esforco.
 			</p>
 
 			<!-- Bullet points — staggered entrance -->
-			<ul class="space-y-3 mb-10">
+			<ul class="space-y-2.5 mb-8">
 				{#each [
 					'Escolha o formato e deixe a IA montar o briefing pra voce',
 					'Decida o tema ou jogue uma ideia — o Strategist faz o resto',
 					'Aprove o texto, edite se quiser, sem surpresas no resultado',
 					'Gere imagens virais prontas pra postar em qualquer plataforma'
 				] as item, i}
-					<li class="hero-check flex items-center gap-3 text-base sm:text-lg text-text-secondary" style="animation-delay: {0.3 + i * 0.2}s">
+					<li class="hero-check flex items-center gap-2.5 text-sm sm:text-base text-text-secondary" style="animation-delay: {0.3 + i * 0.2}s">
 						<span class="w-6 h-6 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
 							<svg class="w-3.5 h-3.5 text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
 						</span>
@@ -237,7 +237,7 @@
 			<!-- CTA -->
 			<a
 				href="/?formato=carrossel"
-				class="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full font-semibold text-base text-white no-underline mb-8
+				class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-sm text-white no-underline mb-8
 					border border-purple/40 transition-all duration-300
 					hover:shadow-[0_0_35px_rgba(167,139,250,0.25)] hover:border-purple/60"
 				style="background: linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(109,40,217,0.25) 100%);"
