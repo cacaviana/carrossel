@@ -37,15 +37,22 @@
 
 	const avatarOptions = $derived(
 		formatoAtual === 'thumbnail_youtube'
-			? [{ id: 'sim' as AvatarMode, label: 'Com avatar' }]
+			? [{ id: 'sim' as AvatarMode, label: 'Com avatar', tip: 'Sua foto aparece na thumbnail' }]
 			: formatoAtual === 'post_unico' || formatoAtual === 'capa_reels'
-				? [{ id: 'sim' as AvatarMode, label: 'Com avatar' }, { id: 'sem' as AvatarMode, label: 'Sem avatar' }]
-				: [{ id: 'capa' as AvatarMode, label: 'Avatar na capa' }, { id: 'livre' as AvatarMode, label: 'Avatar livre' }, { id: 'sem' as AvatarMode, label: 'Sem avatar' }]
+				? [
+					{ id: 'sim' as AvatarMode, label: 'Com avatar', tip: 'Sua foto aparece na imagem' },
+					{ id: 'sem' as AvatarMode, label: 'Sem avatar', tip: 'Imagem sem foto de pessoa' }
+				]
+				: [
+					{ id: 'capa' as AvatarMode, label: 'Avatar na capa', tip: 'Foto so no primeiro slide' },
+					{ id: 'livre' as AvatarMode, label: 'Avatar livre', tip: 'A IA decide onde encaixar sua foto' },
+					{ id: 'sem' as AvatarMode, label: 'Sem avatar', tip: 'Nenhum slide tera foto de pessoa' }
+				]
 	);
 
-	// Thumbnail sempre com avatar
+	// Formatos de slide unico: default com avatar
 	$effect(() => {
-		if (formatoAtual === 'thumbnail_youtube') avatarMode = 'sim';
+		if (formatoAtual === 'thumbnail_youtube' || formatoAtual === 'post_unico' || formatoAtual === 'capa_reels') avatarMode = 'sim';
 	});
 
 	// Texto pronto — slide a slide
@@ -91,12 +98,21 @@
 		funil: 'Mix de formatos · Todas as plataformas'
 	};
 
+	const formatoDesc: Record<string, string> = {
+		carrossel: 'Crie slides completos 10x mais rapido com muito mais engajamento.',
+		post_unico: 'Uma imagem que para o scroll e gera conversa no feed.',
+		thumbnail_youtube: 'A thumbnail que faz o clique acontecer antes do titulo.',
+		capa_reels: 'A capa que transforma scroll em visualizacao completa.',
+		funil: 'Conteudo conectado que leva sua audiencia do interesse a acao.'
+	};
+
 	const formatoRaw = $derived(page.url.searchParams.get('formato'));
 	const formatoAtual = $derived(formatoRaw ?? 'carrossel');
 	const showLanding = $derived(!formatoRaw);
 	const isFunil = $derived(formatoAtual === 'funil');
 	const labelFormato = $derived(formatoLabels[formatoAtual] ?? 'Carrossel');
 	const dimFormato = $derived(formatoDims[formatoAtual] ?? '');
+	const descFormato = $derived(formatoDesc[formatoAtual] ?? '');
 
 	const disciplinaAtual = $derived(disciplinas.find(d => d.id === disciplinaSelecionada));
 	const techsDisponiveis = $derived(disciplinaAtual?.techs ?? []);
@@ -247,13 +263,18 @@
 <!-- ========== WIZARD (formato selecionado) ========== -->
 <div class="animate-fade-up max-w-3xl mx-auto">
 	<!-- Header -->
-	<div class="mb-6">
-		<a href="/" class="text-xs text-text-muted hover:text-purple transition-colors mb-2 inline-block">&larr; Voltar</a>
-		<h1 class="text-2xl font-light text-text-primary mb-1">{labelFormato}</h1>
-		<p class="text-sm text-text-secondary">{dimFormato}</p>
-		{#if isFunil}
-			<p class="text-xs text-purple mt-2">O Strategist criara 5-7 pecas conectadas (carrossel + post + thumb) a partir do seu tema.</p>
-		{/if}
+	<div class="mb-8">
+		<a href="/" class="text-xs text-text-muted hover:text-purple transition-colors mb-3 inline-flex items-center gap-1">
+			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+			Voltar
+		</a>
+		<h1 class="text-4xl sm:text-5xl font-bold text-white mb-2">
+			{labelFormato}
+		</h1>
+		<p class="text-base sm:text-lg text-text-secondary font-light">{descFormato}</p>
+		<div class="flex items-center gap-2 mt-3">
+			<span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-white/5 border border-border-default text-text-muted">{dimFormato}</span>
+		</div>
 	</div>
 
 	<!-- Marca -->
@@ -289,6 +310,7 @@
 				{#each avatarOptions as opt}
 					<button
 						onclick={() => { avatarMode = opt.id; }}
+						title={opt.tip}
 						class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
 							{avatarMode === opt.id
 								? 'bg-purple text-bg-global'
@@ -328,7 +350,7 @@
 
 		{#if modoEntrada === 'texto_pronto'}
 			<div class="bg-bg-card rounded-xl border border-border-default p-5">
-				<p class="text-xs text-text-secondary mb-3">{isSlideUnico ? 'Escreva o texto que vai na imagem (max 4-6 palavras).' : 'Preencha slide a slide. O texto vai direto pro visual — sem reescrita.'}</p>
+				<p class="text-sm text-text-secondary mb-3">Tenho uma ideia e preciso criar um design surpreendente.</p>
 
 				<!-- Slides -->
 				<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -386,7 +408,7 @@
 			</div>
 		{:else if modoEntrada === 'ideia'}
 			<div class="bg-bg-card rounded-xl border border-border-default p-5">
-				<p class="text-xs text-text-secondary mb-3">De uma ideia ou tema. O Strategist cria o briefing e o Copywriter escreve tudo.</p>
+				<p class="text-sm text-text-secondary mb-3">Me surpreenda com algo viral do inicio ao fim.</p>
 				<textarea
 					data-testid="campo-tema"
 					bind:value={textoLivre}
@@ -402,6 +424,9 @@
 			</div>
 		{:else}
 			<!-- Disciplinas -->
+			<div class="bg-bg-card rounded-xl border border-border-default p-5 mb-4">
+				<p class="text-sm text-text-secondary mb-4">Escolha a disciplina e a IA monta o conteudo tecnico pra voce.</p>
+			</div>
 			<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
 				{#each disciplinas as disc}
 					<button
