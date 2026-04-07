@@ -1,7 +1,13 @@
-"""
+"""DEPRECATED: usar PromptComposer. Ver factories/prompt_composer.py
+
 Prompt templates para geracao de slides — dark mode design system.
 Paleta: roxo lilas (#A78BFA), verde neon (#34D399), amber (#FBBF24), vermelho (#F87171).
 Fundo: #0A0A0F, cards: #12121A, gradiente: #1a0a2e -> #0a1628.
+
+Este modulo inteiro esta deprecado. A funcao build_prompt() foi substituida
+pelo PromptComposer (4 camadas composable). As constantes FOTO_INSTRUCTION_THUMBNAIL
+e DESIGN_SYSTEM ainda sao referenciadas por brand_prompt_builder e podem ser
+removidas quando aquele modulo tambem migrar.
 """
 
 from utils.dimensions import get_dims, get_prompt_size_str
@@ -32,7 +38,10 @@ DESIGN_SYSTEM = (
 
 
 def build_prompt(slide: dict, position: int, total: int, design_system: str | None = None, formato: str = "carrossel") -> str:
-    """Constroi prompt de imagem baseado no tipo e posicao do slide."""
+    """DEPRECATED: usar PromptComposer. Ver factories/prompt_composer.py
+
+    Constroi prompt de imagem baseado no tipo e posicao do slide.
+    """
     ds = design_system or DESIGN_SYSTEM
     slide_type = slide.get("type", "content")
     counter = f"{position}/{total}"
