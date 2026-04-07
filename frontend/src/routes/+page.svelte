@@ -91,7 +91,9 @@
 		funil: 'Mix de formatos · Todas as plataformas'
 	};
 
-	const formatoAtual = $derived(page.url.searchParams.get('formato') ?? 'carrossel');
+	const formatoRaw = $derived(page.url.searchParams.get('formato'));
+	const formatoAtual = $derived(formatoRaw ?? 'carrossel');
+	const showLanding = $derived(!formatoRaw);
 	const isFunil = $derived(formatoAtual === 'funil');
 	const labelFormato = $derived(formatoLabels[formatoAtual] ?? 'Carrossel');
 	const dimFormato = $derived(formatoDims[formatoAtual] ?? '');
@@ -148,12 +150,123 @@
 </script>
 
 <svelte:head>
-	<title>{labelFormato} — Content Factory</title>
+	<title>{showLanding ? 'Content Factory' : `${labelFormato} — Content Factory`}</title>
 </svelte:head>
 
+{#if showLanding}
+<!-- ========== LANDING ========== -->
+<div class="animate-fade-up max-w-4xl mx-auto">
+	<!-- Hero -->
+	<div class="text-center mb-12 pt-8">
+		<div class="inline-flex items-center gap-3 mb-6">
+			<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple to-purple-deep flex items-center justify-center text-white font-bold text-lg shadow-[0_0_30px_rgba(167,139,250,0.2)]">
+				CF
+			</div>
+			<h1 class="text-3xl font-light text-text-primary tracking-tight">Content <span class="font-semibold bg-gradient-to-r from-purple to-green bg-clip-text text-transparent">Factory</span></h1>
+		</div>
+		<p class="text-lg text-text-secondary font-light max-w-md mx-auto">Crie conteudo visual profissional em minutos com IA</p>
+	</div>
+
+	<!-- O que voce quer criar hoje? -->
+	<div class="mb-8">
+		<p class="text-center text-sm text-text-muted uppercase tracking-widest mb-6">O que voce quer criar hoje?</p>
+
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<!-- Carrossel -->
+			<a href="/?formato=carrossel" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-purple/40 hover:shadow-[0_0_30px_rgba(167,139,250,0.08)] transition-all duration-300 no-underline">
+				<div class="flex items-center gap-3 mb-3">
+					<div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center text-purple">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+					</div>
+					<div>
+						<h3 class="text-base font-semibold text-text-primary group-hover:text-purple transition-colors">Carrossel</h3>
+						<p class="text-[11px] text-text-muted">1080 x 1350 · LinkedIn, Instagram</p>
+					</div>
+				</div>
+				<p class="text-xs text-text-secondary leading-relaxed">Crie carrosseis de ate 9 slides com texto tecnico real, codigo funcional e visual dark mode premium.</p>
+			</a>
+
+			<!-- Post Unico -->
+			<a href="/?formato=post_unico" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-green/40 hover:shadow-[0_0_30px_rgba(52,211,153,0.08)] transition-all duration-300 no-underline">
+				<div class="flex items-center gap-3 mb-3">
+					<div class="w-10 h-10 rounded-xl bg-green/10 flex items-center justify-center text-green">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+					</div>
+					<div>
+						<h3 class="text-base font-semibold text-text-primary group-hover:text-green transition-colors">Post Unico</h3>
+						<p class="text-[11px] text-text-muted">1080 x 1080 · Instagram, Facebook, LinkedIn</p>
+					</div>
+				</div>
+				<p class="text-xs text-text-secondary leading-relaxed">Uma imagem de impacto com texto grande e direto. Perfeita pra engajamento rapido no feed.</p>
+			</a>
+
+			<!-- Thumbnail YouTube -->
+			<a href="/?formato=thumbnail_youtube" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-red/40 hover:shadow-[0_0_30px_rgba(248,113,113,0.08)] transition-all duration-300 no-underline">
+				<div class="flex items-center gap-3 mb-3">
+					<div class="w-10 h-10 rounded-xl bg-red/10 flex items-center justify-center text-red">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+					</div>
+					<div>
+						<h3 class="text-base font-semibold text-text-primary group-hover:text-red transition-colors">Thumbnail YouTube</h3>
+						<p class="text-[11px] text-text-muted">1280 x 720 · YouTube</p>
+					</div>
+				</div>
+				<p class="text-xs text-text-secondary leading-relaxed">Thumbnails com rosto grande e texto de impacto. Estilo YouTube moderno que maximiza CTR.</p>
+			</a>
+
+			<!-- Capa Reels -->
+			<a href="/?formato=capa_reels" class="group block p-6 rounded-2xl border border-border-default bg-bg-card hover:border-amber/40 hover:shadow-[0_0_30px_rgba(251,191,36,0.08)] transition-all duration-300 no-underline">
+				<div class="flex items-center gap-3 mb-3">
+					<div class="w-10 h-10 rounded-xl bg-amber/10 flex items-center justify-center text-amber">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+					</div>
+					<div>
+						<h3 class="text-base font-semibold text-text-primary group-hover:text-amber transition-colors">Capa Reels</h3>
+						<p class="text-[11px] text-text-muted">1080 x 1920 · Instagram Reels, TikTok</p>
+					</div>
+				</div>
+				<p class="text-xs text-text-secondary leading-relaxed">Capas verticais que param o scroll. Visual full-screen pra Reels e TikTok.</p>
+			</a>
+		</div>
+
+		<!-- Funil -->
+		<a href="/?formato=funil" class="group block mt-4 p-5 rounded-2xl border border-dashed border-purple/30 bg-bg-card hover:border-purple/60 hover:shadow-[0_0_30px_rgba(167,139,250,0.05)] transition-all duration-300 no-underline text-center">
+			<div class="flex items-center justify-center gap-3">
+				<div class="w-8 h-8 rounded-lg bg-purple/10 flex items-center justify-center text-purple">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+				</div>
+				<div class="text-left">
+					<h3 class="text-sm font-semibold text-text-primary group-hover:text-purple transition-colors">Funil de Conteudo</h3>
+					<p class="text-[11px] text-text-muted">3-5 pecas conectadas · Topo, Meio, Fundo, Conversao</p>
+				</div>
+				<span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple/8 text-purple border border-purple/20">Em breve</span>
+			</div>
+		</a>
+	</div>
+
+	<!-- Stats -->
+	<div class="grid grid-cols-3 gap-4 mt-8">
+		<div class="text-center p-4 rounded-xl bg-bg-card border border-border-default">
+			<p class="text-2xl font-light text-purple">{brands.length}</p>
+			<p class="text-[11px] text-text-muted mt-1">Marcas</p>
+		</div>
+		<div class="text-center p-4 rounded-xl bg-bg-card border border-border-default">
+			<p class="text-2xl font-light text-green">4</p>
+			<p class="text-[11px] text-text-muted mt-1">Formatos</p>
+		</div>
+		<div class="text-center p-4 rounded-xl bg-bg-card border border-border-default">
+			<p class="text-2xl font-light text-amber">6</p>
+			<p class="text-[11px] text-text-muted mt-1">Agentes IA</p>
+		</div>
+	</div>
+</div>
+
+{:else}
+<!-- ========== WIZARD (formato selecionado) ========== -->
 <div class="animate-fade-up max-w-3xl mx-auto">
 	<!-- Header -->
-	<div class="mb-8">
+	<div class="mb-6">
+		<a href="/" class="text-xs text-text-muted hover:text-purple transition-colors mb-2 inline-block">&larr; Voltar</a>
 		<h1 class="text-2xl font-light text-text-primary mb-1">{labelFormato}</h1>
 		<p class="text-sm text-text-secondary">{dimFormato}</p>
 		{#if isFunil}
@@ -383,3 +496,4 @@
 		{/if}
 	</button>
 </div>
+{/if}
