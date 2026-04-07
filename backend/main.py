@@ -10,7 +10,7 @@ load_dotenv()
 
 from routers import (
     conteudo, imagem, drive, config, agentes, historico, pipeline,
-    foto_overlay, visual_preference, design_system,
+    foto_overlay, visual_preference, design_system, prompt_layer,
 )
 from middleware.rate_limiter import limiter, rate_limit_handler
 
@@ -42,6 +42,7 @@ app.include_router(pipeline.router, prefix="/api")
 app.include_router(foto_overlay.router, prefix="/api")
 app.include_router(visual_preference.router, prefix="/api")
 app.include_router(design_system.router, prefix="/api")
+app.include_router(prompt_layer.router, prefix="/api")
 
 
 @app.get("/health")
