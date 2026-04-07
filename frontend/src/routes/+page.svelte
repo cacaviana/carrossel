@@ -61,8 +61,12 @@
 		}
 	});
 
+	const MAX_SLIDES = 9; // incluindo capa e CTA
+	const MAX_CHARS_SLIDE = 500;
+	const MAX_CHARS_IDEIA = 2000;
+
 	function adicionarSlide() {
-		if (slidesTexto.length >= 7) return;
+		if (slidesTexto.length >= MAX_SLIDES) return;
 		slidesTexto = [...slidesTexto, { principal: '', alternativo: '' }];
 	}
 
@@ -251,6 +255,7 @@
 								bind:value={slide.principal}
 								placeholder="Texto principal do slide {i + 1}..."
 								rows="3"
+								maxlength={MAX_CHARS_SLIDE}
 								disabled={criando}
 								class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
 									focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
@@ -269,7 +274,7 @@
 					{/each}
 				</div>
 
-				{#if !isSlideUnico && slidesTexto.length < 7}
+				{#if !isSlideUnico && slidesTexto.length < MAX_SLIDES}
 					<button
 						onclick={adicionarSlide}
 						disabled={criando}
@@ -292,12 +297,13 @@
 					bind:value={textoLivre}
 					placeholder="Ex: 7 habitos para conquistar sua vaga de dev na gringa, ou: vi que teve vazamento no Axios, criar post focando em seguranca..."
 					rows="5"
+					maxlength={MAX_CHARS_IDEIA}
 					disabled={criando}
 					class="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
 						focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
 						placeholder:text-text-muted"
 				></textarea>
-				<p class="text-xs text-text-muted mt-2">{textoLivre.trim().length}/20 caracteres minimos</p>
+				<p class="text-xs text-text-muted mt-2">{textoLivre.trim().length}/20 min · {MAX_CHARS_IDEIA} max</p>
 			</div>
 		{:else}
 			<!-- Disciplinas -->

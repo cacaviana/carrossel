@@ -38,7 +38,6 @@
 		{ id: 'marcas', label: 'Marcas' },
 		{ id: 'api', label: 'API Keys' },
 		{ id: 'creators', label: 'Creators' },
-		{ id: 'fotos', label: 'Foto Perfil' }
 	];
 
 	const funcoes = ['TECH_SOURCE', 'EXPLAINER', 'VIRAL_ENGINE', 'THOUGHT_LEADER', 'DINAMICA'];
@@ -147,10 +146,14 @@
 	let clonarNome = $state('');
 	let clonando = $state(false);
 
+	function gerarSlug(nome: string): string {
+		return nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').slice(0, 30);
+	}
+
 	function abrirClonar(slug: string, nome: string) {
 		clonarOrigem = slug;
-		clonarSlug = slug + '-copia';
 		clonarNome = nome + ' (Copia)';
+		clonarSlug = gerarSlug(clonarNome);
 		showClonarModal = true;
 	}
 
@@ -177,11 +180,22 @@
 		}
 	}
 
-	async function removerMarca(slug: string) {
+	let showRemoverModal = $state(false);
+	let removerSlug = $state('');
+	let removerNome = $state('');
+
+	function abrirRemover(slug: string, nome: string) {
+		removerSlug = slug;
+		removerNome = nome;
+		showRemoverModal = true;
+	}
+
+	async function confirmarRemover() {
+		showRemoverModal = false;
 		try {
-			const res = await fetch(`${backendUrl}/api/brands/${slug}`, { method: 'DELETE' });
+			const res = await fetch(`${API_BASE}/api/brands/${removerSlug}`, { method: 'DELETE' });
 			if (!res.ok) throw new Error('Erro ao remover');
-			marcas = marcas.filter(m => m.slug !== slug);
+			marcas = marcas.filter(m => m.slug !== removerSlug);
 			showSucesso('Marca removida!');
 		} catch (e) {
 			erro = e instanceof Error ? e.message : 'Erro ao remover marca';
@@ -451,7 +465,7 @@
 													class="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-white/5 cursor-pointer">Renomear</button>
 												<button onclick={() => { menuAberto = ''; abrirClonar(marca.slug, marca.nome); }}
 													class="w-full text-left px-4 py-2 text-xs text-text-primary hover:bg-white/5 cursor-pointer">Clonar</button>
-												<button onclick={() => { menuAberto = ''; removerMarca(marca.slug); }}
+												<button onclick={() => { menuAberto = ''; abrirRemover(marca.slug, marca.nome); }}
 													class="w-full text-left px-4 py-2 text-xs text-red hover:bg-red/5 cursor-pointer">Remover</button>
 											</div>
 										{/if}
@@ -835,12 +849,13 @@
 			<div>
 				<label for="clonar-nome" class="block text-xs text-text-muted mb-1">Nome da nova marca</label>
 				<input id="clonar-nome" type="text" bind:value={clonarNome}
+					oninput={() => { clonarSlug = gerarSlug(clonarNome); }}
 					class="w-full px-3 py-2 rounded-lg bg-bg-input border border-border-default text-sm text-text-primary focus:border-purple focus:outline-none" />
 			</div>
 			<div>
-				<label for="clonar-slug" class="block text-xs text-text-muted mb-1">Slug (sem espacos, minusculo)</label>
-				<input id="clonar-slug" type="text" bind:value={clonarSlug}
-					class="w-full px-3 py-2 rounded-lg bg-bg-input border border-border-default text-sm text-text-primary font-mono focus:border-purple focus:outline-none" />
+				<label for="clonar-slug" class="block text-xs text-text-muted mb-1">Slug (gerado automaticamente)</label>
+				<input id="clonar-slug" type="text" bind:value={clonarSlug} readonly
+					class="w-full px-3 py-2 rounded-lg bg-bg-elevated border border-border-default text-sm text-text-muted font-mono cursor-not-allowed" />
 			</div>
 		</div>
 		<div class="flex justify-end gap-3">
@@ -872,6 +887,23 @@
 			<button onclick={executarRenomear} disabled={renomeando || !renomearNome}
 				class="px-4 py-2 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
 				{renomeando ? 'Salvando...' : 'Salvar'}
+			</button>
+		</div>
+	</Modal>
+{/if}
+
+{#if showRemoverModal}
+	<Modal open={true} onclose={() => showRemoverModal = false}>
+		<h3 class="text-lg font-semibold text-text-primary mb-2">Remover Marca</h3>
+		<p class="text-sm text-text-secondary mb-6">Tem certeza que deseja remover <strong class="text-text-primary">{removerNome}</strong>? Essa acao nao pode ser desfeita.</p>
+		<div class="flex justify-end gap-3">
+			<button onclick={() => showRemoverModal = false}
+				class="px-4 py-2 rounded-full text-sm text-text-secondary border border-border-default hover:bg-white/4 cursor-pointer transition-all">
+				Cancelar
+			</button>
+			<button onclick={confirmarRemover}
+				class="px-4 py-2 rounded-full text-sm font-medium text-white bg-red hover:opacity-90 cursor-pointer transition-all">
+				Remover
 			</button>
 		</div>
 	</Modal>
