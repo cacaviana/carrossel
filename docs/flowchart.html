@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Factory — Fluxo Real do Sistema</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0A0A0F; color: #E2E8F0; font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px 20px; }
+  h1 { text-align: center; font-weight: 300; font-size: 28px; margin-bottom: 8px; color: #fff; }
+  .subtitle { text-align: center; color: #94A3B8; font-size: 14px; margin-bottom: 40px; }
+  .flow-container { max-width: 1100px; margin: 0 auto; }
+
+  /* Sections */
+  .section { margin-bottom: 48px; }
+  .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #A78BFA; margin-bottom: 20px; padding-left: 4px; }
+
+  /* Nodes */
+  .node { position: relative; padding: 16px 20px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #1E1E2E; }
+  .node-user { background: #1a1a2e; border-color: #A78BFA33; }
+  .node-agent { background: #0f1a0f; border-color: #34D39933; }
+  .node-decision { background: #1a150f; border-color: #FBBF2433; }
+  .node-auto { background: #12121A; border-color: #1E1E2E; opacity: 0.7; }
+  .node-error { background: #1a0f0f; border-color: #F8717133; }
+
+  .node-label { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .node-desc { font-size: 12px; color: #94A3B8; line-height: 1.5; }
+  .node-route { font-size: 11px; font-family: 'Consolas', monospace; color: #6D28D9; margin-top: 6px; }
+  .node-api { font-size: 11px; font-family: 'Consolas', monospace; color: #34D399; margin-top: 4px; }
+  .node-time { font-size: 11px; color: #FBBF24; margin-top: 4px; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; margin-right: 6px; }
+  .badge-user { background: #A78BFA22; color: #A78BFA; border: 1px solid #A78BFA33; }
+  .badge-agent { background: #34D39922; color: #34D399; border: 1px solid #34D39933; }
+  .badge-skill { background: #FBBF2422; color: #FBBF24; border: 1px solid #FBBF2433; }
+  .badge-auto { background: #94A3B822; color: #94A3B8; border: 1px solid #94A3B833; }
+  .badge-ap { background: #F8717122; color: #F87171; border: 1px solid #F8717133; }
+
+  /* Arrows */
+  .arrow { text-align: center; color: #4A4A5A; font-size: 20px; margin: 4px 0; }
+  .arrow-label { font-size: 11px; color: #94A3B8; text-align: center; margin: -2px 0 4px; }
+
+  /* Decision branches */
+  .branches { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0 12px; }
+  .branches-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .branch { padding: 12px 16px; border-radius: 10px; border: 1px solid #1E1E2E; background: #12121A; }
+  .branch-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .branch-desc { font-size: 11px; color: #94A3B8; line-height: 1.4; }
+
+  /* Approval pattern */
+  .approval-block { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0; }
+  .approve { padding: 12px; border-radius: 10px; background: #0f1a0f; border: 1px solid #34D39944; }
+  .reject { padding: 12px; border-radius: 10px; background: #1a0f0f; border: 1px solid #F8717144; }
+  .approve-title, .reject-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .approve-title { color: #34D399; }
+  .reject-title { color: #F87171; }
+  .approve-desc, .reject-desc { font-size: 11px; color: #94A3B8; line-height: 1.4; }
+
+  /* Loop indicator */
+  .loop-back { border-left: 2px dashed #F8717144; padding-left: 12px; margin-left: 20px; font-size: 11px; color: #F87171; margin-bottom: 8px; }
+
+  /* Legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; padding: 16px; border-radius: 12px; background: #12121A; border: 1px solid #1E1E2E; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94A3B8; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px dashed #1E1E2E; margin: 32px 0; }
+
+  /* Phase header */
+  .phase { text-align: center; padding: 10px 20px; border-radius: 8px; background: linear-gradient(135deg, #A78BFA11, #6D28D911); border: 1px solid #A78BFA22; margin-bottom: 16px; font-size: 14px; font-weight: 500; color: #A78BFA; }
+</style>
+</head>
+<body>
+
+<h1>Content Factory — Fluxo Real</h1>
+<p class="subtitle">Pipeline de 7 agentes + editor visual + export PDF</p>
+
+<div class="flow-container">
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#A78BFA"></div> Acao do usuario</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#34D399"></div> Agente LLM</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#FBBF24"></div> Decisao / Aprovacao</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#94A3B8"></div> Automatico</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#F87171"></div> Erro / Rejeicao</div>
+</div>
+
+<!-- FASE 1: ENTRADA -->
+<div class="section">
+  <div class="phase">Fase 1 — Entrada</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Escolher Formato</div>
+    <div class="node-desc">Sidebar: Carrossel (1080x1350) · Post Unico (1080x1080) · Thumbnail YouTube (1280x720) · Funil (3 formatos combinados)</div>
+    <div class="node-route">/ · /?formato=carrossel · /?formato=post_unico · /?formato=funil</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Selecionar Marca + Avatar</div>
+    <div class="node-desc">Marca carregada de GET /api/brands. Avatar: "Na capa" / "Livre" / "Sem avatar" (opcoes variam por formato)</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-decision">
+    <div class="node-label"><span class="badge badge-skill">DECISAO</span> Fonte do Conteudo</div>
+    <div class="node-desc">3 modos de entrada — cada um monta o "tema" de forma diferente</div>
+  </div>
+
+  <div class="branches branches-3">
+    <div class="branch">
+      <div class="branch-title" style="color:#A78BFA">Texto Pronto</div>
+      <div class="branch-desc">Preenche 1-7 slides manualmente (titulo + texto alternativo). Tema = texto do slide 1.</div>
+    </div>
+    <div class="branch">
+      <div class="branch-title" style="color:#A78BFA">Ideia Livre</div>
+      <div class="branch-desc">Textarea aberto (min 20 chars). Tema = texto digitado.</div>
+    </div>
+    <div class="branch">
+      <div class="branch-title" style="color:#A78BFA">Por Disciplina</div>
+      <div class="branch-desc">Seleciona disciplina + tecnologia + tema opcional. Tema = "D1 - XGBoost - meu tema".</div>
+    </div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Criar Pipeline</div>
+    <div class="node-desc">Clica "Criar [Formato]". Envia tema + formato + marca + avatar + modo_entrada + slides (se texto pronto).</div>
+    <div class="node-api">POST /api/pipelines/</div>
+  </div>
+</div>
+
+<!-- FASE 2: PIPELINE DE AGENTES -->
+<div class="section">
+  <div class="phase">Fase 2 — Pipeline de 7 Agentes</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Painel do Pipeline</div>
+    <div class="node-desc">Wizard vertical com 7 etapas. Polling automatico a cada 3s. Mostra progresso em tempo real.</div>
+    <div class="node-route">/pipeline/{id}</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 1: Strategist -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-agent">AGENTE 1</span> Strategist</div>
+    <div class="node-desc">Analisa tema e cria briefing estruturado: angulo editorial, estrutura de slides, tom de voz, publico-alvo.</div>
+    <div class="node-time">~15s · Claude API</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-decision">
+    <div class="node-label"><span class="badge badge-ap">AP-1</span> Revisar Briefing</div>
+    <div class="node-desc">Usuario ve o briefing completo, pode editar o texto, ve tendencias detectadas.</div>
+    <div class="node-route">/pipeline/{id}/briefing</div>
+  </div>
+
+  <div class="approval-block">
+    <div class="approve">
+      <div class="approve-title">Aprovar</div>
+      <div class="approve-desc">Envia briefing (editado ou original). Dispara copywriter automaticamente. Volta pro painel.</div>
+    </div>
+    <div class="reject">
+      <div class="reject-title">Rejeitar e Regerar</div>
+      <div class="reject-desc">Escreve feedback opcional. Strategist re-executa com o feedback. Pagina recarrega com novo briefing.</div>
+    </div>
+  </div>
+  <div class="loop-back">↺ Loop: rejeicao volta pro Strategist com feedback</div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 2: Copywriter -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-agent">AGENTE 2</span> Copywriter</div>
+    <div class="node-desc">Gera copy completa: headline, narrativa, CTA, conteudo de cada slide (titulo + corpo + tipo).</div>
+    <div class="node-time">~20s · Claude API</div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="node node-auto">
+    <div class="node-label"><span class="badge badge-auto">AUTO</span> Auto-aprovado pelo frontend</div>
+    <div class="node-desc">Polling detecta "aguardando_aprovacao" e aprova automaticamente. Dispara Hook Specialist.</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 3: Hook Specialist -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-agent">AGENTE 3</span> Hook Specialist</div>
+    <div class="node-desc">Gera 3 ganchos (A/B/C) com abordagens diferentes: resultado impossivel, contra-intuitivo, espelho, autoridade, urgencia.</div>
+    <div class="node-time">~10s · Claude API</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-decision">
+    <div class="node-label"><span class="badge badge-ap">AP-2</span> Revisar Copy + Hook</div>
+    <div class="node-desc">Seleciona 1 dos 3 hooks (obrigatorio). Pode editar headline, narrativa, CTA e conteudo de cada slide.</div>
+    <div class="node-route">/pipeline/{id}/copy</div>
+  </div>
+
+  <div class="approval-block">
+    <div class="approve">
+      <div class="approve-title">Aprovar</div>
+      <div class="approve-desc">Envia copy editada + hook selecionado. Dispara Art Director. Volta pro painel.</div>
+    </div>
+    <div class="reject">
+      <div class="reject-title">Regerar</div>
+      <div class="reject-desc">Escreve feedback. Re-executa Hook Specialist (e possivelmente Copywriter). Recarrega com novos hooks.</div>
+    </div>
+  </div>
+  <div class="loop-back">↺ Loop: rejeicao volta pro Hook Specialist (ou Copywriter) com feedback</div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 4: Art Director -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-agent">AGENTE 4</span> Art Director</div>
+    <div class="node-desc">Cria prompt de imagem detalhado para cada slide. Respeita brand palette, cores e estilo visual da marca.</div>
+    <div class="node-time">~15s · Claude API</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-decision">
+    <div class="node-label"><span class="badge badge-ap">AP-3</span> Revisar Prompts Visuais</div>
+    <div class="node-desc">Ve/edita prompt de imagem de cada slide. Sidebar mostra paleta da marca e historico de preferencias visuais.</div>
+    <div class="node-route">/pipeline/{id}/visual</div>
+  </div>
+
+  <div class="approval-block">
+    <div class="approve">
+      <div class="approve-title">Aprovar e Gerar Imagens</div>
+      <div class="approve-desc">Envia prompts editados. Dispara Image Generator (~2min). Volta pro painel com barra de progresso.</div>
+    </div>
+    <div class="reject">
+      <div class="reject-title">Rejeitar</div>
+      <div class="reject-desc">Art Director re-executa. Recarrega prompts. Fica na mesma pagina.</div>
+    </div>
+  </div>
+  <div class="loop-back">↺ Loop: rejeicao re-gera prompts visuais</div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 5: Image Generator -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-agent">AGENTE 5</span> Image Generator</div>
+    <div class="node-desc">Gera imagens via Gemini API. 3 slides simultaneos (semaforo). Pro para capa/CTA, Flash para conteudo. Retry com fallback.</div>
+    <div class="node-time">~1-2min · Gemini API · Barra de progresso "Slide N/Total"</div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="node node-auto">
+    <div class="node-label"><span class="badge badge-auto">AUTO</span> Auto-aprovado pelo frontend</div>
+    <div class="node-desc">Polling detecta imagens prontas e aprova automaticamente. Dispara Brand Gate.</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 6: Brand Gate -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-skill">SKILL</span> Brand Gate</div>
+    <div class="node-desc">Deterministico (sem LLM). Valida cores e elementos da marca. Aplica foto redonda + logo via Pillow.</div>
+    <div class="node-time">~5s · Pillow</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <!-- Agent 7: Content Critic -->
+  <div class="node node-agent">
+    <div class="node-label"><span class="badge badge-agent">AGENTE 7</span> Content Critic</div>
+    <div class="node-desc">Avalia tudo: clarity, impact, originality, scroll_stop, cta_strength. Score final + decisao (approved/needs_revision).</div>
+    <div class="node-time">~10s · Claude API</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-auto">
+    <div class="node-label"><span class="badge badge-auto">AUTO</span> Pipeline Completo</div>
+    <div class="node-desc">Todos os 7 passos verdes. Botao "Ver Imagens" aparece. Score final exibido.</div>
+  </div>
+</div>
+
+<!-- FASE 3: EDITOR -->
+<div class="section">
+  <div class="phase">Fase 3 — Editor Visual</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Editor de Slides</div>
+    <div class="node-desc">Preview dos slides gerados. Clique pra posicionar logo. Controles de tamanho (rodape/central), borda, cor.</div>
+    <div class="node-route">/editor?pipeline={id}&brand={slug}</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-decision">
+    <div class="node-label"><span class="badge badge-skill">POR SLIDE</span> Slide OK?</div>
+    <div class="node-desc">Usuario navega slide a slide, avaliando imagem e texto.</div>
+  </div>
+
+  <div class="approval-block">
+    <div class="approve">
+      <div class="approve-title">OK — Proximo slide</div>
+      <div class="approve-desc">Slide esta bom. Navega pro proximo. No ultimo slide: "Baixar PDF".</div>
+    </div>
+    <div class="reject">
+      <div class="reject-title">Precisa ajuste</div>
+      <div class="reject-desc">
+        <strong>Texto errado?</strong> "Corrigir texto" — Gemini reescreve texto na imagem (ate 3 tentativas com OCR).<br>
+        <strong>Imagem ruim?</strong> "Regenerar slide" — gera imagem nova do zero via Gemini.
+      </div>
+    </div>
+  </div>
+  <div class="loop-back">↺ Loop por slide ate todos ficarem OK</div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Posicionar Logo em Todos</div>
+    <div class="node-desc">"Igual em todos" — aplica posicao do logo atual em todos os slides. Upload de logo novo se necessario.</div>
+  </div>
+</div>
+
+<!-- FASE 4: EXPORT -->
+<div class="section">
+  <div class="phase">Fase 4 — Export</div>
+
+  <div class="node node-user">
+    <div class="node-label"><span class="badge badge-user">USER</span> Baixar PDF</div>
+    <div class="node-desc">No ultimo slide, clica "Baixar PDF". Backend compoe slides + logo nas posicoes certas e gera PDF.</div>
+    <div class="node-api">POST /api/editor/salvar-pdf</div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node node-auto">
+    <div class="node-label" style="color: #34D399; font-size: 18px;">Carrossel Pronto</div>
+    <div class="node-desc">PDF baixado. Slides com logo, texto correto, identidade visual da marca. Pronto pra postar no LinkedIn.</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ERROR FLOW -->
+<div class="section">
+  <div class="section-title">Fluxo de Erro (qualquer agente)</div>
+
+  <div class="node node-error">
+    <div class="node-label"><span class="badge" style="background:#F8717122;color:#F87171;border:1px solid #F8717133">ERRO</span> Agente Falhou</div>
+    <div class="node-desc">Timeout, API key invalida, rate limit, resposta inesperada. Step fica vermelho no painel.</div>
+  </div>
+
+  <div class="branches">
+    <div class="branch" style="border-color: #FBBF2444;">
+      <div class="branch-title" style="color:#FBBF24">Retomar</div>
+      <div class="branch-desc">Re-executa o mesmo agente do zero. Pipeline volta pra "pendente".</div>
+    </div>
+    <div class="branch" style="border-color: #A78BFA44;">
+      <div class="branch-title" style="color:#A78BFA">Abrir no Editor</div>
+      <div class="branch-desc">Pula agentes restantes e vai direto pro editor com as imagens que ja tem.</div>
+    </div>
+  </div>
+</div>
+
+<!-- CANCEL FLOW -->
+<div class="section">
+  <div class="section-title">Cancelamento</div>
+  <div class="node node-error">
+    <div class="node-label"><span class="badge" style="background:#F8717122;color:#F87171;border:1px solid #F8717133">CANCELAR</span> Pipeline Cancelado</div>
+    <div class="node-desc">Botao "Cancelar" no painel. Confirmacao em modal. Pipeline salvo no historico como "cancelado". Nao pode ser retomado.</div>
+    <div class="node-api">POST /api/pipelines/{id}/cancelar → goto /historico</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

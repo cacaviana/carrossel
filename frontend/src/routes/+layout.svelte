@@ -1,81 +1,69 @@
 <script lang="ts">
 	import '../app.css';
+	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
+	import { tick } from 'svelte';
+	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 
 	let { children } = $props();
-	let menuAberto = $state(false);
+	let sidebarCollapsed = $state(false);
+	let mobileMenuOpen = $state(false);
+	let mainEl: HTMLElement;
 
-	const navItems = [
-		{ href: '/', label: 'Home' },
-		{ href: '/carrossel', label: 'Carrossel' },
-		{ href: '/historico', label: 'Historico' },
-		{ href: '/agentes', label: 'Agentes' },
-		{ href: '/configuracoes', label: 'Config' },
-		{ href: '/configuracoes#design-systems', label: 'Design' }
-	];
+	const isHome = $derived(page.url.pathname === '/' && !page.url.searchParams.has('formato'));
+
+	afterNavigate(async () => {
+		await tick();
+		window.scrollTo({ top: 0, behavior: 'instant' });
+		mainEl?.scrollTo({ top: 0, behavior: 'instant' });
+	});
 </script>
 
-<div class="min-h-screen flex flex-col">
-	<header class="bg-steel-6 text-white px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
-		<div class="max-w-7xl mx-auto flex items-center justify-between">
-			<a href="/" class="flex items-center gap-2 sm:gap-3 no-underline">
-				<div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-steel-3 to-steel-2 flex items-center justify-center text-white font-bold text-sm sm:text-lg">
-					C
-				</div>
-				<div>
-					<h1 class="text-base sm:text-lg font-semibold tracking-tight text-white">Carrossel System</h1>
-					<p class="text-[10px] sm:text-xs text-steel-2 font-light">IT Valley School</p>
-				</div>
-			</a>
+<div class="min-h-screen flex bg-bg-global">
+	<!-- Sidebar desktop -->
+	<div class="hidden md:block shrink-0">
+		<Sidebar collapsed={sidebarCollapsed} onToggle={() => sidebarCollapsed = !sidebarCollapsed} />
+	</div>
 
-			<!-- Hamburger mobile -->
-			<button
-				onclick={() => menuAberto = !menuAberto}
-				class="sm:hidden p-2 rounded-lg hover:bg-steel-5 transition-all cursor-pointer"
-				aria-label="Menu"
-			>
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					{#if menuAberto}
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-					{:else}
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-					{/if}
-				</svg>
-			</button>
-
-			<!-- Nav desktop -->
-			<nav class="hidden sm:flex gap-1">
-				{#each navItems as item}
-					<a
-						href={item.href}
-						class="px-4 py-2 rounded-full text-sm font-medium text-teal-4 hover:bg-steel-5 hover:text-white transition-all duration-200 no-underline"
-					>
-						{item.label}
-					</a>
-				{/each}
-			</nav>
+	<!-- Mobile header + drawer -->
+	<div class="md:hidden fixed top-0 left-0 right-0 z-40 bg-bg-card border-b border-border-default px-4 py-3 flex items-center justify-between">
+		<div class="flex items-center gap-2">
+			<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple to-purple-deep flex items-center justify-center text-white font-bold text-xs">
+				CF
+			</div>
+			<span class="text-sm font-semibold text-text-primary">Content Factory</span>
 		</div>
+		<button
+			onclick={() => mobileMenuOpen = !mobileMenuOpen}
+			class="p-2 rounded-lg hover:bg-white/4 transition-all cursor-pointer text-text-secondary"
+		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				{#if mobileMenuOpen}
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				{:else}
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+				{/if}
+			</svg>
+		</button>
+	</div>
 
-		<!-- Nav mobile -->
-		{#if menuAberto}
-			<nav class="sm:hidden mt-3 pt-3 border-t border-steel-5 flex flex-col gap-1">
-				{#each navItems as item}
-					<a
-						href={item.href}
-						onclick={() => menuAberto = false}
-						class="px-4 py-2.5 rounded-xl text-sm font-medium text-teal-4 hover:bg-steel-5 hover:text-white transition-all duration-200 no-underline"
-					>
-						{item.label}
-					</a>
-				{/each}
-			</nav>
+	{#if mobileMenuOpen}
+		<div class="md:hidden fixed inset-0 z-30">
+			<button class="absolute inset-0 bg-black/60" onclick={() => mobileMenuOpen = false} tabindex="-1"></button>
+			<div class="absolute left-0 top-0 bottom-0">
+				<Sidebar collapsed={false} onToggle={() => mobileMenuOpen = false} />
+			</div>
+		</div>
+	{/if}
+
+	<!-- Content -->
+	<main bind:this={mainEl} class="flex-1 min-h-screen overflow-y-auto md:pt-0 pt-14">
+		{#if isHome}
+			{@render children()}
+		{:else}
+			<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+				{@render children()}
+			</div>
 		{/if}
-	</header>
-
-	<main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-		{@render children()}
 	</main>
-
-	<footer class="bg-steel-6 text-teal-5 text-center py-4 text-xs font-light px-4">
-		IT Valley School — Pos IA & ML — Carrossel System v1.0
-	</footer>
 </div>

@@ -11,22 +11,22 @@
 	let { variant = 'primary', size = 'md', loading = false, children, ...rest }: Props = $props();
 
 	const variantClasses: Record<string, string> = {
-		primary: 'text-white bg-gradient-to-r from-steel-4 via-steel-3 to-steel-2 hover:-translate-y-0.5 hover:shadow-lg',
-		secondary: 'text-white bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4 hover:-translate-y-0.5 hover:shadow-lg',
-		outline: 'border border-steel-3/30 text-steel-3 hover:bg-steel-0',
-		ghost: 'text-steel-3 hover:bg-teal-1',
-		danger: 'text-red-600 bg-red-50 hover:bg-red-100'
+		primary: 'text-bg-global bg-purple hover:shadow-[0_0_20px_rgba(167,139,250,0.2)] hover:opacity-90',
+		secondary: 'text-bg-global bg-green hover:shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:opacity-90',
+		outline: 'border border-purple/20 text-purple hover:bg-purple/8',
+		ghost: 'text-purple hover:bg-purple/8',
+		danger: 'text-red bg-red/9 border border-red/15 hover:bg-red/15'
 	};
 
 	const sizeClasses: Record<string, string> = {
-		sm: 'px-3 py-1 text-xs',
+		sm: 'px-3 py-1.5 text-xs',
 		md: 'px-5 py-2.5 text-sm',
-		lg: 'px-6 py-3 text-sm'
+		lg: 'px-6 py-3 text-base'
 	};
 </script>
 
 <button
-	class="rounded-full font-medium transition-all duration-300 cursor-pointer
+	class="rounded-full font-medium transition-all duration-250 cursor-pointer
 		disabled:opacity-50 disabled:cursor-not-allowed
 		{variantClasses[variant]} {sizeClasses[size]}"
 	disabled={loading || rest.disabled}
@@ -34,7 +34,7 @@
 >
 	{#if loading}
 		<span class="inline-flex items-center gap-2">
-			<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+			<span class="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"></span>
 			{@render children()}
 		</span>
 	{:else}

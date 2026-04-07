@@ -1,6 +1,29 @@
 @import 'tailwindcss';
 
 @theme {
+	/* === Dark Mode Premium === */
+	--color-bg-global: #0A0A0F;
+	--color-bg-card: #12121A;
+	--color-bg-code: #0D0D18;
+	--color-bg-elevated: #1A1A2A;
+	--color-bg-input: #12121A;
+
+	--color-border-default: rgba(167,139,250,0.2);
+	--color-border-active: #A78BFA;
+
+	--color-text-primary: #FFFFFF;
+	--color-text-secondary: #9896A3;
+	--color-text-muted: #5A5A66;
+
+	--color-purple: #A78BFA;
+	--color-purple-soft: #C4B5FD;
+	--color-purple-deep: #6D28D9;
+
+	--color-green: #34D399;
+	--color-amber: #FBBF24;
+	--color-red: #F87171;
+
+	/* === Legado (manter para paginas existentes) === */
 	--color-teal-0: #F4F9F7;
 	--color-teal-1: #EEF5F2;
 	--color-teal-2: #E6EEEC;
@@ -16,20 +39,21 @@
 	--color-steel-5: #173650;
 	--color-steel-6: #0D2033;
 	--color-bg-page: #E6EEEC;
-	--color-bg-card: #FAFCFB;
-	--color-bg-dark: #0D2033;
-	--color-bg-dark-card: #122840;
+	--color-bg-card-legacy: #FAFCFB;
+
 	--font-family-outfit: 'Outfit', 'Helvetica Neue', sans-serif;
+	--font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 @layer base {
 	body {
 		font-family: var(--font-family-outfit);
-		background-color: var(--color-bg-page);
-		color: var(--color-steel-6);
+		background-color: var(--color-bg-global);
+		color: var(--color-text-primary);
 	}
 }
 
+/* === Animations === */
 @keyframes fade-up {
 	from { opacity: 0; transform: translateY(20px); }
 	to { opacity: 1; transform: translateY(0); }
@@ -40,12 +64,108 @@
 	100% { background-position: 200% 0; }
 }
 
+@keyframes pulse-border {
+	0%, 100% { border-color: rgba(251, 191, 36, 0.4); }
+	50% { border-color: rgba(251, 191, 36, 0.8); }
+}
+
 .animate-fade-up {
 	animation: fade-up 0.65s ease-out forwards;
 }
 
 .animate-shimmer {
-	background: linear-gradient(90deg, transparent 0%, rgba(53,120,176,0.08) 50%, transparent 100%);
+	background: linear-gradient(90deg, transparent 0%, rgba(167,139,250,0.06) 50%, transparent 100%);
 	background-size: 200% 100%;
 	animation: shimmer 2s infinite;
+}
+
+.animate-pulse-border {
+	animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* === Design Tokens / Spacing === */
+.app-shell {
+	padding: 2.5rem;
+}
+
+.sidebar-padding {
+	padding-inline: 2rem;
+	padding-block: 1.5rem;
+}
+
+.card-padding {
+	padding: 1.5rem;
+	border-radius: 1.5rem;
+}
+
+.label-upper {
+	font-size: 0.65rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--color-text-muted);
+}
+
+/* === Hero Landing === */
+.hero-bg {
+	background:
+		radial-gradient(ellipse 60% 50% at 75% 30%, rgba(107,33,168,0.18) 0%, transparent 60%),
+		radial-gradient(ellipse 40% 40% at 25% 70%, rgba(167,139,250,0.08) 0%, transparent 50%),
+		radial-gradient(ellipse 30% 30% at 50% 50%, rgba(109,40,217,0.06) 0%, transparent 50%),
+		linear-gradient(160deg, #07060D 0%, #0A0914 25%, #0E0B1E 50%, #0A0A14 75%, #07060D 100%);
+}
+
+.hero-galaxy-text {
+	background: linear-gradient(135deg, #A78BFA 0%, #34D399 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Check items — staggered fade-in */
+.hero-check {
+	opacity: 0;
+	transform: translateY(12px);
+	animation: check-appear 0.5s ease-out forwards;
+}
+
+@keyframes check-appear {
+	to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero cards — entrance */
+.hero-card {
+	animation: card-float-in 0.7s ease-out both;
+}
+
+@keyframes card-float-in {
+	from { opacity: 0; filter: blur(4px); }
+	to { opacity: 1; filter: blur(0); }
+}
+
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
+
+/* Scrollbar fina e discreta */
+.scrollbar-thin {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(167,139,250,0.2) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+	width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+	background: rgba(167,139,250,0.2);
+	border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+	background: rgba(167,139,250,0.4);
 }

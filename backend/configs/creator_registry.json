@@ -1,0 +1,81 @@
+{
+  "criadores": [
+    {
+      "nome": "Fireship",
+      "funcao": "EXPLAINER",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@Fireship",
+      "ativo": true
+    },
+    {
+      "nome": "Andrej Karpathy",
+      "funcao": "THOUGHT_LEADER",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@AndrejKarpathy",
+      "ativo": true
+    },
+    {
+      "nome": "Yannic Kilcher",
+      "funcao": "TECH_SOURCE",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@YannicKilcher",
+      "ativo": true
+    },
+    {
+      "nome": "Two Minute Papers",
+      "funcao": "EXPLAINER",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@TwoMinutePapers",
+      "ativo": true
+    },
+    {
+      "nome": "Sentdex",
+      "funcao": "TECH_SOURCE",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@sentdex",
+      "ativo": true
+    },
+    {
+      "nome": "Lucas Montano",
+      "funcao": "TECH_SOURCE",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@LucasMontano",
+      "ativo": true
+    },
+    {
+      "nome": "Filipe Deschamps",
+      "funcao": "EXPLAINER",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@FilipeDeschamps",
+      "ativo": true
+    },
+    {
+      "nome": "Fabio Akita",
+      "funcao": "THOUGHT_LEADER",
+      "plataforma": "YouTube",
+      "url": "https://www.youtube.com/@FabioAkita",
+      "ativo": true
+    },
+    {
+      "nome": "Augusto Galego",
+      "funcao": "TECH_SOURCE",
+      "plataforma": "YouTube",
+      "url": null,
+      "ativo": true
+    },
+    {
+      "nome": "Tecnologia e Classe (Teclas)",
+      "funcao": "EXPLAINER",
+      "plataforma": "YouTube",
+      "url": null,
+      "ativo": true
+    },
+    {
+      "nome": "Matheus IA Coding",
+      "funcao": "TECH_SOURCE",
+      "plataforma": "YouTube",
+      "url": null,
+      "ativo": true
+    }
+  ]
+}
