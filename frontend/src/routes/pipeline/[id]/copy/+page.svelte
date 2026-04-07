@@ -87,7 +87,20 @@
 			feedbackRejeicao = '';
 			aprovando = false;
 
+			// Executar e ESPERAR o copywriter terminar (polling até aguardando_aprovacao)
 			await PipelineService.executar(pipelineId);
+			let tentativas = 0;
+			while (tentativas < 30) {
+				await new Promise(r => setTimeout(r, 3000));
+				try {
+					const step = await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter`);
+					if (step.ok) {
+						const data = await step.json();
+						if (data.status === 'aguardando_aprovacao') break;
+					}
+				} catch {}
+				tentativas++;
+			}
 
 			const c = await CopyService.buscarCopy(pipelineId);
 			copy = c;

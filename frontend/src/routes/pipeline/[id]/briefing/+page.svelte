@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { API_BASE } from '$lib/api';
 	import { BriefingService } from '$lib/services/BriefingService';
 	import { PipelineService } from '$lib/services/PipelineService';
 	import { BriefingDTO } from '$lib/dtos/BriefingDTO';
@@ -53,8 +54,23 @@
 		try {
 			await BriefingService.rejeitar(pipelineId, feedbackRejeicao);
 			showRejectModal = false;
-			// Reload
 			carregando = true;
+
+			// Executar e esperar strategist terminar
+			await PipelineService.executar(pipelineId);
+			let tentativas = 0;
+			while (tentativas < 30) {
+				await new Promise(r => setTimeout(r, 3000));
+				try {
+					const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/strategist`);
+					if (res.ok) {
+						const data = await res.json();
+						if (data.status === 'aguardando_aprovacao') break;
+					}
+				} catch {}
+				tentativas++;
+			}
+
 			briefing = await BriefingService.buscar(pipelineId);
 			briefingTexto = briefing.briefing_completo;
 			editado = false;

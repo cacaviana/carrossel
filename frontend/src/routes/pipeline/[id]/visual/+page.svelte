@@ -71,6 +71,21 @@
 		try {
 			await VisualService.rejeitar(pipelineId, '');
 			carregando = true;
+
+			await PipelineService.executar(pipelineId);
+			let tentativas = 0;
+			while (tentativas < 30) {
+				await new Promise(r => setTimeout(r, 3000));
+				try {
+					const res = await fetch(`${API}/api/pipelines/${pipelineId}/etapas/art_director`);
+					if (res.ok) {
+						const data = await res.json();
+						if (data.status === 'aguardando_aprovacao') break;
+					}
+				} catch {}
+				tentativas++;
+			}
+
 			promptVisual = await VisualService.buscar(pipelineId);
 			prompts = promptVisual.prompts.map(p => ({ ...p }));
 		} catch { erro = 'Erro ao rejeitar'; }
