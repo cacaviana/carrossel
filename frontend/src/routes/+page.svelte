@@ -205,7 +205,7 @@
 
 			<!-- Headline -->
 			<h1 class="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold text-white leading-[1.1] mb-6 max-w-5xl">
-				Crie carrosseis virais<br>
+				Crie conteúdos virais<br>
 				<span class="hero-galaxy-text">em segundos com IA</span>
 			</h1>
 
