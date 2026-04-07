@@ -392,11 +392,11 @@
 
 	{:else}
 		<!-- Header -->
-		<div class="flex items-center justify-between mb-4">
+		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
 			<h1 class="text-lg font-medium text-text-primary">
 				Slide {currentSlide + 1} de {total}
 			</h1>
-			<div class="flex items-center gap-3">
+			<div class="flex flex-wrap items-center gap-2">
 				<button onclick={regenerarTodos} disabled={regenerandoTodos}
 					class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
 						{regenerandoTodos ? 'bg-red-500/20 text-red-400' : 'text-red-400 border border-red-500/30 hover:bg-red-500/10'}
@@ -449,15 +449,15 @@
 		<!-- Texto esperado + Regenerar -->
 		{#if textos[currentSlide]}
 			<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-4" style="max-width: 540px;">
-				<div class="flex items-start justify-between gap-3">
-					<div class="flex-1 min-w-0">
+				<div>
+					<div class="mb-3">
 						<p class="text-[10px] text-text-muted uppercase tracking-wider mb-1">Texto esperado</p>
 						<p class="text-sm text-text-primary font-medium">{textos[currentSlide].titulo}</p>
 						{#if textos[currentSlide].corpo}
 							<p class="text-xs text-text-secondary mt-1 whitespace-pre-line">{textos[currentSlide].corpo}</p>
 						{/if}
 					</div>
-					<div class="flex gap-2 shrink-0">
+					<div class="flex flex-wrap gap-2">
 						<button onclick={() => regenerarSlide('texto')} disabled={regenerando}
 							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
 								{regenerando ? 'bg-amber/20 text-amber' : 'text-amber border border-amber/30 hover:bg-amber/10'}
@@ -486,7 +486,7 @@
 			</div>
 		{:else}
 			<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-3" style="max-width: 540px;">
-				<div class="flex items-center justify-between gap-3">
+				<div class="flex flex-wrap items-center gap-3">
 					<!-- Toggle logo -->
 					<label class="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer shrink-0">
 						<input type="checkbox" bind:checked={logoVisivel} class="rounded" />
@@ -508,20 +508,6 @@
 						</button>
 					</div>
 
-					<!-- Tamanhos preset -->
-					<div class="flex items-center gap-2">
-						<span class="text-[10px] text-text-muted">Rodape:</span>
-						<input type="range" min="30" max="300" bind:value={logoTamRodape}
-							oninput={() => { logoSize = logoSize.map((s, i) => logoModo[i] === 'rodape' ? logoTamRodape : s); }}
-							class="w-16" />
-						<span class="text-[9px] text-text-muted font-mono">{logoTamRodape}</span>
-						<span class="text-[10px] text-text-muted">Central:</span>
-						<input type="range" min="60" max="400" bind:value={logoTamCentral}
-							oninput={() => { logoSize = logoSize.map((s, i) => logoModo[i] === 'central' ? logoTamCentral : s); }}
-							class="w-16" />
-						<span class="text-[9px] text-text-muted font-mono">{logoTamCentral}</span>
-					</div>
-
 					<!-- Borda -->
 					<label class="flex items-center gap-1 text-[11px] text-text-muted cursor-pointer">
 						<input type="checkbox" bind:checked={logoBordaAtiva} class="rounded" />
@@ -530,6 +516,24 @@
 							<span class="w-3 h-3 rounded-full" style="background: {logoBordaCor}"></span>
 						{/if}
 					</label>
+
+					<!-- Tamanhos — linha separada -->
+					<div class="w-full flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-border-default">
+						<div class="flex items-center gap-1.5">
+							<span class="text-[10px] text-text-muted">Rodape:</span>
+							<input type="range" min="30" max="300" bind:value={logoTamRodape}
+								oninput={() => { logoSize = logoSize.map((s, i) => logoModo[i] === 'rodape' ? logoTamRodape : s); }}
+								class="w-20" />
+							<span class="text-[9px] text-text-muted font-mono w-6">{logoTamRodape}</span>
+						</div>
+						<div class="flex items-center gap-1.5">
+							<span class="text-[10px] text-text-muted">Central:</span>
+							<input type="range" min="60" max="400" bind:value={logoTamCentral}
+								oninput={() => { logoSize = logoSize.map((s, i) => logoModo[i] === 'central' ? logoTamCentral : s); }}
+								class="w-20" />
+							<span class="text-[9px] text-text-muted font-mono w-6">{logoTamCentral}</span>
+						</div>
+					</div>
 					{/if}
 				</div>
 			</div>
@@ -543,33 +547,37 @@
 		{/if}
 
 		<!-- Navegacao -->
-		<div class="flex items-center justify-between mt-6">
-			<button onclick={anterior} disabled={currentSlide === 0}
-				class="px-6 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer
-					{currentSlide === 0 ? 'text-text-muted opacity-30' : 'text-text-secondary border border-border-default hover:border-purple/40'}">
-				Anterior
-			</button>
-
+		<div class="mt-6 space-y-3">
 			<!-- Dots -->
-			<SlideDotsNav total={total} current={currentSlide} onSelect={(i) => currentSlide = i} />
+			<div class="flex justify-center">
+				<SlideDotsNav total={total} current={currentSlide} onSelect={(i) => currentSlide = i} />
+			</div>
 
-			{#if currentSlide < total - 1}
-				<button onclick={proximo}
-					class="px-6 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all">
-					Proximo
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<button onclick={anterior} disabled={currentSlide === 0}
+					class="px-6 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer
+						{currentSlide === 0 ? 'text-text-muted opacity-30' : 'text-text-secondary border border-border-default hover:border-purple/40'}">
+					Anterior
 				</button>
-			{:else}
-				<div class="flex gap-3">
-					<button onclick={baixarPDF} disabled={salvando || !logoSrc}
-						class="px-6 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
-						{salvando ? 'Gerando PDF...' : 'Baixar PDF'}
+
+				{#if currentSlide < total - 1}
+					<button onclick={proximo}
+						class="px-6 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all">
+						Proximo
 					</button>
-					<button onclick={salvarNoDrive} disabled={salvandoDrive || !logoSrc}
-						class="px-6 py-2.5 rounded-full text-sm font-medium text-purple border border-purple hover:bg-purple/10 cursor-pointer transition-all disabled:opacity-50">
-						{salvandoDrive ? 'Salvando...' : 'Salvar no Drive'}
-					</button>
-				</div>
-			{/if}
+				{:else}
+					<div class="flex flex-wrap gap-2">
+						<button onclick={baixarPDF} disabled={salvando || !logoSrc}
+							class="px-5 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
+							{salvando ? 'Gerando PDF...' : 'Baixar PDF'}
+						</button>
+						<button onclick={salvarNoDrive} disabled={salvandoDrive || !logoSrc}
+							class="px-5 py-2.5 rounded-full text-sm font-medium text-purple border border-purple hover:bg-purple/10 cursor-pointer transition-all disabled:opacity-50">
+							{salvandoDrive ? 'Salvando...' : 'Salvar no Drive'}
+						</button>
+					</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
