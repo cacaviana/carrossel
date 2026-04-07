@@ -9,6 +9,7 @@ from services.pipeline_db_service import (
     atualizar_pipeline,
 )
 from services.config_service import ConfigService
+from factories.prompt_composer import PromptComposer
 
 from agents.strategist import executar as executar_strategist
 from agents.copywriter import executar as executar_copywriter
@@ -213,14 +214,26 @@ async def _exec_strategist(tema, formato, modo_funil, api_key, feedback="", bran
 
 
 def _get_brand_context(brand_slug: str | None) -> str:
-    """Monta contexto da marca pra injetar nos agentes LLM."""
+    """Monta contexto da marca pra injetar nos agentes LLM.
+
+    Delega para PromptComposer.compor_prompt_texto() que junta
+    camada de seguranca + camada de marca (persona, tom, hooks, etc).
+    Fallback manual caso PromptComposer falhe.
+    """
     if not brand_slug:
         return ""
+    try:
+        resultado = PromptComposer.compor_prompt_texto(brand_slug=brand_slug)
+        if resultado:
+            return resultado
+    except Exception as e:
+        print(f"[WARN] PromptComposer falhou, usando fallback: {e}")
+
+    # Fallback: codigo original inline caso PromptComposer falhe
     from services.brand_prompt_builder import carregar_brand
     brand = carregar_brand(brand_slug)
     if not brand:
         return ""
-    import json
     partes = []
     partes.append(f"MARCA: {brand.get('nome', brand_slug)}")
     com = brand.get("comunicacao", {})
