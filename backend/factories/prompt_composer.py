@@ -91,8 +91,9 @@ class PromptComposer:
 
         prompt = "\n\n".join(p for p in partes if p)
 
-        # Seed aleatorio no final para variacao visual
-        prompt += f"\n\n[seed:{random.randint(1000, 9999)}]"
+        # Seed + timestamp para forcar variacao visual a cada geracao
+        import time
+        prompt += f"\n\n[variation-id:{random.randint(10000, 99999)}-{int(time.time())}] Crie uma composicao visual UNICA. Varie posicao dos elementos, angulo da ilustracao e intensidade dos efeitos."
         return prompt
 
     # ------------------------------------------------------------------
