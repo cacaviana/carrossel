@@ -232,10 +232,20 @@ async def buscar_foto_brand(slug: str):
 
 
 @router.post("/editor/corrigir-texto")
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def editor_corrigir_texto(request: Request, data: dict):
-    """Tenta corrigir texto ate 3x com OCR verificando."""
+    """Corrige texto ou aplica instrucao customizada (ex: remover texto)."""
     image = data.get("image", "")
+    instrucao = data.get("instrucao", "")
+
+    if instrucao:
+        # Instrucao customizada (ex: remover texto) — envia imagem + instrucao ao Gemini
+        from services.editor_service import aplicar_instrucao
+        result = await aplicar_instrucao(image, instrucao)
+        if result is None:
+            raise HTTPException(status_code=500, detail="Falha ao aplicar instrucao")
+        return result
+
     slide = data.get("slide", {})
     result = await _corrigir_texto(image, slide)
     if result is None:

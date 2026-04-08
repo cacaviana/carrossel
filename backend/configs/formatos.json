@@ -53,8 +53,9 @@
       "dimensoes": {"width": 1080, "height": 1080, "ratio": "1:1", "label": "square"},
       "layout_rules": [
         "Layout quadrado. Equilibrio visual entre elementos.",
-        "Texto grande e legivel mesmo em preview pequeno.",
-        "Maximo 20 palavras na imagem."
+        "Texto MUITO GRANDE e legivel mesmo em preview pequeno.",
+        "REGRA CRITICA: Maximo 6 palavras no titulo e 2 linhas curtas no corpo. NUNCA texto longo.",
+        "O visual e o protagonista, nao o texto. Menos texto = mais impacto."
       ],
       "modelo_por_posicao": {
         "regra": "Sempre Pro (slide unico de alto impacto).",
