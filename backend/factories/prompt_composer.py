@@ -83,6 +83,12 @@ class PromptComposer:
         )
 
         partes = [camada_seg, camada_plat, camada_marca, camada_post]
+
+        # Instrucao extra (feedback do usuario)
+        instrucao = slide.get("instrucao_extra", "")
+        if instrucao:
+            partes.append(f"INSTRUCAO ADICIONAL DO USUARIO: {instrucao}")
+
         prompt = "\n\n".join(p for p in partes if p)
 
         # Seed aleatorio no final para variacao visual
