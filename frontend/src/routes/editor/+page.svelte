@@ -387,7 +387,7 @@
 					image: imgAtual,
 					slide: { type: 'content', title: '', bullets: [] },
 					brand_slug: brandSlug,
-					instrucao: 'Remove ALL text from this image. Keep the EXACT same background, colors, decorative elements, illustrations and layout. ONLY remove the text — every letter, word, number, badge text, footer text. The result should be the same image but with NO text at all. Do NOT change any visual element except removing text.',
+					instrucao: 'Remove EVERY SINGLE piece of text from this image. This includes: headlines, titles, body text, badge/pill text, footer text, page numbers, names, navigation text like "DESLIZA", ALL numbers, ALL letters. Remove text inside cards, text on badges, text on footer bars. Keep the EXACT same background, gradients, colors, decorative elements (wireframes, illustrations, glows), card shapes and layout. Fill the areas where text was with the surrounding background/card color seamlessly. The final image must have ZERO readable characters anywhere.',
 				}),
 			});
 			if (res.ok) {
