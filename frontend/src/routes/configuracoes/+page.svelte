@@ -27,6 +27,15 @@
 	let marcaAberta = $state('');
 	let marcaVisualizando = $state('');
 
+	// Nova marca com analise de referencias
+	let showNovaMarca = $state(false);
+	let novaMarcaNome = $state('');
+	let novaMarcaDescricao = $state('');
+	let novaMarcaImagens = $state<string[]>([]);
+	let novaMarcaAnalisando = $state(false);
+	let novaMarcaResultado = $state<any>(null);
+	let novaMarcaCriando = $state(false);
+
 	// Creator Registry
 	let creators = $state<Record<string, any>[]>([]);
 	let novoNome = $state('');
@@ -311,6 +320,82 @@
 		return fontes;
 	}
 
+	// --- Nova Marca (analise de referencias) ---
+	function handleImagensUpload(e: Event) {
+		const files = (e.target as HTMLInputElement).files;
+		if (!files) return;
+		const promises = Array.from(files).slice(0, 5).map(file => {
+			return new Promise<string>((resolve) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(reader.result as string);
+				reader.readAsDataURL(file);
+			});
+		});
+		Promise.all(promises).then(results => {
+			novaMarcaImagens = [...novaMarcaImagens, ...results].slice(0, 5);
+		});
+	}
+
+	async function analisarReferencias() {
+		if (novaMarcaImagens.length === 0) return;
+		novaMarcaAnalisando = true;
+		try {
+			const res = await fetch(`${backendUrl}/api/analisar-referencias`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					imagens: novaMarcaImagens.map(img => img.split(',')[1] || img),
+					nome_marca: novaMarcaNome,
+					descricao: novaMarcaDescricao,
+				}),
+			});
+			if (res.ok) {
+				novaMarcaResultado = await res.json();
+			} else {
+				const d = await res.json().catch(() => ({}));
+				erro = d.detail || 'Erro ao analisar referencias';
+			}
+		} catch {
+			erro = 'Erro ao conectar com o servidor';
+		} finally {
+			novaMarcaAnalisando = false;
+		}
+	}
+
+	async function criarMarcaComReferencias() {
+		if (!novaMarcaNome || !novaMarcaResultado) return;
+		novaMarcaCriando = true;
+		const slug = novaMarcaNome.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 30);
+		try {
+			const r = novaMarcaResultado;
+			const res = await fetch(`${backendUrl}/api/brands`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					nome: novaMarcaNome,
+					slug,
+					cores: r.cores,
+					visual: r.visual,
+					elementos: { badge_topo: novaMarcaNome, badge_topo_cor: r.cores.acento_principal, rodape_nome: novaMarcaNome },
+					comunicacao: { persona: '', tom: '', linguagem: '', publico: '', palavras_proibidas: [] },
+				}),
+			});
+			if (res.ok) {
+				await carregarMarcas();
+				showSucesso(`"${novaMarcaNome}" criada com sucesso!`);
+				showNovaMarca = false;
+				novaMarcaNome = '';
+				novaMarcaDescricao = '';
+				novaMarcaImagens = [];
+				novaMarcaResultado = null;
+			} else {
+				const d = await res.json().catch(() => ({}));
+				erro = d.detail || 'Erro ao criar marca';
+			}
+		} catch { erro = 'Erro ao criar marca'; }
+		finally { novaMarcaCriando = false; }
+	}
+
 	// --- API Keys ---
 	async function salvarKeys() {
 		salvando = true;
@@ -399,29 +484,9 @@
 				<div class="mb-4 flex items-center justify-between">
 					<div>
 						<p class="text-xs text-text-muted font-mono uppercase tracking-wider">Design Systems ({marcas.length})</p>
-						<p class="text-xs text-text-secondary mt-0.5">Cada marca tem suas cores, fontes e estilo. Suba um arquivo .md ou .html para adicionar.</p>
+						<p class="text-xs text-text-secondary mt-0.5">Cada marca tem suas cores, fontes e estilo. Suba imagens de referencia e a IA extrai a paleta e o estilo automaticamente.</p>
 					</div>
-					<button onclick={async () => {
-						const nome = prompt('Nome da marca:');
-						if (!nome) return;
-						const slug = nome.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
-						try {
-							const res = await fetch(`${backendUrl}/api/brands`, {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({
-									nome, slug,
-									cores: { fundo: '#0A0A0F', acento_principal: '#A78BFA', acento_secundario: '#34D399', texto_principal: '#FFFFFF', texto_secundario: '#9896A3' },
-									fontes: { titulo: 'Outfit', corpo: 'Outfit' },
-									visual: { estilo_fundo: '', estilo_desenho: '', estilo_card: '', estilo_texto: '', regras_extras: '' },
-									comunicacao: { persona: '', tom: '', linguagem: '', publico: '' },
-									elementos: { badge_topo: nome, rodape_nome: nome },
-								})
-							});
-							if (res.ok) { await carregarMarcas(); showSucesso(`"${nome}" criada!`); }
-							else { const d = await res.json(); erro = d.detail || 'Erro'; }
-						} catch (e) { erro = 'Erro ao criar marca'; }
-					}}
+					<button data-testid="btn-nova-marca" onclick={() => showNovaMarca = true}
 						class="inline-flex px-4 py-2 rounded-full text-xs font-medium text-purple border border-purple/20 hover:bg-purple/8 transition-all cursor-pointer shrink-0">
 						+ Nova marca
 					</button>
@@ -430,7 +495,7 @@
 				{#if marcas.length === 0}
 					<div class="text-center py-16 bg-bg-card rounded-xl border border-border-default">
 						<p class="text-text-secondary text-sm mb-2">Nenhuma marca cadastrada</p>
-						<p class="text-text-muted text-xs">Suba um .md com o design system da marca</p>
+						<p class="text-text-muted text-xs">Crie sua primeira marca subindo imagens de referencia</p>
 					</div>
 				{:else}
 					<div class="space-y-3">
@@ -908,3 +973,88 @@
 		</div>
 	</Modal>
 {/if}
+
+<Modal open={showNovaMarca} title="Nova marca" size="lg" onclose={() => { showNovaMarca = false; novaMarcaResultado = null; novaMarcaImagens = []; }}>
+	<div class="space-y-5">
+		<!-- Nome -->
+		<div>
+			<label class="label-upper mb-1.5 block">Nome da marca</label>
+			<input data-testid="campo-nova-marca-nome" type="text" bind:value={novaMarcaNome} placeholder="Ex: Jardim Verde, Doce Encanto..."
+				class="w-full px-4 py-2.5 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+					focus:border-purple focus:ring-2 focus:ring-purple/12 outline-none transition-all placeholder:text-text-muted" />
+		</div>
+
+		<!-- Descricao -->
+		<div>
+			<label class="label-upper mb-1.5 block">Sobre o que e essa marca?</label>
+			<input data-testid="campo-nova-marca-descricao" type="text" bind:value={novaMarcaDescricao} placeholder="Ex: loja de plantas e jardinagem urbana"
+				class="w-full px-4 py-2.5 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+					focus:border-purple focus:ring-2 focus:ring-purple/12 outline-none transition-all placeholder:text-text-muted" />
+		</div>
+
+		<!-- Upload imagens -->
+		<div>
+			<label class="label-upper mb-1.5 block">Imagens de referencia ({novaMarcaImagens.length}/5)</label>
+			<p class="text-xs text-text-muted mb-3">Suba 1 a 5 imagens que representem o estilo visual da marca. A IA vai extrair cores, atmosfera e estilo.</p>
+
+			<div class="flex flex-wrap gap-3 mb-3">
+				{#each novaMarcaImagens as img, i}
+					<div class="relative w-20 h-20 rounded-lg overflow-hidden border border-border-default">
+						<img src={img} alt="Ref {i+1}" class="w-full h-full object-cover" />
+						<button data-testid="btn-remover-imagem-{i}" onclick={() => { novaMarcaImagens = novaMarcaImagens.filter((_, idx) => idx !== i); novaMarcaResultado = null; }}
+							class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center cursor-pointer hover:bg-red/80">x</button>
+					</div>
+				{/each}
+				{#if novaMarcaImagens.length < 5}
+					<label data-testid="btn-upload-imagem" class="w-20 h-20 rounded-lg border-2 border-dashed border-border-default hover:border-purple/40
+						flex items-center justify-center cursor-pointer transition-all text-text-muted hover:text-purple">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+						<input type="file" accept="image/*" multiple onchange={handleImagensUpload} class="hidden" />
+					</label>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Botao analisar -->
+		{#if novaMarcaImagens.length > 0 && !novaMarcaResultado}
+			<button data-testid="btn-analisar-referencias" onclick={analisarReferencias} disabled={novaMarcaAnalisando || !novaMarcaNome}
+				class="w-full py-3 rounded-full text-sm font-medium transition-all cursor-pointer
+					{novaMarcaAnalisando ? 'bg-purple/20 text-purple' : 'bg-purple text-bg-global hover:opacity-90'}
+					disabled:opacity-50">
+				{novaMarcaAnalisando ? 'Analisando com IA...' : 'Analisar referencias'}
+			</button>
+		{/if}
+
+		<!-- Resultado da analise -->
+		{#if novaMarcaResultado}
+			<div data-testid="resultado-analise" class="bg-bg-elevated rounded-xl p-4 border border-border-default">
+				<p class="label-upper mb-3">Paleta extraida pela IA</p>
+				<div class="flex gap-2 mb-4">
+					{#each Object.entries(novaMarcaResultado.cores).filter(([k]) => !k.includes('texto') && !k.includes('borda') && !k.includes('negativo')) as [nome, cor]}
+						<div class="text-center">
+							<div class="w-10 h-10 rounded-lg border border-white/10 mb-1" style="background-color: {cor}"></div>
+							<span class="text-[9px] text-text-muted">{nome.replace('acento_', '').replace('gradiente_', 'grad ')}</span>
+						</div>
+					{/each}
+				</div>
+				<p class="label-upper mb-1">Atmosfera</p>
+				<p class="text-xs text-text-secondary mb-3">{novaMarcaResultado.atmosfera}</p>
+				<p class="label-upper mb-1">Estilo</p>
+				<p class="text-xs text-text-secondary">{novaMarcaResultado.visual?.estilo_fundo?.slice(0, 150)}...</p>
+			</div>
+		{/if}
+	</div>
+
+	{#snippet footer()}
+		<button data-testid="btn-cancelar-nova-marca" onclick={() => { showNovaMarca = false; novaMarcaResultado = null; novaMarcaImagens = []; }}
+			class="px-4 py-2 rounded-full text-sm text-text-secondary hover:text-text-primary transition-all cursor-pointer">
+			Cancelar
+		</button>
+		{#if novaMarcaResultado}
+			<button data-testid="btn-criar-marca" onclick={criarMarcaComReferencias} disabled={novaMarcaCriando || !novaMarcaNome}
+				class="px-6 py-2 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 transition-all cursor-pointer disabled:opacity-50">
+				{novaMarcaCriando ? 'Criando...' : 'Criar marca'}
+			</button>
+		{/if}
+	{/snippet}
+</Modal>
