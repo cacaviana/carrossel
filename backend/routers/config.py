@@ -36,6 +36,9 @@ from services.editor_service import (
     buscar_slides_limpos as _buscar_slides_limpos,
     corrigir_texto as _corrigir_texto,
 )
+from dtos.brand.analisar_referencias.request import AnalisarReferenciasRequest
+from dtos.brand.analisar_referencias.response import AnalisarReferenciasResponse
+from services.brand_analyzer_service import BrandAnalyzerService
 
 router = APIRouter(tags=["Configuracoes"])
 
@@ -121,6 +124,20 @@ async def salvar_plataformas(dto: SalvarPlataformasRequest):
 @router.get("/brands")
 async def listar_brands():
     return _listar_brands()
+
+
+@router.post("/analisar-referencias", response_model=AnalisarReferenciasResponse)
+@limiter.limit("5/minute")
+async def analisar_referencias(request: Request, req: AnalisarReferenciasRequest):
+    """Analisa imagens de referencia via Gemini Vision e extrai brand profile."""
+    try:
+        return await BrandAnalyzerService.analisar(
+            req.imagens, req.nome_marca, req.descricao
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar referencias: {str(e)}")
 
 
 @router.get("/brands/{slug}")

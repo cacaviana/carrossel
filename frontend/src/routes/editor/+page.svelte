@@ -516,52 +516,51 @@
 			{/if}
 		</div>
 
-		<!-- Texto esperado + Regenerar -->
+		<!-- Texto esperado -->
 		{#if textos[currentSlide]}
 			<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-4" style="max-width: 540px;">
-				<div>
-					<div class="mb-3">
-						<p class="text-[10px] text-text-muted uppercase tracking-wider mb-1">Texto esperado</p>
-						<p class="text-sm text-text-primary font-medium">{textos[currentSlide].titulo}</p>
-						{#if textos[currentSlide].corpo}
-							<p class="text-xs text-text-secondary mt-1 whitespace-pre-line">{textos[currentSlide].corpo}</p>
-						{/if}
-					</div>
-					<!-- Feedback para regenerar -->
-					<div class="mb-2">
-						<input
-							type="text"
-							bind:value={feedbackRegenerar}
-							placeholder="Feedback: ex. mais escuro, menos texto, trocar ilustracao..."
-							disabled={regenerando || removendoTexto}
-							class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-primary text-xs
-								focus:border-purple focus:ring-2 focus:ring-purple/12 outline-none transition-all
-								placeholder:text-text-muted disabled:opacity-50"
-						/>
-					</div>
-					<div class="flex flex-wrap gap-2">
-						<button onclick={() => regenerarSlide('texto')} disabled={regenerando || removendoTexto}
-							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
-								{regenerando ? 'bg-amber/20 text-amber' : 'text-amber border border-amber/30 hover:bg-amber/10'}
-								disabled:opacity-50">
-							{regenerando ? 'Gerando...' : 'Corrigir texto'}
-						</button>
-						<button onclick={() => regenerarSlide('tudo')} disabled={regenerando || removendoTexto}
-							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
-								{regenerando ? 'bg-purple/20 text-purple' : 'text-purple border border-purple/30 hover:bg-purple/10'}
-								disabled:opacity-50">
-							{regenerando ? 'Gerando...' : feedbackRegenerar.trim() ? 'Regenerar com feedback' : 'Regenerar slide'}
-						</button>
-						<button onclick={removerTexto} disabled={regenerando || removendoTexto}
-							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
-								{removendoTexto ? 'bg-red/20 text-red' : 'text-red border border-red/30 hover:bg-red/10'}
-								disabled:opacity-50">
-							{removendoTexto ? 'Gerando...' : 'Tirar texto'}
-						</button>
-					</div>
-				</div>
+				<p class="text-[10px] text-text-muted uppercase tracking-wider mb-1">Texto esperado</p>
+				<p class="text-sm text-text-primary font-medium">{textos[currentSlide].titulo}</p>
+				{#if textos[currentSlide].corpo}
+					<p class="text-xs text-text-secondary mt-1 whitespace-pre-line">{textos[currentSlide].corpo}</p>
+				{/if}
 			</div>
 		{/if}
+
+		<!-- Feedback + Regenerar (sempre visivel quando tem slides) -->
+		<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-4" style="max-width: 540px;">
+			<div class="mb-2">
+				<input
+					type="text"
+					bind:value={feedbackRegenerar}
+					placeholder="Feedback: ex. mais escuro, menos texto, trocar ilustracao..."
+					disabled={regenerando || removendoTexto}
+					class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-primary text-xs
+						focus:border-purple focus:ring-2 focus:ring-purple/12 outline-none transition-all
+						placeholder:text-text-muted disabled:opacity-50"
+				/>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<button onclick={() => regenerarSlide('texto')} disabled={regenerando || removendoTexto}
+					class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
+						{regenerando ? 'bg-amber/20 text-amber' : 'text-amber border border-amber/30 hover:bg-amber/10'}
+						disabled:opacity-50">
+					{regenerando ? 'Gerando...' : 'Corrigir texto'}
+				</button>
+				<button onclick={() => regenerarSlide('tudo')} disabled={regenerando || removendoTexto}
+					class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
+						{regenerando ? 'bg-purple/20 text-purple' : 'text-purple border border-purple/30 hover:bg-purple/10'}
+						disabled:opacity-50">
+					{regenerando ? 'Gerando...' : feedbackRegenerar.trim() ? 'Regenerar com feedback' : 'Regenerar slide'}
+				</button>
+				<button onclick={removerTexto} disabled={regenerando || removendoTexto}
+					class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
+						{removendoTexto ? 'bg-red/20 text-red' : 'text-red border border-red/30 hover:bg-red/10'}
+						disabled:opacity-50">
+					{removendoTexto ? 'Gerando...' : 'Tirar texto'}
+				</button>
+			</div>
+		</div>
 
 		{#if !logoSrc}
 			<div class="mt-3 mx-auto text-center bg-amber/10 border border-amber/30 rounded-xl p-4" style="max-width: 540px;">

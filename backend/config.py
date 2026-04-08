@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     GOOGLE_DRIVE_CREDENTIALS: str = ""
     GOOGLE_DRIVE_FOLDER_ID: str = ""
     TENANT_ID: str = "itvalley"
+    MONGO_URL: str = ""
 
     class Config:
         env_file = ".env"
