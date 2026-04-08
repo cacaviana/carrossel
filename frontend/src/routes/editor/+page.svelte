@@ -230,8 +230,10 @@
 						slides: [slideData],
 						brand_slug: brandSlug,
 						formato,
+						...(feedbackRegenerar.trim() ? { instrucao_extra: feedbackRegenerar.trim() } : {}),
 					}),
 				});
+				feedbackRegenerar = '';
 				if (res.ok) {
 					const data = await res.json();
 					if (data.images?.[0]) {
@@ -326,6 +328,10 @@
 		return { pdf_base64: data.pdf_base64, images: slides };
 	}
 
+	let qualidade = $state<'media' | 'alta'>('alta');
+	let removendoTexto = $state(false);
+	let feedbackRegenerar = $state('');
+
 	async function baixarPDF() {
 		if (!logoSrc || slides.length === 0) return;
 		salvando = true;
@@ -339,6 +345,70 @@
 			}
 		} catch {}
 		finally { salvando = false; }
+	}
+
+	function _downloadViaCanvas(format: 'png' | 'jpeg') {
+		const img = new Image();
+		img.onload = () => {
+			const scale = qualidade === 'alta' ? 1 : 0.6;
+			const canvas = document.createElement('canvas');
+			canvas.width = img.naturalWidth * scale;
+			canvas.height = img.naturalHeight * scale;
+			const ctx = canvas.getContext('2d')!;
+			ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+			const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+			const jpegQuality = qualidade === 'alta' ? 0.95 : 0.75;
+			const dataUrl = canvas.toDataURL(mimeType, jpegQuality);
+			const link = document.createElement('a');
+			link.href = dataUrl;
+			link.download = `slide-${String(currentSlide + 1).padStart(2, '0')}.${format}`;
+			link.click();
+		};
+		img.src = currentImage;
+	}
+
+	function baixarPNG() { _downloadViaCanvas('png'); }
+	function baixarJPEG() { _downloadViaCanvas('jpeg'); }
+
+	async function removerTexto() {
+		if (removendoTexto) return;
+		removendoTexto = true;
+		ultimoFeedback = 'Gerando versao sem texto...';
+		try {
+			const res = await fetch(`${API}/api/gerar-imagem`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					slides: [{
+						type: 'content',
+						title: '',
+						bullets: [],
+						etapa: 'SEM_TEXTO',
+						sem_texto: true,
+					}],
+					brand_slug: brandSlug,
+					formato,
+					instrucao_extra: 'Gere a imagem SEM NENHUM TEXTO. Apenas o fundo, elementos decorativos e ilustracao. NENHUMA letra, NENHUMA palavra, NENHUM numero visivel na imagem.',
+				}),
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (data.images?.[0]) {
+					const newImg = data.images[0].startsWith('data:') ? data.images[0] : `data:image/png;base64,${data.images[0]}`;
+					slides = slides.map((s, i) => i === currentSlide ? newImg : s);
+					ultimoFeedback = 'Imagem sem texto gerada!';
+					setTimeout(() => ultimoFeedback = '', 3000);
+				}
+			} else {
+				ultimoFeedback = 'Erro ao gerar sem texto.';
+				setTimeout(() => ultimoFeedback = '', 5000);
+			}
+		} catch {
+			ultimoFeedback = 'Erro na requisicao.';
+			setTimeout(() => ultimoFeedback = '', 5000);
+		} finally {
+			removendoTexto = false;
+		}
 	}
 
 	async function salvarNoDrive() {
@@ -457,18 +527,36 @@
 							<p class="text-xs text-text-secondary mt-1 whitespace-pre-line">{textos[currentSlide].corpo}</p>
 						{/if}
 					</div>
+					<!-- Feedback para regenerar -->
+					<div class="mb-2">
+						<input
+							type="text"
+							bind:value={feedbackRegenerar}
+							placeholder="Feedback: ex. mais escuro, menos texto, trocar ilustracao..."
+							disabled={regenerando || removendoTexto}
+							class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-primary text-xs
+								focus:border-purple focus:ring-2 focus:ring-purple/12 outline-none transition-all
+								placeholder:text-text-muted disabled:opacity-50"
+						/>
+					</div>
 					<div class="flex flex-wrap gap-2">
-						<button onclick={() => regenerarSlide('texto')} disabled={regenerando}
+						<button onclick={() => regenerarSlide('texto')} disabled={regenerando || removendoTexto}
 							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
 								{regenerando ? 'bg-amber/20 text-amber' : 'text-amber border border-amber/30 hover:bg-amber/10'}
 								disabled:opacity-50">
 							{regenerando ? 'Gerando...' : 'Corrigir texto'}
 						</button>
-						<button onclick={() => regenerarSlide('tudo')} disabled={regenerando}
+						<button onclick={() => regenerarSlide('tudo')} disabled={regenerando || removendoTexto}
 							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
 								{regenerando ? 'bg-purple/20 text-purple' : 'text-purple border border-purple/30 hover:bg-purple/10'}
 								disabled:opacity-50">
-							{regenerando ? 'Gerando...' : 'Regenerar slide'}
+							{regenerando ? 'Gerando...' : feedbackRegenerar.trim() ? 'Regenerar com feedback' : 'Regenerar slide'}
+						</button>
+						<button onclick={removerTexto} disabled={regenerando || removendoTexto}
+							class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
+								{removendoTexto ? 'bg-red/20 text-red' : 'text-red border border-red/30 hover:bg-red/10'}
+								disabled:opacity-50">
+							{removendoTexto ? 'Gerando...' : 'Tirar texto'}
 						</button>
 					</div>
 				</div>
@@ -566,14 +654,36 @@
 						Proximo
 					</button>
 				{:else}
-					<div class="flex flex-wrap gap-2">
+					<div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center">
+						<!-- Qualidade -->
+						<div class="flex gap-1 mr-2">
+							<button onclick={() => qualidade = 'media'}
+								class="px-3 py-1.5 rounded-full text-[11px] font-medium transition-all cursor-pointer
+									{qualidade === 'media' ? 'bg-purple/15 text-purple' : 'text-text-muted hover:text-text-secondary'}">
+								Media
+							</button>
+							<button onclick={() => qualidade = 'alta'}
+								class="px-3 py-1.5 rounded-full text-[11px] font-medium transition-all cursor-pointer
+									{qualidade === 'alta' ? 'bg-purple/15 text-purple' : 'text-text-muted hover:text-text-secondary'}">
+								Alta
+							</button>
+						</div>
+						<!-- Formatos -->
+						<button onclick={baixarPNG}
+							class="px-4 py-2.5 rounded-full text-sm font-medium text-text-secondary border border-border-default hover:border-purple/40 cursor-pointer transition-all">
+							PNG
+						</button>
+						<button onclick={baixarJPEG}
+							class="px-4 py-2.5 rounded-full text-sm font-medium text-text-secondary border border-border-default hover:border-purple/40 cursor-pointer transition-all">
+							JPEG
+						</button>
 						<button onclick={baixarPDF} disabled={salvando || !logoSrc}
-							class="px-5 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
-							{salvando ? 'Gerando PDF...' : 'Baixar PDF'}
+							class="px-4 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all disabled:opacity-50">
+							{salvando ? 'Gerando...' : 'PDF'}
 						</button>
 						<button onclick={salvarNoDrive} disabled={salvandoDrive || !logoSrc}
-							class="px-5 py-2.5 rounded-full text-sm font-medium text-purple border border-purple hover:bg-purple/10 cursor-pointer transition-all disabled:opacity-50">
-							{salvandoDrive ? 'Salvando...' : 'Salvar no Drive'}
+							class="px-4 py-2.5 rounded-full text-sm font-medium text-purple border border-purple hover:bg-purple/10 cursor-pointer transition-all disabled:opacity-50">
+							{salvandoDrive ? 'Salvando...' : 'Drive'}
 						</button>
 					</div>
 				{/if}

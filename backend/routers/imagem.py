@@ -18,6 +18,10 @@ async def api_gerar_imagem(request: Request, req: GerarImagemRequest):
         raise HTTPException(status_code=400, detail="GEMINI_API_KEY não configurada. Acesse /configuracoes.")
     try:
         slides_dicts = [s.model_dump() for s in req.slides]
+        # Injetar instrucao_extra no primeiro slide (feedback do usuario)
+        if req.instrucao_extra and slides_dicts:
+            for sd in slides_dicts:
+                sd["instrucao_extra"] = req.instrucao_extra
         brand = req.brand_slug
         if not brand:
             from services.brand_prompt_builder import listar_brands
