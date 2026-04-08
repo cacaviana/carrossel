@@ -238,8 +238,10 @@
 					const data = await res.json();
 					if (data.images?.[0]) {
 						const newImg = data.images[0].startsWith('data:') ? data.images[0] : `data:image/png;base64,${data.images[0]}`;
-						slides = slides.map((s, i) => i === currentSlide ? newImg : s);
-						ultimoFeedback = 'Imagem regenerada!';
+						const oldLen = slides[currentSlide]?.length || 0;
+						slides[currentSlide] = newImg;
+						slides = [...slides];
+						ultimoFeedback = `Imagem regenerada! (${Math.round(newImg.length/1024)}KB, era ${Math.round(oldLen/1024)}KB)`;
 						setTimeout(() => ultimoFeedback = '', 3000);
 					} else {
 						ultimoFeedback = 'Gemini nao retornou imagem. Tente novamente.';
