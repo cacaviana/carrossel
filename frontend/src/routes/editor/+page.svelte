@@ -230,6 +230,7 @@
 						slides: [slideData],
 						brand_slug: brandSlug,
 						formato,
+						skip_validation: true,
 						...(feedbackRegenerar.trim() ? { instrucao_extra: feedbackRegenerar.trim() } : {}),
 					}),
 				});

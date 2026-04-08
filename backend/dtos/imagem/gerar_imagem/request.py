@@ -29,6 +29,7 @@ class GerarImagemRequest(BaseModel):
     brand_slug: str | None = None
     formato: FormatoValido = "carrossel"
     instrucao_extra: str | None = None
+    skip_validation: bool = False
 
 
 class GerarImagemSlideRequest(BaseModel):

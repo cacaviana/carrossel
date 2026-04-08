@@ -28,7 +28,7 @@ async def api_gerar_imagem(request: Request, req: GerarImagemRequest):
             brands = listar_brands()
             brand = brands[0]["slug"] if brands else ""
         from services.smart_image_service import gerar_imagens_smart
-        images = await gerar_imagens_smart(slides=slides_dicts, gemini_api_key=api_key, brand_slug=brand, formato=req.formato)
+        images = await gerar_imagens_smart(slides=slides_dicts, gemini_api_key=api_key, brand_slug=brand, formato=req.formato, skip_validation=req.skip_validation)
         return {"images": images}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -32,6 +32,7 @@ async def gerar_imagens_smart(
     brand_slug: str | None = None,
     avatar_mode: str = "livre",
     formato: str = "carrossel",
+    skip_validation: bool = False,
 ) -> list[str | None]:
     """Gera imagens com fallback inteligente pra texto errado.
 
@@ -55,6 +56,7 @@ async def gerar_imagens_smart(
                         gemini_api_key, foto_criador, brand_slug, brand,
                         avatar_mode=avatar_mode,
                         formato=formato,
+                        skip_validation=skip_validation,
                     )
                 return (i, img)
             except Exception as e:
@@ -89,6 +91,7 @@ async def _gerar_slide_smart(
     brand: dict | None,
     avatar_mode: str = "livre",
     formato: str = "carrossel",
+    skip_validation: bool = False,
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
@@ -105,12 +108,14 @@ async def _gerar_slide_smart(
     if not img_completa:
         return None
 
+    # Se skip_validation (regenerar do editor), retornar direto sem corrigir
+    if skip_validation:
+        return img_completa
+
     # Passo 2: Validar texto
     validacao = await validar_texto_slide(img_completa, slide, api_key)
 
     if validacao.get("valido", True):
-        # Texto correto — usar imagem do Gemini + overlay foto
-        # Logo sera adicionada manualmente no editor
         return img_completa
 
     # Passo 3: Texto errado — corrigir preservando o visual (mesma imagem, so muda texto)
@@ -141,7 +146,6 @@ async def _gerar_slide_smart(
             pass
         return result["image"]
 
-    # Fallback: retorna a melhor tentativa (corrigida parcialmente ou original)
     try:
         print(f"  Slide {position}: texto nao ficou 100%, usando melhor tentativa")
     except UnicodeEncodeError:
