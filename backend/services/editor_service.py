@@ -125,3 +125,39 @@ async def corrigir_texto(image: str, slide: dict) -> dict | None:
     if not result["corrigido"]:
         response["aviso"] = "Texto pode nao estar 100% correto"
     return response
+
+
+async def aplicar_instrucao(image: str, instrucao: str) -> dict | None:
+    """Aplica instrucao customizada a uma imagem via Gemini (ex: remover texto)."""
+    from mappers.imagem_mapper import extract_image_from_response
+    from utils.constants import GEMINI_API_URL as API_URL
+
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    img_clean = image.split(",")[1] if "," in image else image
+
+    payload = {
+        "contents": [{
+            "parts": [
+                {"inline_data": {"mime_type": "image/png", "data": img_clean}},
+                {"text": instrucao},
+            ]
+        }],
+        "generationConfig": {
+            "responseModalities": ["IMAGE", "TEXT"],
+            "temperature": 0.2,
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        res = await client.post(
+            API_URL.format(model="gemini-3-pro-image-preview"),
+            json=payload,
+            headers={"x-goog-api-key": api_key},
+        )
+        res.raise_for_status()
+        new_image = extract_image_from_response(res.json())
+
+    if not new_image:
+        return None
+
+    return {"image": new_image, "tentativas": 1}

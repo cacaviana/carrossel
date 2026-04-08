@@ -376,34 +376,34 @@
 	async function removerTexto() {
 		if (removendoTexto) return;
 		removendoTexto = true;
-		ultimoFeedback = 'Gerando versao sem texto...';
+		ultimoFeedback = 'Removendo texto da imagem...';
 		try {
-			const res = await fetch(`${API}/api/gerar-imagem`, {
+			// Manda a imagem atual pro Gemini e pede pra remover SÓ o texto
+			const imgAtual = currentImage.startsWith('data:') ? currentImage.split(',')[1] : currentImage;
+			const res = await fetch(`${API}/api/editor/corrigir-texto`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					slides: [{
-						type: 'content',
-						title: '',
-						bullets: [],
-						etapa: 'SEM_TEXTO',
-						sem_texto: true,
-					}],
+					image: imgAtual,
+					slide: { type: 'content', title: '', bullets: [] },
 					brand_slug: brandSlug,
-					formato,
-					instrucao_extra: 'Gere a imagem SEM NENHUM TEXTO. Apenas o fundo, elementos decorativos e ilustracao. NENHUMA letra, NENHUMA palavra, NENHUM numero visivel na imagem.',
+					instrucao: 'Remove ALL text from this image. Keep the EXACT same background, colors, decorative elements, illustrations and layout. ONLY remove the text — every letter, word, number, badge text, footer text. The result should be the same image but with NO text at all. Do NOT change any visual element except removing text.',
 				}),
 			});
 			if (res.ok) {
 				const data = await res.json();
-				if (data.images?.[0]) {
-					const newImg = data.images[0].startsWith('data:') ? data.images[0] : `data:image/png;base64,${data.images[0]}`;
-					slides = slides.map((s, i) => i === currentSlide ? newImg : s);
-					ultimoFeedback = 'Imagem sem texto gerada!';
+				if (data.image) {
+					const newImg = data.image.startsWith('data:') ? data.image : `data:image/png;base64,${data.image}`;
+					slides[currentSlide] = newImg;
+					slides = [...slides];
+					ultimoFeedback = 'Texto removido!';
 					setTimeout(() => ultimoFeedback = '', 3000);
+				} else {
+					ultimoFeedback = 'Gemini nao conseguiu remover o texto.';
+					setTimeout(() => ultimoFeedback = '', 5000);
 				}
 			} else {
-				ultimoFeedback = 'Erro ao gerar sem texto.';
+				ultimoFeedback = 'Erro ao remover texto.';
 				setTimeout(() => ultimoFeedback = '', 5000);
 			}
 		} catch {
