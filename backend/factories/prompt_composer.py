@@ -129,8 +129,8 @@ class PromptComposer:
         if fmt:
             mp = fmt.get("modelo_por_posicao", {})
             pro_pos = mp.get("pro_positions", "first,last,code")
-            modelo_pro = mp.get("modelo_pro", "gemini-3-pro-image-preview")
-            modelo_flash = mp.get("modelo_flash", "gemini-2.5-flash-image")
+            modelo_pro = mp.get("modelo_pro", "gemini-2.0-flash-exp")
+            modelo_flash = mp.get("modelo_flash", "gemini-2.0-flash-exp")
 
             if pro_pos == "all":
                 return modelo_pro
@@ -147,8 +147,8 @@ class PromptComposer:
         # Fallback hardcoded
         slide_type = slide.get("type", "content")
         if position == 1 or position == total or slide_type == "code":
-            return "gemini-3-pro-image-preview"
-        return "gemini-2.5-flash-image"
+            return "gemini-2.0-flash-exp"
+        return "gemini-2.0-flash-exp"
 
     # ------------------------------------------------------------------
     # Preview (debug / inspecao)
