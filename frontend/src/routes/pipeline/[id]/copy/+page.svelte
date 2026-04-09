@@ -143,6 +143,10 @@
 			<div class="mb-4"><Banner type="error" ondismiss={() => erro = ''}>{erro}</Banner></div>
 		{/if}
 
+		{#if copy.fallback}
+			<div class="mb-4"><Banner type="warning" dismissible={false}>Claude sem creditos — copy gerada via OpenAI (GPT-4o)</Banner></div>
+		{/if}
+
 		<!-- Versoes (Anthropic vs OpenAI) -->
 		{#if versoes.length > 1}
 			<div class="mb-6">

@@ -107,4 +107,15 @@ async def executar(
     if not claude_api_key:
         claude_api_key = os.getenv("CLAUDE_API_KEY", "")
 
-    return await _gerar_anthropic(system_prompt, user_prompt, claude_api_key)
+    # Tentar Claude primeiro, fallback pra OpenAI
+    try:
+        return await _gerar_anthropic(system_prompt, user_prompt, claude_api_key)
+    except Exception as e:
+        print(f"[copywriter] Claude falhou: {e}. Tentando OpenAI...")
+
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    if not openai_key:
+        raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
+    result = await _gerar_openai(system_prompt, user_prompt, openai_key)
+    result["_fallback"] = True
+    return result
