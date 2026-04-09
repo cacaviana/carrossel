@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { jsPDF } from 'jspdf';
 	import { EditorService } from '$lib/services/EditorService';
 	import { getDims } from '$lib/utils/dimensions';
 	import { imgToBase64 } from '$lib/utils/imgToBase64';
@@ -372,6 +371,7 @@
 	}
 
 	async function gerarPdfBase64(): Promise<string> {
+		const { jsPDF } = await import('jspdf');
 		const pxToMm = 0.2645833333;
 		const wMm = dims.w * pxToMm;
 		const hMm = dims.h * pxToMm;
@@ -398,6 +398,7 @@
 		if (slides.length === 0) return;
 		salvando = true;
 		try {
+			const { jsPDF } = await import('jspdf');
 			const pxToMm = 0.2645833333;
 			const wMm = dims.w * pxToMm;
 			const hMm = dims.h * pxToMm;
