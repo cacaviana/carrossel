@@ -105,13 +105,16 @@ def salvar_foto_brand(slug: str, foto_data: str) -> dict:
     data_uri = f"data:{mime};base64,{raw}"
 
     # MongoDB (persistente)
-    col = _get_assets_col()
-    if col:
-        col.update_one(
-            {"slug": slug, "nome": "__foto__"},
-            {"$set": {"slug": slug, "nome": "__foto__", "data_uri": data_uri, "is_referencia": False}},
-            upsert=True,
-        )
+    try:
+        col = _get_assets_col()
+        if col:
+            col.update_one(
+                {"slug": slug, "nome": "__foto__"},
+                {"$set": {"slug": slug, "nome": "__foto__", "data_uri": data_uri, "is_referencia": False}},
+                upsert=True,
+            )
+    except Exception as e:
+        print(f"[brand_service] Erro MongoDB salvar_foto: {e}")
 
     # Disco (fallback local)
     try:
@@ -214,35 +217,52 @@ def upload_asset(slug: str, nome: str, imagem: str) -> dict:
     data_uri = f"data:{mime};base64,{raw}"
 
     # MongoDB (persistente)
-    col = _get_assets_col()
-    if col:
-        col.update_one(
-            {"slug": slug, "nome": nome},
-            {"$set": {"slug": slug, "nome": nome, "data_uri": data_uri, "is_referencia": nome.startswith("ref_")}},
-            upsert=True,
-        )
+    saved = False
+    try:
+        col = _get_assets_col()
+        if col:
+            col.update_one(
+                {"slug": slug, "nome": nome},
+                {"$set": {"slug": slug, "nome": nome, "data_uri": data_uri, "is_referencia": nome.startswith("ref_")}},
+                upsert=True,
+            )
+            saved = True
+    except Exception as e:
+        print(f"[brand_service] Erro MongoDB upload_asset: {e}")
 
-    # Disco (fallback local)
+    # Disco (fallback)
     try:
         assets_dir = BRAND_ASSETS_DIR / slug
         assets_dir.mkdir(parents=True, exist_ok=True)
         (assets_dir / f"{nome}.{ext}").write_bytes(b64.b64decode(raw))
+        saved = True
     except Exception:
         pass
+
+    if not saved:
+        raise RuntimeError("Nao foi possivel salvar o asset")
 
     return {"nome": nome, "arquivo": f"{nome}.{ext}"}
 
 
 def deletar_asset(slug: str, nome: str) -> dict | None:
     """Deleta asset do MongoDB e do disco."""
-    col = _get_assets_col()
-    if col:
-        result = col.delete_one({"slug": slug, "nome": nome})
-        if result.deleted_count > 0:
-            return {"deletado": nome}
+    deleted = False
+    try:
+        col = _get_assets_col()
+        if col:
+            result = col.delete_one({"slug": slug, "nome": nome})
+            if result.deleted_count > 0:
+                deleted = True
+    except Exception:
+        pass
 
-    assets_dir = BRAND_ASSETS_DIR / slug
-    for f in assets_dir.glob(f"{nome}.*"):
-        f.unlink()
-        return {"deletado": nome}
-    return None
+    try:
+        assets_dir = BRAND_ASSETS_DIR / slug
+        for f in assets_dir.glob(f"{nome}.*"):
+            f.unlink()
+            deleted = True
+    except Exception:
+        pass
+
+    return {"deletado": nome} if deleted else None
