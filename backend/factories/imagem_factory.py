@@ -206,59 +206,63 @@ def build_payload(
         modo_geracao = "prompt"
 
     if modo_geracao == "referencia" and ref_images:
-        # === MODO REFERÊNCIA: imagem fala, texto mínimo ===
-        # A imagem de referência JÁ define cores, fontes, doodles, vibe.
-        # Prompt deve ser CLEAN: ref + avatar + direção de arte + formato + segurança.
+        # === MODO REFERÊNCIA: template-based ===
+        # Imagem 1 = template. Copiar EXATAMENTE. So trocar o texto.
         import random
         from utils.dimensions import get_dims, get_prompt_size_str
 
-        # Usar referencia consistente: primeira pra manter identidade visual
         ref_escolhida = ref_images[0]
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_escolhida}})
 
         has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
         if has_avatar:
-            av = random.choice(avatar_images)
+            av = avatar_images[0]
             parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
 
-        # Textos do slide
         headline = slide.get("headline") or slide.get("title", "")
         subline = slide.get("subline") or slide.get("caption", "")
         bullets = slide.get("bullets", [])
         body_text = "\n".join(f"- {b}" for b in bullets) if bullets else subline
 
-        # Direção de arte do Art Director (cena, pose, objetos, mood)
-        scene = slide.get("illustration_description", "")
-
-        # Formato
         dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
 
-        # Montar prompt CLEAN
         prompt_lines = [
-            f"Generate a single image ({size_str}, {dims['ratio']}).",
-            f"First image = style reference. COPY ITS EXACT STYLE: same colors, same fonts, same layout pattern, same decorative elements, same background treatment. Create a NEW composition but with IDENTICAL visual identity.",
+            f"Create a {size_str} ({dims['ratio']}) social media image.",
+            "",
+            "IMAGE 1 above is the TEMPLATE. You MUST:",
+            "- Use the EXACT SAME background (colors, gradients, textures)",
+            "- Use the EXACT SAME font style and typography",
+            "- Use the EXACT SAME layout structure (where title goes, where body goes)",
+            "- Use the EXACT SAME decorative elements (shapes, lines, icons, doodles)",
+            "- ONLY change the text content to what I specify below",
         ]
+
         if has_avatar:
-            prompt_lines.append(
-                "Second image = the ONLY person allowed in this post. "
-                "Draw this EXACT person — same face, same skin tone, same hair. "
-                "DO NOT add any other person, face, or human figure. "
-                "ONLY this person or no person at all."
-            )
-        prompt_lines.append("DO NOT generate any person, face, or human figure that is NOT in the reference photos provided.")
-        if scene:
-            prompt_lines.append(f"Scene: {scene}")
-        prompt_lines.append(
-            f"TEXT INSIDE IMAGE (MANDATORY): "
-            f"All text must be rendered INSIDE the image as part of the design. "
-            f"Use bold, legible typography. Minimum 80px padding on all sides. "
-            f"Text must be clearly readable against the background."
-        )
-        prompt_lines.append(f"Title (big, bold, prominent): \"{headline}\"")
+            prompt_lines.extend([
+                "",
+                "IMAGE 2 above is the person's PHOTO. You MUST:",
+                "- Place this EXACT person in the image (same face, hair, skin)",
+                "- NO other people, NO other faces, NO invented characters",
+                "- If the template has a person area, put this person there",
+            ])
+
+        prompt_lines.extend([
+            "",
+            "TEXT TO PUT IN THE IMAGE:",
+            f"TITLE: {headline}",
+        ])
         if body_text:
-            prompt_lines.append(f"Body text (smaller, below title): \"{body_text}\"")
-        prompt_lines.append("No nudity, no violence. Every letter must be perfectly legible.")
+            prompt_lines.append(f"BODY: {body_text}")
+
+        prompt_lines.extend([
+            "",
+            "RULES:",
+            "- Text must be INSIDE the image, rendered as part of the design",
+            "- Text must be clearly legible against the background",
+            "- Keep 80px padding from all edges",
+            "- No nudity, no violence",
+        ])
 
         parts.append({"text": "\n".join(prompt_lines)})
 
