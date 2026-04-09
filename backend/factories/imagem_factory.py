@@ -195,98 +195,31 @@ def build_payload(
 
     parts: list[dict] = []
 
-    # Carregar marca pra saber o modo de geração
-    brand = carregar_brand(brand_slug) if brand_slug else None
-    modo_geracao = brand.get("modo_geracao", "referencia") if brand else "prompt"
+    # Combinar refs + avatares como assets (como era ontem)
     ref_images = _load_all_references(brand_slug) if brand_slug else []
     avatar_images = _load_avatars(brand_slug) if brand_slug else []
+    all_assets = ref_images + avatar_images
 
-    # Se não tem refs, forçar modo prompt
-    if not ref_images:
-        modo_geracao = "prompt"
-
-    if modo_geracao == "referencia" and ref_images:
-        # === MODO REFERÊNCIA ===
-        # Referencia fixa por carrossel (mesma ref pra todos os slides do post)
-        # Prompt simples: "faz essa pessoa nesse estilo com esse texto"
+    # Se tem assets, usar exatamente como ontem: manda refs + instrucao simples
+    if all_assets or assets:
         import random
-        from utils.dimensions import get_dims, get_prompt_size_str
-
-        # Referencia fixa — usar seed do slide_index pra ser deterministica por post
-        # Todos os slides de um mesmo carrossel usam a mesma ref
-        ref_idx = hash(str(total)) % len(ref_images)
-        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_images[ref_idx]}})
-
-        has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
-        if has_avatar:
-            av = random.choice(avatar_images)
-            parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
-
-        headline = slide.get("headline") or slide.get("title", "")
-        subline = slide.get("subline") or slide.get("caption", "")
-        bullets = slide.get("bullets", [])
-        body_text = "\n".join(f"- {b}" for b in bullets) if bullets else subline
-
-        dims = get_dims(formato)
-        size_str = get_prompt_size_str(formato)
-
-        # Prompt simples e direto — como funcionava ontem
-        prompt = f"Create a {size_str} ({dims['ratio']}) social media post image.\n\n"
-        prompt += "Use the style of IMAGE 1 — same colors, same palette, same fonts, same visual identity, same layout grid.\n\n"
-
-        if has_avatar:
-            prompt += "Put the person from IMAGE 2 in the image. Same face, same appearance. No other people.\n\n"
-
-        prompt += f"Title: \"{headline}\"\n"
-        if body_text:
-            prompt += f"Body: \"{body_text}\"\n"
-
-        prompt += "\nText must be inside the image, legible. No nudity, no violence."
-
-        parts.append({"text": prompt})
-
-        payload = {
-            "contents": [{"parts": parts}],
-            "generationConfig": {
-                "responseModalities": ["IMAGE", "TEXT"],
-                "temperature": 0.9,
-            },
-        }
-        return model, payload
-
-    # Remover regra contraditoria de "no real faces" quando tem avatar
-    has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
-    if has_avatar:
-        prompt = prompt.replace("NO real person photos — never draw/generate realistic human faces.", "")
-        prompt = prompt.replace("(Fotos reais sao adicionadas via overlay na pos-producao, pelo Pillow.)", "")
-
-    if has_avatar:
-        # Prompt primeiro (contexto visual da marca)
-        import random
-        parts.append({"text": prompt})
-
-        # Avatar por ultimo — Gemini da mais peso ao final
-        av = random.choice(avatar_images)
-        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
-
-        if avatar_mode == "livre":
-            parts.append({"text": (
-                "The photo above is a person who MAY appear in this post if it fits the content. "
-                "If you include them, keep the SAME appearance but in a new pose."
-            )})
-        else:
-            parts.append({"text": (
-                "MANDATORY: The photo above is the REAL PERSON who MUST appear PROMINENTLY in this post. "
-                "Draw this EXACT person — same face, same skin tone, same hair, same build. "
-                "Place them in a natural pose related to the topic. "
-                "The person must be the MAIN VISUAL ELEMENT of the post, not a small detail."
-            )})
-    elif assets:
-        import random
-        refs = random.sample(assets, min(2, len(assets)))
+        combined = all_assets if all_assets else assets
+        refs = random.sample(combined, min(2, len(combined)))
         for ref in refs:
             parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
-        parts.append({"text": prompt})
+
+        avatar_instruction = ""
+        if avatar_mode == "livre":
+            avatar_instruction = (
+                "You MAY use the characters/person from the reference images if it fits the slide. "
+                "If you use them, keep the SAME appearance. You can also choose NOT to include them. "
+            )
+        elif avatar_mode != "sem":
+            avatar_instruction = (
+                "Use the characters/person from the reference images in this slide. "
+                "Keep the SAME appearance but in new poses related to the topic. "
+            )
+        parts.append({"text": avatar_instruction + prompt})
     else:
         parts.append({"text": prompt})
 
