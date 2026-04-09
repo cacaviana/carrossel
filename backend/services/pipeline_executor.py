@@ -380,6 +380,17 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
     copy_output = context.get("copywriter", {})
     slides_raw = copy_output.get("slides", copy_output.get("sequencia_slides", []))
 
+    # Fallback: LLM pode retornar slides dentro de um objeto (ex: carrossel.slides)
+    if not slides_raw:
+        for key in copy_output:
+            val = copy_output[key]
+            if isinstance(val, dict) and isinstance(val.get("slides"), list):
+                slides_raw = val["slides"]
+                break
+            if isinstance(val, list) and len(val) > 0 and isinstance(val[0], dict) and val[0].get("titulo"):
+                slides_raw = val
+                break
+
     if not slides_raw:
         raise ValueError("Nenhum slide encontrado na saida do copywriter")
 
