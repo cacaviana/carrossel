@@ -211,12 +211,14 @@ def build_payload(
         import random
         from utils.dimensions import get_dims, get_prompt_size_str
 
-        ref_escolhida = ref_images[0]
+        # Variar referencia por slide pra diversidade visual
+        ref_escolhida = ref_images[(position - 1) % len(ref_images)]
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_escolhida}})
 
         has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
         if has_avatar:
-            av = avatar_images[0]
+            # Variar foto do avatar por slide
+            av = avatar_images[(position - 1) % len(avatar_images)]
             parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
 
         headline = slide.get("headline") or slide.get("title", "")
@@ -243,8 +245,10 @@ def build_payload(
                 "",
                 "IMAGE 2 above is the person's PHOTO. You MUST:",
                 "- Place this EXACT person in the image (same face, hair, skin)",
+                "- Use a DIFFERENT pose and angle than other slides — vary between: looking at camera, looking sideways, gesturing, arms crossed, pointing, holding something related to the topic",
                 "- NO other people, NO other faces, NO invented characters",
                 "- If the template has a person area, put this person there",
+                f"- This is slide {position} of {total} — make the person's pose UNIQUE for this slide",
             ])
 
         prompt_lines.extend([
