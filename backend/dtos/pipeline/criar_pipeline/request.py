@@ -20,6 +20,7 @@ class CriarPipelineRequest(BaseModel):
     slides_texto_pronto: Optional[list[SlideTextoPronto]] = None
     brand_slug: Optional[str] = None
     avatar_mode: Optional[str] = "livre"  # capa, livre, sem, sim
+    max_slides: Optional[int] = None  # maximo de slides para ideia livre
 
     @field_validator("tema")
     @classmethod

@@ -71,6 +71,7 @@
 	const MAX_SLIDES = 9; // incluindo capa e CTA
 	const MAX_CHARS_SLIDE = 500;
 	const MAX_CHARS_IDEIA = 2000;
+	let maxSlidesIdeia = $state(7);
 
 	function adicionarSlide() {
 		if (slidesTexto.length >= MAX_SLIDES) return;
@@ -153,6 +154,10 @@
 				payload.slides_texto_pronto = slidesTexto
 					.filter(s => s.principal.trim().length > 0)
 					.map(s => ({ principal: s.principal, alternativo: s.alternativo }));
+			}
+
+			if (modoEntrada === 'ideia') {
+				payload.max_slides = maxSlidesIdeia;
 			}
 
 			const pipeline = await PipelineService.criar(payload);
@@ -405,7 +410,23 @@
 						focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
 						placeholder:text-text-muted"
 				></textarea>
-				<p class="text-xs text-text-muted mt-2">{textoLivre.trim().length}/20 min · {MAX_CHARS_IDEIA} max</p>
+				<div class="flex items-center justify-between mt-3">
+					<p class="text-xs text-text-muted">{textoLivre.trim().length}/20 min · {MAX_CHARS_IDEIA} max</p>
+					{#if !isSlideUnico}
+						<div class="flex items-center gap-2">
+							<span class="text-xs text-text-muted">Max slides:</span>
+							<div class="flex gap-1">
+								{#each [3, 5, 7, 10] as n}
+									<button
+										onclick={() => maxSlidesIdeia = n}
+										class="w-7 h-7 rounded-full text-xs font-medium transition-all cursor-pointer
+											{maxSlidesIdeia === n ? 'bg-purple text-bg-global' : 'text-text-muted border border-border-default hover:border-purple/40'}"
+									>{n}</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
 			</div>
 		{:else}
 			<!-- Disciplinas -->
