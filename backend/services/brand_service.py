@@ -125,18 +125,24 @@ def salvar_foto_brand(slug: str, foto_data: str) -> dict:
 
 def buscar_foto_brand(slug: str) -> dict:
     """Busca foto da marca: MongoDB primeiro, disco como fallback."""
-    col = _get_assets_col()
-    if col:
-        doc = col.find_one({"slug": slug, "nome": "__foto__"}, {"_id": 0})
-        if doc and doc.get("data_uri"):
-            return {"foto": doc["data_uri"]}
+    try:
+        col = _get_assets_col()
+        if col:
+            doc = col.find_one({"slug": slug, "nome": "__foto__"}, {"_id": 0})
+            if doc and doc.get("data_uri"):
+                return {"foto": doc["data_uri"]}
+    except Exception:
+        pass
 
-    for ext in ("jpg", "png", "jpeg"):
-        path = FOTOS_DIR / f"{slug}.{ext}"
-        if path.exists():
-            data = b64.b64encode(path.read_bytes()).decode()
-            mime = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
-            return {"foto": f"data:{mime};base64,{data}"}
+    try:
+        for ext in ("jpg", "png", "jpeg"):
+            path = FOTOS_DIR / f"{slug}.{ext}"
+            if path.exists():
+                data = b64.b64encode(path.read_bytes()).decode()
+                mime = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
+                return {"foto": f"data:{mime};base64,{data}"}
+    except Exception:
+        pass
     return {"foto": None}
 
 
@@ -150,31 +156,39 @@ def listar_assets(slug: str) -> dict:
     """Lista assets: MongoDB primeiro, disco como fallback."""
     items = []
 
-    col = _get_assets_col()
-    if col:
-        docs = col.find({"slug": slug, "nome": {"$ne": "__foto__"}}, {"_id": 0})
-        for doc in docs:
-            items.append({
-                "nome": doc["nome"],
-                "arquivo": f"{doc['nome']}.jpg",
-                "preview": doc.get("data_uri", ""),
-                "is_referencia": doc.get("is_referencia", doc["nome"].startswith("ref_")),
-            })
+    try:
+        col = _get_assets_col()
+        if col:
+            docs = list(col.find({"slug": slug}, {"_id": 0}))
+            for doc in docs:
+                if doc.get("nome") == "__foto__":
+                    continue
+                items.append({
+                    "nome": doc["nome"],
+                    "arquivo": f"{doc['nome']}.jpg",
+                    "preview": doc.get("data_uri", ""),
+                    "is_referencia": doc.get("is_referencia", doc.get("nome", "").startswith("ref_")),
+                })
+    except Exception:
+        pass
 
     # Fallback disco (local dev)
     if not items:
-        assets_dir = BRAND_ASSETS_DIR / slug
-        if assets_dir.exists():
-            for f in sorted(assets_dir.glob("*.*")):
-                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
-                    data = b64.b64encode(f.read_bytes()).decode()
-                    mime = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
-                    items.append({
-                        "nome": f.stem,
-                        "arquivo": f.name,
-                        "preview": f"data:{mime};base64,{data}",
-                        "is_referencia": f.stem.startswith("ref_"),
-                    })
+        try:
+            assets_dir = BRAND_ASSETS_DIR / slug
+            if assets_dir.exists():
+                for f in sorted(assets_dir.glob("*.*")):
+                    if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+                        data = b64.b64encode(f.read_bytes()).decode()
+                        mime = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
+                        items.append({
+                            "nome": f.stem,
+                            "arquivo": f.name,
+                            "preview": f"data:{mime};base64,{data}",
+                            "is_referencia": f.stem.startswith("ref_"),
+                        })
+        except Exception:
+            pass
 
     return {"assets": items, "total": len(items)}
 

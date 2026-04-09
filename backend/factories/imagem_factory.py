@@ -14,17 +14,21 @@ def _load_avatars(brand_slug: str) -> list[str]:
 
     avatars = []
     # MongoDB
-    from data.connections.mongo_connection import get_mongo_db
-    db = get_mongo_db()
-    if db:
-        docs = db["brand_assets"].find(
-            {"slug": brand_slug, "nome": {"$not": {"$regex": "^ref_"}, "$ne": "__foto__"}},
-        )
-        for doc in docs:
-            data_uri = doc.get("data_uri", "")
-            if data_uri:
-                raw = data_uri.split(",")[1] if "," in data_uri else data_uri
-                avatars.append(raw)
+    try:
+        from data.connections.mongo_connection import get_mongo_db
+        db = get_mongo_db()
+        if db:
+            docs = list(db["brand_assets"].find({"slug": brand_slug}))
+            for doc in docs:
+                nome = doc.get("nome", "")
+                if nome.startswith("ref_") or nome == "__foto__":
+                    continue
+                data_uri = doc.get("data_uri", "")
+                if data_uri:
+                    raw = data_uri.split(",")[1] if "," in data_uri else data_uri
+                    avatars.append(raw)
+    except Exception:
+        pass
 
     # Fallback disco
     if not avatars:
@@ -44,15 +48,21 @@ def _load_all_references(brand_slug: str) -> list[str]:
 
     refs = []
     # MongoDB
-    from data.connections.mongo_connection import get_mongo_db
-    db = get_mongo_db()
-    if db:
-        docs = db["brand_assets"].find({"slug": brand_slug, "nome": {"$regex": "^ref_"}})
-        for doc in docs:
-            data_uri = doc.get("data_uri", "")
-            if data_uri:
-                raw = data_uri.split(",")[1] if "," in data_uri else data_uri
-                refs.append(raw)
+    try:
+        from data.connections.mongo_connection import get_mongo_db
+        db = get_mongo_db()
+        if db:
+            docs = list(db["brand_assets"].find({"slug": brand_slug}))
+            for doc in docs:
+                nome = doc.get("nome", "")
+                if not nome.startswith("ref_"):
+                    continue
+                data_uri = doc.get("data_uri", "")
+                if data_uri:
+                    raw = data_uri.split(",")[1] if "," in data_uri else data_uri
+                    refs.append(raw)
+    except Exception:
+        pass
 
     # Fallback disco
     if not refs:
