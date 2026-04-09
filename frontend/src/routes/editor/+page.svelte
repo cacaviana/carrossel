@@ -188,30 +188,41 @@
 		if (regenerandoTodos || textos.length === 0) return;
 		regenerandoTodos = true;
 
-		const allSlides = textos.map((txt, i) => buildSlideData(txt, i));
-		regenerandoTodosProgresso = `0/${allSlides.length}`;
+		const total = textos.length;
+		let geradas = 0;
+		regenerandoTodosProgresso = `0/${total}`;
 
-		try {
-			const data = await EditorService.gerarImagem({ slides: allSlides, brand_slug: brandSlug, formato });
-			const imgs = data.images || [];
-			let geradas = 0;
-			for (let i = 0; i < imgs.length; i++) {
-				if (imgs[i]) {
-					slides[i] = imgs[i].startsWith('data:') ? imgs[i] : `data:image/png;base64,${imgs[i]}`;
+		// Gerar slide por slide (sequencial) pra evitar rate limit do Gemini free tier
+		for (let i = 0; i < total; i++) {
+			if (slides[i] && slides[i] !== '') {
+				geradas++;
+				regenerandoTodosProgresso = `${i + 1}/${total}`;
+				continue; // Ja tem imagem, pular
+			}
+			const slideData = buildSlideData(textos[i], i);
+			try {
+				const data = await EditorService.gerarImagem({
+					slides: [slideData],
+					brand_slug: brandSlug,
+					formato,
+					skip_validation: true,
+				});
+				if (data.images?.[0]) {
+					const img = data.images[0];
+					slides[i] = img.startsWith('data:') ? img : `data:image/png;base64,${img}`;
 					geradas++;
 				}
-				regenerandoTodosProgresso = `${i + 1}/${allSlides.length}`;
-			}
+			} catch {}
 			slides = [...slides];
-			if (geradas === 0) {
-				ultimoFeedback = 'Gemini nao retornou imagens. Tente novamente em alguns segundos.';
-				setTimeout(() => ultimoFeedback = '', 8000);
-			} else if (geradas < allSlides.length) {
-				ultimoFeedback = `${geradas}/${allSlides.length} imagens geradas. Clique "Regenerar slide" nos vazios.`;
-				setTimeout(() => ultimoFeedback = '', 8000);
-			}
-		} catch (e) {
-			ultimoFeedback = 'Erro ao regenerar: ' + (e instanceof Error ? e.message : 'falha na requisicao');
+			currentSlide = i;
+			regenerandoTodosProgresso = `${i + 1}/${total}`;
+		}
+
+		if (geradas === 0) {
+			ultimoFeedback = 'Gemini nao retornou imagens. Tente novamente.';
+			setTimeout(() => ultimoFeedback = '', 8000);
+		} else if (geradas < total) {
+			ultimoFeedback = `${geradas}/${total} geradas. Clique "Regenerar slide" nos vazios.`;
 			setTimeout(() => ultimoFeedback = '', 8000);
 		}
 		regenerandoTodos = false;
