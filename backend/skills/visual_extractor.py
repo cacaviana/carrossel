@@ -144,7 +144,7 @@ async def extrair(imagem_b64: str, api_key: str) -> dict:
         },
     }
 
-    model = "gemini-2.5-flash"
+    model = "gemini-2.0-flash"
     url = GEMINI_API_URL.format(model=model)
 
     async with httpx.AsyncClient(timeout=90.0) as client:
