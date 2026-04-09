@@ -26,7 +26,7 @@ async def corrigir_texto_na_imagem(
     corpo: str,
     api_key: str,
     max_tentativas: int = 3,
-    modelo: str = "gemini-2.0-flash-exp",
+    modelo: str = "gemini-3-pro-image-preview",
 ) -> dict:
     """Tenta corrigir o texto na imagem ate max_tentativas vezes.
 
@@ -103,7 +103,7 @@ async def _ocr_imagem(client: httpx.AsyncClient, image_b64: str, api_key: str) -
     """Le texto da imagem via Gemini Flash (OCR)."""
     try:
         res = await client.post(
-            API_URL.format(model="gemini-2.0-flash"),
+            API_URL.format(model="gemini-2.5-flash"),
             json={"contents": [{"parts": [
                 {"inline_data": {"mime_type": "image/png", "data": image_b64}},
                 {"text": "Read ALL text in this image. Return ONLY the text."},

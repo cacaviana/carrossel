@@ -8,7 +8,7 @@ from skills.variation_engine import gerar_variacoes
 from mappers.imagem_mapper import extract_image_from_response
 
 from utils.constants import GEMINI_API_URL as API_URL
-FALLBACK_MODEL = "gemini-2.0-flash-exp"
+FALLBACK_MODEL = "gemini-2.5-flash-image"
 MAX_RETRIES = 2
 MAX_CONCURRENT_IMAGES = 3  # Gemini rate limit safe
 
@@ -145,4 +145,4 @@ async def _gerar_com_retry(
 
 def _select_model(slide_index: int, total_slides: int) -> str:
     """Pro para todos os slides — qualidade consistente."""
-    return "gemini-2.0-flash-exp"
+    return "gemini-3-pro-image-preview"

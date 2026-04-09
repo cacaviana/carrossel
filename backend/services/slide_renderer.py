@@ -91,7 +91,7 @@ async def _gerar_fundo(client, slide, position, total, brand, api_key, formato: 
     }
 
     res = await client.post(
-        API_URL.format(model="gemini-2.0-flash-exp"),
+        API_URL.format(model="gemini-2.5-flash-image"),
         json=payload,
         headers={"x-goog-api-key": api_key},
     )
