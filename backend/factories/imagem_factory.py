@@ -200,25 +200,52 @@ def build_payload(
     avatar_images = _load_avatars(brand_slug) if brand_slug else []
     all_assets = ref_images + avatar_images
 
-    # Se tem assets, usar exatamente como ontem: manda refs + instrucao simples
-    if all_assets or assets:
+    # Se tem refs, prompt CURTO — a imagem de referencia ja define o estilo
+    if ref_images:
+        import random
+        from utils.dimensions import get_dims, get_prompt_size_str
+
+        # 1 ref por carrossel (mesma pra todos os slides do post)
+        ref = ref_images[hash(str(total)) % len(ref_images)]
+        parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
+
+        # Avatar separado (se tem)
+        if avatar_images and avatar_mode != "sem":
+            av = random.choice(avatar_images)
+            parts.append({"inline_data": {"mime_type": "image/png", "data": av}})
+
+        # Textos do slide
+        headline = slide.get("headline") or slide.get("title", "")
+        subline = slide.get("subline") or slide.get("caption", "")
+        bullets = slide.get("bullets", [])
+        body = "\n".join(f"- {b}" for b in bullets) if bullets else subline
+
+        dims = get_dims(formato)
+        size_str = get_prompt_size_str(formato)
+
+        # Prompt CURTO — deixar a referencia guiar
+        p = f"Create a {size_str} social media image in the EXACT style of the reference image above.\n"
+        p += "Same colors, same fonts, same layout, same decorative elements.\n"
+        if avatar_images and avatar_mode != "sem":
+            p += "Include the person from the photo above. Same face, same look. No other people.\n"
+        p += f"\nText in the image:\n{headline}"
+        if body:
+            p += f"\n{body}"
+        p += "\n\nNo nudity, no violence."
+
+        parts.append({"text": p})
+
+    elif all_assets or assets:
+        # Assets sem refs separadas (fallback legado)
         import random
         combined = all_assets if all_assets else assets
         refs = random.sample(combined, min(2, len(combined)))
-        for ref in refs:
-            parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
-
-        avatar_instruction = ""
-        if avatar_mode == "livre":
-            avatar_instruction = (
-                "You MAY use the characters/person from the reference images if it fits the slide. "
-                "If you use them, keep the SAME appearance. You can also choose NOT to include them. "
-            )
-        elif avatar_mode != "sem":
-            avatar_instruction = (
-                "Use the characters/person from the reference images in this slide. "
-                "Keep the SAME appearance but in new poses related to the topic. "
-            )
+        for r in refs:
+            parts.append({"inline_data": {"mime_type": "image/png", "data": r}})
+        avatar_instruction = (
+            "Use the characters/person from the reference images in this slide. "
+            "Keep the SAME appearance but in new poses related to the topic. "
+        )
         parts.append({"text": avatar_instruction + prompt})
     else:
         parts.append({"text": prompt})
