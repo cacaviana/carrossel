@@ -35,6 +35,7 @@
 	let qualidade = $state<'media' | 'alta'>('alta');
 	let removendoTexto = $state(false);
 	let feedbackRegenerar = $state('');
+	let autoRegenerar = false;
 
 	const total = $derived(slides.length);
 	const currentImage = $derived(slides[currentSlide] || '');
@@ -135,13 +136,26 @@
 					slides = imgs.map((i: any) => {
 						if (i.image_url) return i.image_url.startsWith('http') ? i.image_url : `${API_BASE}${i.image_url}`;
 						if (i.image_base64) return i.image_base64.startsWith('data:') ? i.image_base64 : `data:image/png;base64,${i.image_base64}`;
+						if (i.image_path) return `${API_BASE}/api/pipeline-images/${i.image_path}`;
 						return '';
 					});
 					slidesCarregados = true;
 				}
+				// Pipeline tem slides mas imagens vazias — criar placeholders pra regenerar
+				if (!slidesCarregados && allImgs.length > 0 && textos.length > 0) {
+					slides = allImgs.map(() => '');
+					slidesCarregados = true;
+					autoRegenerar = true;
+				}
 			}
 			if (!slidesCarregados && resolved.editorSlides?.length > 0) {
 				slides = resolved.editorSlides;
+			}
+			// Se tem textos mas nenhum slide, criar placeholders
+			if (!slidesCarregados && textos.length > 0) {
+				slides = textos.map(() => '');
+				slidesCarregados = true;
+				autoRegenerar = true;
 			}
 
 			logoPositions = slides.map(() => ({ x: 50, y: getDims(formato).h - 70 }));
@@ -160,6 +174,13 @@
 			console.error('Erro ao carregar editor:', e);
 		} finally {
 			carregando = false;
+		}
+
+		// Auto-regenerar se pipeline tinha imagens vazias
+		if (autoRegenerar && textos.length > 0) {
+			autoRegenerar = false;
+			ultimoFeedback = 'Imagens nao foram geradas no pipeline. Regenerando...';
+			await regenerarTodos();
 		}
 	});
 
@@ -486,7 +507,13 @@
 			style="max-width: 540px; aspect-ratio: {dims.cssRatio};"
 			onclick={handleClick}
 		>
-			<img src={currentImage} alt="Slide {currentSlide + 1}" class="w-full h-full object-cover" />
+			{#if currentImage}
+				<img src={currentImage} alt="Slide {currentSlide + 1}" class="w-full h-full object-cover" />
+			{:else}
+				<div class="w-full h-full flex items-center justify-center bg-bg-elevated text-text-muted text-sm">
+					Gerando imagem...
+				</div>
+			{/if}
 
 			{#if logoVisivel && logoSrc && logoPositions[currentSlide]}
 				<div
