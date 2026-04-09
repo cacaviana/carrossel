@@ -28,14 +28,14 @@
 	<!-- Mobile header + drawer -->
 	<div class="md:hidden fixed top-0 left-0 right-0 z-40 bg-bg-card border-b border-border-default px-4 py-3 flex items-center justify-between">
 		<div class="flex items-center gap-2">
-			<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple to-purple-deep flex items-center justify-center text-white font-bold text-xs">
+			<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-steel-3 to-steel-5 flex items-center justify-center text-white font-bold text-xs shadow-sm">
 				CF
 			</div>
 			<span class="text-sm font-semibold text-text-primary">Content Factory</span>
 		</div>
 		<button
 			onclick={() => mobileMenuOpen = !mobileMenuOpen}
-			class="p-2 rounded-lg hover:bg-white/4 transition-all cursor-pointer text-text-secondary"
+			class="p-2 rounded-lg hover:bg-black/5 transition-all cursor-pointer text-text-secondary"
 		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				{#if mobileMenuOpen}

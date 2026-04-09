@@ -4,7 +4,7 @@ import base64
 
 
 def aplicar(image_base64: str, foto_criador_base64: str | None = None, logo_base64: str | None = None) -> str:
-    """Aplica foto redonda do criador + logo IT Valley sobre a imagem.
+    """Aplica foto redonda do criador + logo da marca sobre a imagem.
 
     Retorna: image_base64 com overlay aplicado.
     """

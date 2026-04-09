@@ -2,6 +2,7 @@ export interface PromptSlide {
   slide_index: number;
   titulo: string;
   prompt_imagem: string;
+  illustration_description: string;
   modelo_sugerido: 'pro' | 'flash';
 }
 
@@ -14,7 +15,8 @@ export class PromptVisualDTO {
     this.prompts = (data.prompts ?? []).map((p: any, i: number) => ({
       slide_index: p.slide_index ?? i,
       titulo: p.titulo ?? `Slide ${i + 1}`,
-      prompt_imagem: p.prompt_imagem ?? '',
+      prompt_imagem: p.prompt_imagem ?? p.prompt ?? '',
+      illustration_description: p.illustration_description ?? '',
       modelo_sugerido: p.modelo_sugerido ?? 'flash'
     }));
   }
@@ -31,7 +33,7 @@ export class PromptVisualDTO {
     return (
       this.pipeline_id.length > 0 &&
       this.prompts.length > 0 &&
-      this.prompts.every(p => p.prompt_imagem.trim().length >= 50)
+      this.prompts.every(p => (p.prompt_imagem.trim().length + p.illustration_description.trim().length) >= 10)
     );
   }
 
@@ -41,6 +43,7 @@ export class PromptVisualDTO {
       prompts: this.prompts.map(p => ({
         slide_index: p.slide_index,
         prompt_imagem: p.prompt_imagem,
+        illustration_description: p.illustration_description,
         modelo_sugerido: p.modelo_sugerido
       }))
     };

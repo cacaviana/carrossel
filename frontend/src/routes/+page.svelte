@@ -172,45 +172,30 @@
 {#if showLanding}
 <!-- ========== LANDING — HERO BANNER ========== -->
 <div class="hero-bg min-h-screen relative overflow-hidden">
-		<!-- Nebula blobs -->
+		<!-- Subtle decorative blobs -->
 		<div class="absolute inset-0 overflow-hidden pointer-events-none">
-			<div class="absolute w-[500px] h-[500px] rounded-full top-[-10%] right-[-5%] opacity-30"
-				style="background: radial-gradient(circle, rgba(107,33,168,0.6) 0%, rgba(88,28,135,0.2) 40%, transparent 70%); filter: blur(80px);"></div>
-			<div class="absolute w-[400px] h-[400px] rounded-full bottom-[-15%] left-[10%] opacity-20"
-				style="background: radial-gradient(circle, rgba(167,139,250,0.5) 0%, rgba(109,40,217,0.15) 50%, transparent 70%); filter: blur(60px);"></div>
-			<div class="absolute w-[250px] h-[250px] rounded-full top-[30%] left-[40%] opacity-15"
-				style="background: radial-gradient(circle, rgba(196,181,253,0.4) 0%, transparent 60%); filter: blur(50px);"></div>
-		</div>
-
-		<!-- Stars -->
-		<div class="absolute inset-0 overflow-hidden pointer-events-none">
-			<div class="absolute w-[2px] h-[2px] bg-white/50 rounded-full top-[8%] left-[12%]"></div>
-			<div class="absolute w-[1px] h-[1px] bg-white/40 rounded-full top-[15%] left-[35%]"></div>
-			<div class="absolute w-[2px] h-[2px] bg-purple-soft/60 rounded-full top-[22%] left-[78%]"></div>
-			<div class="absolute w-[1px] h-[1px] bg-white/30 rounded-full top-[45%] left-[55%]"></div>
-			<div class="absolute w-[2px] h-[2px] bg-white/40 rounded-full top-[60%] left-[20%]"></div>
-			<div class="absolute w-[1px] h-[1px] bg-purple/40 rounded-full top-[75%] left-[88%]"></div>
-			<div class="absolute w-[1px] h-[1px] bg-white/25 rounded-full top-[35%] left-[92%]"></div>
-			<div class="absolute w-[2px] h-[2px] bg-white/35 rounded-full top-[85%] left-[65%]"></div>
-			<div class="absolute w-[1px] h-[1px] bg-purple-soft/30 rounded-full top-[50%] left-[8%]"></div>
-			<div class="absolute w-[1.5px] h-[1.5px] bg-white/45 rounded-full top-[12%] left-[60%] animate-pulse"></div>
-			<div class="absolute w-[1px] h-[1px] bg-white/30 rounded-full top-[70%] left-[42%] animate-pulse" style="animation-delay: 1.2s"></div>
+			<div class="absolute w-[500px] h-[500px] rounded-full top-[-10%] right-[-5%] opacity-20"
+				style="background: radial-gradient(circle, rgba(53,120,176,0.25) 0%, rgba(53,120,176,0.08) 40%, transparent 70%); filter: blur(80px);"></div>
+			<div class="absolute w-[400px] h-[400px] rounded-full bottom-[-15%] left-[10%] opacity-15"
+				style="background: radial-gradient(circle, rgba(122,173,166,0.3) 0%, rgba(122,173,166,0.1) 50%, transparent 70%); filter: blur(60px);"></div>
+			<div class="absolute w-[250px] h-[250px] rounded-full top-[30%] left-[40%] opacity-10"
+				style="background: radial-gradient(circle, rgba(53,120,176,0.2) 0%, transparent 60%); filter: blur(50px);"></div>
 		</div>
 
 		<div class="max-w-[1200px] mx-auto px-6 sm:px-8 lg:px-10 py-2 sm:py-6 lg:py-10">
 			<!-- Tag -->
-			<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-purple/20 mb-8">
-				<span class="text-xs font-medium text-purple-soft tracking-wide">IA + Design que converte</span>
+			<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-steel-3/8 border border-steel-3/20 mb-8">
+				<span class="text-xs font-medium text-steel-3 tracking-wide">IA + Design que converte</span>
 			</div>
 
 			<!-- Headline -->
-			<h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] mb-5 max-w-5xl">
+			<h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-steel-6 leading-[1.1] mb-5 max-w-5xl">
 				Crie conteúdos virais<br>
 				<span class="hero-galaxy-text">em segundos com IA</span>
 			</h1>
 
 			<!-- Subtitle -->
-			<p class="text-lg sm:text-xl lg:text-2xl text-text-secondary font-light mb-8 max-w-2xl">
+			<p class="text-lg sm:text-xl lg:text-2xl text-steel-4 font-light mb-8 max-w-2xl">
 				Do zero ao post pronto para Instagram sem esforco.
 			</p>
 
@@ -222,9 +207,9 @@
 					'Aprove o texto, edite se quiser, sem surpresas no resultado',
 					'Gere imagens virais prontas pra postar em qualquer plataforma'
 				] as item, i}
-					<li class="hero-check flex items-center gap-2.5 text-sm sm:text-base text-text-secondary" style="animation-delay: {0.3 + i * 0.2}s">
-						<span class="w-6 h-6 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
-							<svg class="w-3.5 h-3.5 text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+					<li class="hero-check flex items-center gap-2.5 text-sm sm:text-base text-steel-5" style="animation-delay: {0.3 + i * 0.2}s">
+						<span class="w-6 h-6 rounded-full bg-steel-3/12 flex items-center justify-center shrink-0">
+							<svg class="w-3.5 h-3.5 text-steel-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
 						</span>
 						{item}
 					</li>
@@ -232,15 +217,15 @@
 			</ul>
 
 			<!-- O que voce quer criar -->
-			<p class="text-sm text-text-muted uppercase tracking-widest mb-4">O que voce quer criar hoje?</p>
+			<p class="text-sm text-steel-4 uppercase tracking-widest mb-4">O que voce quer criar hoje?</p>
 
 			<!-- CTA -->
 			<a
 				href="/?formato=carrossel"
 				class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-sm text-white no-underline mb-8
-					border border-purple/40 transition-all duration-300
-					hover:shadow-[0_0_35px_rgba(167,139,250,0.25)] hover:border-purple/60"
-				style="background: linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(109,40,217,0.25) 100%);"
+					border border-steel-3/30 transition-all duration-300
+					hover:shadow-[0_0_35px_rgba(53,120,176,0.2)] hover:border-steel-3/60"
+				style="background: linear-gradient(135deg, #3578B0 0%, #265A87 100%);"
 			>
 				Gerar meu carrossel agora
 				<svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
@@ -249,11 +234,11 @@
 			<!-- Social proof -->
 			<div class="flex items-center gap-3 mt-2">
 				<div class="flex -space-x-2">
-					<div class="w-8 h-8 rounded-full bg-purple/30 border-2 border-bg-global flex items-center justify-center text-[10px] text-purple font-bold">C</div>
-					<div class="w-8 h-8 rounded-full bg-green/30 border-2 border-bg-global flex items-center justify-center text-[10px] text-green font-bold">V</div>
-					<div class="w-8 h-8 rounded-full bg-amber/30 border-2 border-bg-global flex items-center justify-center text-[10px] text-amber font-bold">P</div>
+					<div class="w-8 h-8 rounded-full bg-steel-3/20 border-2 border-bg-global flex items-center justify-center text-[10px] text-steel-3 font-bold">C</div>
+					<div class="w-8 h-8 rounded-full bg-teal-6/20 border-2 border-bg-global flex items-center justify-center text-[10px] text-teal-6 font-bold">V</div>
+					<div class="w-8 h-8 rounded-full bg-amber/20 border-2 border-bg-global flex items-center justify-center text-[10px] text-amber font-bold">P</div>
 				</div>
-				<p class="text-sm text-text-muted">+2.847 criadores ja estao criando conteudo 10x mais rapido</p>
+				<p class="text-sm text-steel-4">+2.847 criadores ja estao criando conteudo 10x mais rapido</p>
 			</div>
 		</div>
 </div>
@@ -264,16 +249,16 @@
 <div class="animate-fade-up max-w-3xl mx-auto">
 	<!-- Header -->
 	<div class="mb-8">
-		<a href="/" class="text-xs text-text-muted hover:text-purple transition-colors mb-3 inline-flex items-center gap-1">
+		<a href="/" class="text-xs text-text-muted hover:text-steel-3 transition-colors mb-3 inline-flex items-center gap-1">
 			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
 			Voltar
 		</a>
-		<h1 class="text-4xl sm:text-5xl font-bold text-white mb-2">
+		<h1 class="text-4xl sm:text-5xl font-bold text-steel-6 mb-2">
 			{labelFormato}
 		</h1>
 		<p class="text-base sm:text-lg text-text-secondary font-light">{descFormato}</p>
 		<div class="flex items-center gap-2 mt-3">
-			<span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-white/5 border border-border-default text-text-muted">{dimFormato}</span>
+			<span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-bg-elevated border border-border-default text-text-muted">{dimFormato}</span>
 		</div>
 	</div>
 
@@ -434,7 +419,7 @@
 						disabled={criando}
 						class="text-left p-4 rounded-xl border transition-all cursor-pointer
 							{disciplinaSelecionada === disc.id
-								? 'bg-bg-card border-purple shadow-[0_0_16px_rgba(167,139,250,0.08)]'
+								? 'bg-bg-card border-purple shadow-[0_0_16px_rgba(53,120,176,0.08)]'
 								: 'bg-bg-card border-border-default hover:border-purple/40'}"
 					>
 						<div class="flex items-center gap-2 mb-1">
@@ -490,7 +475,7 @@
 		onclick={criarPipeline}
 		disabled={!podeCriar || criando}
 		class="w-full py-3.5 px-6 rounded-full font-medium text-bg-global transition-all duration-300 cursor-pointer
-			bg-purple hover:shadow-[0_0_30px_rgba(167,139,250,0.3)] hover:opacity-90
+			bg-purple hover:shadow-[0_0_30px_rgba(53,120,176,0.25)] hover:opacity-90
 			disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
 	>
 		{#if criando}

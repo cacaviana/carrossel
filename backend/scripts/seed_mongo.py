@@ -26,6 +26,8 @@ def seed():
         return
 
     # Seed brands
+    # Cosmos DB tem limite de 2MB por documento — remover campos pesados (base64)
+    CAMPOS_PESADOS = {"_assets", "_fotoPreview", "_foto_base64"}
     brands_dir = Path("assets/design-systems")
     count_brands = 0
     if brands_dir.exists():
@@ -34,9 +36,10 @@ def seed():
                 brand = json.loads(f.read_text(encoding="utf-8"))
                 if "slug" not in brand:
                     brand["slug"] = f.stem
-                db.brands.replace_one({"slug": brand["slug"]}, brand, upsert=True)
+                brand_limpo = {k: v for k, v in brand.items() if k not in CAMPOS_PESADOS}
+                db.brands.replace_one({"slug": brand_limpo["slug"]}, brand_limpo, upsert=True)
                 count_brands += 1
-                print(f"  Brand: {brand['slug']}")
+                print(f"  Brand: {brand_limpo['slug']}")
             except Exception as e:
                 print(f"  ERRO ao processar {f.name}: {e}")
     else:

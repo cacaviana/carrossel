@@ -45,8 +45,8 @@
 	{collapsed ? 'w-16' : 'w-60'}">
 
 	<!-- Logo -->
-	<div class="flex items-center gap-3 px-4 py-5 border-b border-purple/10">
-		<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple to-purple-deep flex items-center justify-center text-white font-bold text-sm shrink-0">
+	<div class="flex items-center gap-3 px-4 py-5 border-b border-steel-3/10">
+		<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-steel-3 to-steel-5 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
 			CF
 		</div>
 		{#if !collapsed}
@@ -67,7 +67,7 @@
 					class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all no-underline mb-0.5
 						{isActive(item.href)
 							? 'bg-purple/8 text-purple border-l-[3px] border-purple'
-							: 'text-text-secondary hover:text-text-primary hover:bg-white/4'}">
+							: 'text-text-secondary hover:text-text-primary hover:bg-black/5'}">
 					<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={item.icon} />
 					</svg>
@@ -95,7 +95,7 @@
 				{:else}
 					<a href={item.href}
 						class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all no-underline mb-0.5
-							text-text-secondary hover:text-text-primary hover:bg-white/4">
+							text-text-secondary hover:text-text-primary hover:bg-black/5">
 						<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={item.icon} />
 						</svg>
@@ -113,7 +113,7 @@
 					class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all no-underline mb-0.5
 						{isActive(item.href)
 							? 'bg-purple/8 text-purple border-l-[3px] border-purple'
-							: 'text-text-secondary hover:text-text-primary hover:bg-white/4'}">
+							: 'text-text-secondary hover:text-text-primary hover:bg-black/5'}">
 					<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={item.icon} />
 					</svg>
@@ -125,11 +125,11 @@
 	</nav>
 
 	<!-- Footer -->
-	<div class="px-4 py-3 border-t border-purple/10 flex items-center justify-between">
+	<div class="px-4 py-3 border-t border-steel-3/10 flex items-center justify-between">
 		{#if !collapsed}
 			<span class="text-[10px] text-text-muted font-mono">v3.0</span>
 		{/if}
-		<button onclick={onToggle} class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/4 transition-all cursor-pointer">
+		<button onclick={onToggle} class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-black/5 transition-all cursor-pointer">
 			<svg class="w-4 h-4 transition-transform {collapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
 			</svg>

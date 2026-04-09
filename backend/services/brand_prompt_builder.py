@@ -13,21 +13,32 @@ DS_DIR = Path(__file__).parent.parent / "assets" / "design-systems"
 
 
 def carregar_brand(slug: str) -> dict | None:
-    """Carrega brand profile. Mongo primeiro, fallback JSON no disco."""
-    # Tentar Mongo primeiro
+    """Carrega brand profile. Mongo + JSON do disco (mescla campos pesados)."""
+    mongo_brand = None
     try:
         from data.repositories.mongo.brand_repository import BrandRepository
-        brand = BrandRepository.buscar(slug)
-        if brand:
-            return brand
+        mongo_brand = BrandRepository.buscar(slug)
     except Exception:
         pass
 
-    # Fallback: JSON no disco
+    # JSON do disco (pode ter campos pesados como _assets, _fotoPreview)
+    disk_brand = None
     path = DS_DIR / f"{slug}.json"
-    if not path.exists():
+    if path.exists():
+        try:
+            disk_brand = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    if not mongo_brand and not disk_brand:
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+
+    # Mesclar: disco como base, Mongo sobrescreve (exceto campos pesados que so vivem no disco)
+    if disk_brand and mongo_brand:
+        disk_brand.update({k: v for k, v in mongo_brand.items() if k != "_id"})
+        return disk_brand
+
+    return mongo_brand or disk_brand
 
 
 def salvar_brand(slug: str, data: dict, overwrite: bool = False) -> dict:
@@ -39,17 +50,20 @@ def salvar_brand(slug: str, data: dict, overwrite: bool = False) -> dict:
     if existente and not overwrite:
         raise FileExistsError(f"Marca '{slug}' ja existe")
 
-    # Salvar no Mongo
+    # Salvar no Mongo (sem campos pesados — imagens ficam no disco)
+    CAMPOS_PESADOS = {"_assets", "_fotoPreview", "_foto_base64"}
     try:
         from data.repositories.mongo.brand_repository import BrandRepository
-        BrandRepository.salvar(data)
+        data_limpo = {k: v for k, v in data.items() if k not in CAMPOS_PESADOS}
+        BrandRepository.salvar(data_limpo)
     except Exception:
         pass
 
-    # Sempre salvar JSON no disco como backup
+    # Sempre salvar JSON no disco como backup (sem base64 pesado)
     DS_DIR.mkdir(parents=True, exist_ok=True)
     path = DS_DIR / f"{slug}.json"
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    data_disco = {k: v for k, v in data.items() if k not in CAMPOS_PESADOS}
+    path.write_text(json.dumps(data_disco, ensure_ascii=False, indent=2), encoding="utf-8")
     return data
 
 
@@ -75,30 +89,33 @@ def deletar_brand(slug: str) -> bool:
 
 
 def listar_brands() -> list[dict]:
-    """Lista todas as marcas disponiveis. Mongo primeiro, fallback JSON."""
-    # Tentar Mongo primeiro
+    """Lista todas as marcas disponiveis. Mescla Mongo + JSON do disco."""
+    seen_slugs: set[str] = set()
+    brands: list[dict] = []
+
+    # Mongo primeiro (tem prioridade)
     try:
         from data.repositories.mongo.brand_repository import BrandRepository
         mongo_brands = BrandRepository.listar()
         if mongo_brands:
-            return [
-                {"slug": b.get("slug", ""), "nome": b.get("nome", "")}
-                for b in mongo_brands
-            ]
+            for b in mongo_brands:
+                slug = b.get("slug", "")
+                if slug:
+                    seen_slugs.add(slug)
+                    brands.append({"slug": slug, "nome": b.get("nome", "")})
     except Exception:
         pass
 
-    # Fallback: JSON no disco
-    brands = []
+    # Complementar com JSONs do disco que nao estao no Mongo
     for path in sorted(DS_DIR.glob("*.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            brands.append({
-                "slug": data.get("slug", path.stem),
-                "nome": data.get("nome", path.stem),
-            })
+            slug = data.get("slug", path.stem)
+            if slug not in seen_slugs:
+                brands.append({"slug": slug, "nome": data.get("nome", path.stem)})
         except Exception:
             continue
+
     return brands
 
 

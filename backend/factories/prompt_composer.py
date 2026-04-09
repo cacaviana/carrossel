@@ -309,6 +309,30 @@ class PromptComposer:
         if regras:
             partes.append(regras)
 
+        # Fontes da marca
+        fontes = brand.get("fontes", {})
+        if fontes.get("titulo"):
+            partes.append(f"FONTES: titulo={fontes['titulo']}, corpo={fontes.get('corpo', fontes['titulo'])}")
+
+        # Prompt de referencia visual (extraido da analise IA — o mais importante)
+        analise = brand.get("_analise_referencia", {})
+        prompt_ref = analise.get("prompt_perfeito") or analise.get("prompt_replicar", "")
+        if prompt_ref:
+            # Adaptar: focar no estilo de 1 post, nao grid/feed
+            adapted = prompt_ref.replace("design de feed de Instagram", "design de UM post para Instagram")
+            adapted = adapted.replace("grade 3x3", "UM post").replace("grid 3x3", "UM post")
+            adapted = adapted.replace("3x3 de posts", "UM post").replace("9 posts", "1 post")
+            partes.append(
+                f"=== INSTRUCAO DE ESTILO DA REFERENCIA VISUAL (SIGA FIELMENTE — aplique a UM post) ===\n{adapted}"
+            )
+
+        # Regras do feed
+        regras_feed = brand.get("regras_feed") or analise.get("regras_feed", {})
+        if regras_feed:
+            feed_text = ". ".join(v for v in regras_feed.values() if v)
+            if feed_text:
+                partes.append(f"REGRAS DO FEED: {feed_text}")
+
         return " ".join(p for p in partes if p)
 
     @staticmethod

@@ -121,7 +121,7 @@
 					<div class="bg-bg-card rounded-xl border border-border-default overflow-hidden">
 						<button
 							onclick={() => expandedSlide = expandedSlide === i ? -1 : i}
-							class="w-full flex items-center justify-between p-4 cursor-pointer hover:bg-white/2 transition-all"
+							class="w-full flex items-center justify-between p-4 cursor-pointer hover:bg-black/3 transition-all"
 						>
 							<div class="flex items-center gap-3">
 								<span class="text-sm font-medium text-text-primary">Slide {prompt.slide_index + 1}: {prompt.titulo}</span>
@@ -136,15 +136,18 @@
 						</button>
 
 						{#if expandedSlide === i}
-							<div class="px-4 pb-4 border-t border-border-default pt-3">
-								<textarea
-									bind:value={prompts[i].prompt_imagem}
-									rows="5"
-									class="w-full px-3 py-2.5 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
-										focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y font-light"
-								></textarea>
-								<p class="text-[10px] text-text-muted mt-1">{prompt.prompt_imagem.length} caracteres (min: 50)</p>
-							</div>
+											<div class="px-4 pb-4 border-t border-border-default pt-3 space-y-3">
+												<div>
+													<p class="text-[10px] text-text-muted font-medium uppercase mb-1">Texto do slide</p>
+													<textarea bind:value={prompts[i].prompt_imagem} rows="2" class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm focus:border-purple outline-none transition-all resize-y font-light"></textarea>
+												</div>
+												{#if prompt.illustration_description}
+													<div>
+														<p class="text-[10px] text-amber font-medium uppercase mb-1">Direcao de cena (Art Director)</p>
+														<textarea bind:value={prompts[i].illustration_description} rows="4" class="w-full px-3 py-2 rounded-lg border border-amber/20 bg-amber/3 text-text-primary text-sm focus:border-amber outline-none transition-all resize-y font-light"></textarea>
+													</div>
+												{/if}
+											</div>
 						{/if}
 					</div>
 				{/each}

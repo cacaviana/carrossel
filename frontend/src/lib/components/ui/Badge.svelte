@@ -8,7 +8,7 @@
 
 	const classes: Record<string, string> = {
 		primary: 'bg-purple/8 text-purple border border-purple/20',
-		secondary: 'bg-white/6 text-text-secondary border border-white/10',
+		secondary: 'bg-bg-elevated text-text-secondary border border-border-default',
 		success: 'bg-green/10 text-green border border-green/25',
 		danger: 'bg-red/9 text-red border border-red/15',
 		warning: 'bg-amber/10 text-amber border border-amber/25',

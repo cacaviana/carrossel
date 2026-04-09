@@ -299,6 +299,11 @@ async def atualizar_pipeline(pipeline_id, updates: dict):
         for i, (key, val) in enumerate(updates.items()):
             param_name = f"p{i}"
             set_clauses.append(f"{key} = :{param_name}")
-            params[param_name] = val
+            # Serializar listas/dicts como JSON string pro SQL
+            if isinstance(val, (list, dict)):
+                import json
+                params[param_name] = json.dumps(val, ensure_ascii=False, default=str)
+            else:
+                params[param_name] = val
         sql = f"UPDATE carrossel.pipeline SET {', '.join(set_clauses)} WHERE id = :pipeline_id"
         await session.execute(text(sql), params)

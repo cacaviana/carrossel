@@ -110,6 +110,7 @@
 	let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
 	async function recarregar() {
+		if (!pipelineId) return;
 		const [p, s] = await Promise.all([
 			PipelineService.buscar(pipelineId),
 			PipelineService.listarSteps(pipelineId)
@@ -390,7 +391,7 @@
 			<div class="mt-8 text-center">
 				<a data-testid="btn-ver-resultado" href="/editor?pipeline={pipelineId}&brand={pipeline?.brand_slug || ''}"
 					class="inline-flex px-8 py-3.5 rounded-full bg-purple text-bg-global font-medium text-sm
-						hover:shadow-[0_0_30px_rgba(167,139,250,0.3)] hover:opacity-90 transition-all no-underline cursor-pointer">
+						hover:shadow-[0_0_30px_rgba(53,120,176,0.25)] hover:opacity-90 transition-all no-underline cursor-pointer">
 					Ver Imagens
 				</a>
 			</div>

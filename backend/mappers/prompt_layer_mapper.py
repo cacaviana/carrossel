@@ -36,4 +36,5 @@ class PromptLayerMapper:
             prompt_final=preview_dict["prompt_final"],
             camadas=camadas,
             total_caracteres=preview_dict["total_caracteres"],
+            modelo_selecionado=preview_dict.get("modelo_selecionado"),
         )

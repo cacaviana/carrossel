@@ -352,7 +352,7 @@
 							<button
 								onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: foto.dataUrl }))}
 								class="w-10 h-10 rounded-full overflow-hidden cursor-pointer transition-all active:scale-95
-									{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-[#A78BFA] scale-110' : 'opacity-50 hover:opacity-100'}"
+									{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-steel-3 scale-110' : 'opacity-50 hover:opacity-100'}"
 							>
 								<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
 							</button>
@@ -360,7 +360,7 @@
 						<button
 							onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: '' }))}
 							class="w-10 h-10 rounded-full border border-teal-4/30 flex items-center justify-center text-xs text-steel-4 cursor-pointer hover:bg-teal-1 transition-all
-								{!$config.fotoCriadorBase64 ? 'ring-2 ring-[#A78BFA]' : ''}"
+								{!$config.fotoCriadorBase64 ? 'ring-2 ring-steel-3' : ''}"
 						>Sem</button>
 					</div>
 				</div>
