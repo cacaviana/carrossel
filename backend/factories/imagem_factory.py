@@ -212,7 +212,8 @@ def build_payload(
         import random
         from utils.dimensions import get_dims, get_prompt_size_str
 
-        ref_escolhida = random.choice(ref_images)
+        # Usar referencia consistente: primeira pra manter identidade visual
+        ref_escolhida = ref_images[0]
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_escolhida}})
 
         has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
@@ -236,21 +237,28 @@ def build_payload(
         # Montar prompt CLEAN
         prompt_lines = [
             f"Generate a single image ({size_str}, {dims['ratio']}).",
-            f"First image = style reference. Match its aesthetic exactly.",
+            f"First image = style reference. COPY ITS EXACT STYLE: same colors, same fonts, same layout pattern, same decorative elements, same background treatment. Create a NEW composition but with IDENTICAL visual identity.",
         ]
         if has_avatar:
-            prompt_lines.append("Second image = the person for this post. Include them naturally.")
+            prompt_lines.append(
+                "Second image = the ONLY person allowed in this post. "
+                "Draw this EXACT person — same face, same skin tone, same hair. "
+                "DO NOT add any other person, face, or human figure. "
+                "ONLY this person or no person at all."
+            )
+        prompt_lines.append("DO NOT generate any person, face, or human figure that is NOT in the reference photos provided.")
         if scene:
             prompt_lines.append(f"Scene: {scene}")
         prompt_lines.append(
-            f"TEXT LAYOUT RULES: All text must be INSIDE the image. "
-            f"Nothing touches the edges. Minimum 80px padding on all 4 sides. "
-            f"Center text blocks vertically and horizontally within safe area."
+            f"TEXT INSIDE IMAGE (MANDATORY): "
+            f"All text must be rendered INSIDE the image as part of the design. "
+            f"Use bold, legible typography. Minimum 80px padding on all sides. "
+            f"Text must be clearly readable against the background."
         )
-        prompt_lines.append(f"Title (big, bold): \"{headline}\"")
+        prompt_lines.append(f"Title (big, bold, prominent): \"{headline}\"")
         if body_text:
-            prompt_lines.append(f"Subtitle (smaller, below title): \"{body_text}\"")
-        prompt_lines.append("No nudity, no violence. Every letter must be legible.")
+            prompt_lines.append(f"Body text (smaller, below title): \"{body_text}\"")
+        prompt_lines.append("No nudity, no violence. Every letter must be perfectly legible.")
 
         parts.append({"text": "\n".join(prompt_lines)})
 
