@@ -7,31 +7,62 @@ from factories.prompt_composer import PromptComposer
 from services.brand_prompt_builder import get_reference_image_path, carregar_brand
 
 def _load_avatars(brand_slug: str) -> list[str]:
-    """Carrega fotos de avatar da marca (tudo que NAO e ref_*)."""
+    """Carrega fotos de avatar da marca (tudo que NAO e ref_*).
+    Busca no MongoDB primeiro, disco como fallback."""
     if not brand_slug:
         return []
-    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
-    if not assets_dir.exists():
-        return []
+
     avatars = []
-    for f in sorted(assets_dir.iterdir()):
-        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and not f.stem.startswith("ref_"):
-            avatars.append(base64.b64encode(f.read_bytes()).decode())
+    # MongoDB
+    from data.connections.mongo_connection import get_mongo_db
+    db = get_mongo_db()
+    if db:
+        docs = db["brand_assets"].find(
+            {"slug": brand_slug, "nome": {"$not": {"$regex": "^ref_"}, "$ne": "__foto__"}},
+        )
+        for doc in docs:
+            data_uri = doc.get("data_uri", "")
+            if data_uri:
+                raw = data_uri.split(",")[1] if "," in data_uri else data_uri
+                avatars.append(raw)
+
+    # Fallback disco
+    if not avatars:
+        assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
+        if assets_dir.exists():
+            for f in sorted(assets_dir.iterdir()):
+                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and not f.stem.startswith("ref_"):
+                    avatars.append(base64.b64encode(f.read_bytes()).decode())
     return avatars[:3]
 
 
 def _load_all_references(brand_slug: str) -> list[str]:
-    """Carrega TODAS as imagens de referência (arquivos ref_*) da marca."""
+    """Carrega TODAS as imagens de referência (ref_*) da marca.
+    Busca no MongoDB primeiro, disco como fallback."""
     if not brand_slug:
         return []
-    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
-    if not assets_dir.exists():
-        return []
+
     refs = []
-    for f in sorted(assets_dir.glob("ref_*")):
-        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
-            refs.append(base64.b64encode(f.read_bytes()).decode())
-    # Também incluir referência principal do JSON se existir
+    # MongoDB
+    from data.connections.mongo_connection import get_mongo_db
+    db = get_mongo_db()
+    if db:
+        docs = db["brand_assets"].find({"slug": brand_slug, "nome": {"$regex": "^ref_"}})
+        for doc in docs:
+            data_uri = doc.get("data_uri", "")
+            if data_uri:
+                raw = data_uri.split(",")[1] if "," in data_uri else data_uri
+                refs.append(raw)
+
+    # Fallback disco
+    if not refs:
+        assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
+        if assets_dir.exists():
+            for f in sorted(assets_dir.glob("ref_*")):
+                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+                    refs.append(base64.b64encode(f.read_bytes()).decode())
+
+    # Referência principal do JSON
     ref_principal = _load_reference_for_brand(brand_slug)
     if ref_principal and ref_principal not in refs:
         refs.insert(0, ref_principal)
