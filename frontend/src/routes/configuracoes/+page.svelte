@@ -765,23 +765,26 @@
 															<div>
 																<p class="text-xs text-text-primary font-medium mb-2">Cores da marca</p>
 																<div class="flex gap-2 flex-wrap mb-3">
-																	{#each Object.entries(ds.cores) as [key, val]}
-																		{#if typeof val === 'string' && val.startsWith('#')}
+																	{#each Object.keys(ds.cores) as key}
+																		{#if typeof marcas[mi].cores[key] === 'string' && marcas[mi].cores[key].startsWith('#')}
 																			<div class="text-center">
-																				<div class="w-8 h-8 rounded-lg border border-black/10 mx-auto mb-0.5" style="background-color: {val}"></div>
+																				<div class="w-8 h-8 rounded-lg border border-black/10 mx-auto mb-0.5" style="background-color: {marcas[mi].cores[key]}"></div>
 																				<p class="text-[8px] text-text-muted max-w-[48px] truncate">{key}</p>
 																			</div>
 																		{/if}
 																	{/each}
 																</div>
 																<div class="grid grid-cols-2 gap-2">
-																	{#each Object.entries(ds.cores) as [key, val]}
+																	{#each Object.keys(ds.cores) as key}
 																		<div class="flex items-center gap-2">
-																			{#if typeof val === 'string' && val.startsWith('#')}
-																				<input type="color" bind:value={marcas[mi].cores[key]} class="w-6 h-6 rounded border-0 cursor-pointer shrink-0" />
+																			{#if typeof marcas[mi].cores[key] === 'string' && marcas[mi].cores[key].startsWith('#')}
+																				<input type="color" bind:value={marcas[mi].cores[key]}
+																					oninput={() => { marcas = [...marcas]; }}
+																					class="w-6 h-6 rounded border-0 cursor-pointer shrink-0" />
 																			{/if}
 																			<span class="text-[10px] text-text-muted w-24 shrink-0 truncate">{key}</span>
 																			<input type="text" bind:value={marcas[mi].cores[key]}
+																				oninput={() => { marcas = [...marcas]; }}
 																				class="flex-1 px-2 py-1 rounded border border-border-default bg-bg-input text-text-primary text-[11px] font-mono focus:border-purple outline-none" />
 																		</div>
 																	{/each}
