@@ -198,7 +198,7 @@
 					<div class="rounded-lg bg-bg-elevated border border-border-default overflow-hidden">
 						<button
 							onclick={() => slideExpandido = slideExpandido === i ? -1 : i}
-							class="w-full flex items-center gap-2 p-3 cursor-pointer hover:bg-white/2 transition-all"
+							class="w-full flex items-center gap-2 p-3 cursor-pointer hover:bg-black/3 transition-all"
 						>
 							<span class="text-xs font-mono text-text-muted">{i + 1}</span>
 							<span class="text-sm font-medium text-text-primary flex-1 text-left">{slide.titulo}</span>

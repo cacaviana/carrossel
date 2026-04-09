@@ -97,14 +97,23 @@ def salvar_foto_brand(slug: str, foto_data: str) -> dict:
 
 
 def buscar_foto_brand(slug: str) -> dict:
-    """Procura foto no disco e retorna base64. Retorna {foto: None} se não encontrada."""
+    """Retorna URL da foto da marca. Retorna {foto: None} se não encontrada."""
+    for ext in ("jpg", "png", "jpeg"):
+        path = FOTOS_DIR / f"{slug}.{ext}"
+        if path.exists():
+            return {"foto": f"/api/brands/{slug}/foto/file"}
+    return {"foto": None}
+
+
+def buscar_foto_brand_b64(slug: str) -> str | None:
+    """Retorna foto como base64 (uso interno — overlay, Gemini, etc)."""
     for ext in ("jpg", "png", "jpeg"):
         path = FOTOS_DIR / f"{slug}.{ext}"
         if path.exists():
             data = b64.b64encode(path.read_bytes()).decode()
             mime = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
-            return {"foto": f"data:{mime};base64,{data}"}
-    return {"foto": None}
+            return f"data:{mime};base64,{data}"
+    return None
 
 
 def listar_assets(slug: str) -> dict:
@@ -113,14 +122,31 @@ def listar_assets(slug: str) -> dict:
     items = []
     for f in sorted(assets_dir.glob("*.*")):
         if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
-            data = b64.b64encode(f.read_bytes()).decode()
-            mime = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
             items.append({
                 "nome": f.stem,
                 "arquivo": f.name,
-                "preview": f"data:{mime};base64,{data}",
+                "preview": f"/api/brands/{slug}/assets/{f.stem}/file",
+                "is_referencia": f.stem.startswith("ref_"),
             })
     return {"assets": items, "total": len(items)}
+
+
+def definir_referencia(slug: str, nome_asset: str | None) -> dict | None:
+    """Define qual asset é a referência visual para geração de imagens.
+    Se nome_asset=None, remove a referência."""
+    brand = carregar_brand(slug)
+    if not brand:
+        return None
+    if nome_asset:
+        assets_dir = BRAND_ASSETS_DIR / slug
+        found = list(assets_dir.glob(f"{nome_asset}.*"))
+        if not found:
+            return None
+        brand["referencia_imagem"] = f"brand-assets/{slug}/{found[0].name}"
+    else:
+        brand["referencia_imagem"] = None
+    _salvar_brand(slug, brand, overwrite=True)
+    return {"slug": slug, "referencia_imagem": brand["referencia_imagem"]}
 
 
 def upload_asset(slug: str, nome: str, imagem: str) -> dict:

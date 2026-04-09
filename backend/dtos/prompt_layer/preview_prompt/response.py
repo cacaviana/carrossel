@@ -11,3 +11,4 @@ class PreviewPromptResponse(BaseModel):
     prompt_final: str
     camadas: list[CamadaPreview]
     total_caracteres: int
+    modelo_selecionado: str | None = None

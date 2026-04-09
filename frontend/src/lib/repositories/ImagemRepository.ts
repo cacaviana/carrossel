@@ -49,7 +49,7 @@ export class ImagemRepository {
         }
       }
     } else {
-      // Formato antigo: resultados[{slide_index, variacao, image_base64}]
+      // Formato: resultados[{slide_index, variacao, image_url?, image_base64?}]
       for (const r of resultados) {
         const si = r.slide_index ?? 0;
         if (!slideMap.has(si)) {
@@ -62,10 +62,12 @@ export class ImagemRepository {
           });
         }
         const slide = slideMap.get(si)!;
+        // Preferir URL sobre base64
+        const imgUrl = r.image_url ? (r.image_url.startsWith('http') ? r.image_url : `${API_BASE}${r.image_url}`) : '';
         slide.variacoes.push({
           variacao_id: `${si}-${r.variacao ?? slide.variacoes.length + 1}`,
-          url: '',
-          base64: r.image_base64 ?? '',
+          url: imgUrl,
+          base64: imgUrl ? '' : (r.image_base64 ?? ''),
         });
         if (r.validacao?.valido === true) slide.brand_gate_status = 'valido';
         else if (r.validacao?.valido === false) slide.brand_gate_status = 'revisao_manual';

@@ -21,3 +21,13 @@ class BrandAnalyzerService:
         )
 
         return AnalisarReferenciasResponse(**result)
+
+    @staticmethod
+    async def descrever_estilo(imagem_b64: str) -> dict:
+        """Extrai TODOS os detalhes visuais de uma imagem usando skill dedicado."""
+        api_key = os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY nao configurada")
+
+        from skills.visual_extractor import extrair
+        return await extrair(imagem_b64, api_key)

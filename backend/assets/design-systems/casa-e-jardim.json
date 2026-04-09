@@ -1,0 +1,50 @@
+{
+  "nome": "casa e jardim",
+  "slug": "casa-e-jardim",
+  "cores": {
+    "fundo": "#2F3A2E",
+    "gradiente_de": "#2F3A2E",
+    "gradiente_ate": "#4A6D4A",
+    "card": "#D0D8C8",
+    "card_borda": "rgba(255,255,255,0.2)",
+    "acento_principal": "#34A853",
+    "acento_secundario": "#FDD835",
+    "acento_terciario": "#B24C4C",
+    "acento_negativo": "#F87171",
+    "texto_principal": "#FFFFFF",
+    "texto_secundario": "#E0E8E0"
+  },
+  "fontes": {
+    "titulo": "Nunito",
+    "corpo": "Nunito",
+    "codigo": "monospace"
+  },
+  "visual": {
+    "estilo_fundo": "Fundos fotográficos desfocados (efeito bokeh) com tons orgânicos de verde e marrom, criando profundidade e destacando o conteúdo principal. Pode incluir texturas sutis de folhagens ou solo.",
+    "estilo_elemento": {
+      "tipo": "Fotografias de alta qualidade de plantas, natureza e elementos de jardinagem. Ícones minimalistas e line-art para interface.",
+      "linhas": "Finas e limpas para ícones e bordas de UI.",
+      "complexidade": "Baixa para elementos gráficos e ícones; alta para as fotografias que são o foco visual.",
+      "profundidade": "Criada principalmente pelo desfoque de fundo (bokeh) e pela composição com elementos em primeiro plano.",
+      "opacidade": "Elementos de UI (como cards ou overlays) podem ter opacidade reduzida para integrar-se ao fundo.",
+      "tematico": "Direta e intrinsecamente ligado ao mundo natural, jardinagem e plantas."
+    },
+    "estilo_card": "Retângulos com cantos arredondados. Cores claras e desaturadas (verde-acinzentado ou branco-sujo) com opacidade sutil ou sólida. Bordas finas e discretas (ou ausentes). Sem sombras pesadas, talvez uma sombra muito suave para elevação.",
+    "estilo_texto": "Tipografia sans-serif, moderna e legível. Uso de pesos variados (regular, bold) para hierarquia. Cores principais: branco. Cores de destaque: verde vibrante, amarelo. Títulos podem ter efeitos sutis como curvatura ou textura leve.",
+    "estilo_desenho": "Fotografias realistas e de alta qualidade de plantas e ambientes naturais. Ícones vetoriais simples e funcionais.",
+    "regras_extras": "Priorizar a autenticidade e a beleza natural das plantas. Manter a clareza e a legibilidade. Evitar excesso de elementos gráficos ou cores artificiais."
+  },
+  "elementos": {
+    "badge_topo": "casa e jardim",
+    "badge_topo_cor": "#34A853",
+    "rodape_nome": "casa e jardim"
+  },
+  "comunicacao": {
+    "persona": "",
+    "tom": "",
+    "linguagem": "",
+    "publico": "",
+    "palavras_proibidas": []
+  },
+  "_loaded": true
+}

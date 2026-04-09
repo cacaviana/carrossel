@@ -1,4 +1,4 @@
-# Termos proibidos no vocabulario IT Valley
+# Termos proibidos no vocabulario da marca
 TERMOS_PROIBIDOS = [
     "guru", "hack", "truque", "milagre", "facil", "rapido",
     "garantido", "infalivel", "segredo", "revelar",
@@ -18,7 +18,7 @@ SUBSTITUICOES = {
 
 
 def validar(texto: str) -> dict:
-    """Valida vocabulario IT Valley.
+    """Valida vocabulario da marca (termos proibidos e substituicoes).
 
     Retorna:
         {

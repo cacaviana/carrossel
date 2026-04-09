@@ -46,7 +46,12 @@
       "capa": "parte inferior do slide, grande",
       "conteudo": "atras do card, sutil e parcialmente visivel",
       "cta": "centro-inferior, atras do card de convite",
-      "locais_permitidos": ["canto inferior direito", "canto inferior esquerdo", "atras do card (sutil)", "laterais do layout"]
+      "locais_permitidos": [
+        "canto inferior direito",
+        "canto inferior esquerdo",
+        "atras do card (sutil)",
+        "laterais do layout"
+      ]
     },
     "estilo_card": "Card escuro (#12121A) com borda roxa sutil 1px (rgba(167,139,250,0.2)), backdrop-blur, cantos arredondados (14px). Glassmorphism escuro. Card grande ocupando boa parte do slide.",
     "estilo_texto": "Titulos MUITO GRANDES em branco (#FFFFFF) com text-shadow glow sutil. Palavras-chave em roxo (#A78BFA) Semibold. Numeros de impacto em amber (#FBBF24) grandes (28px+). Negativos em vermelho (#F87171). Hierarquia forte.",
@@ -57,7 +62,7 @@
       "fonte_badge": "JetBrains Mono, uppercase, 12px"
     },
     "rodape": {
-      "formato": "Apenas paginacao no canto inferior direito. SEM nome, SEM foto, SEM 'DESLIZA'. Limpo e minimalista.",
+      "formato": "Apenas paginacao no canto inferior direito. SEM nome de autor no rodape, SEM miniatura de perfil no rodape, SEM texto DESLIZA. Limpo e minimalista.",
       "paginacao": "XX/N em monospace cinza #5A5A66 no canto inferior direito"
     },
     "slide_codigo": {
@@ -66,7 +71,7 @@
       "corpo": "fundo #0D0D18, codigo em JetBrains Mono 9.5px verde #34D399, line-height 1.55",
       "largura": "90-95% do slide"
     },
-    "regras_extras": "SEM emojis. SEM clipart. SEM icones flat. SEM foto de pessoa (foto adicionada na pos-producao). SEM cerebro digital generico. SEM robo. Nunca muro de texto — quebrar com cor, metrica ou bloco visual. Alternar slide denso e slide de respiro. Visual HIGH TECH futurista premium."
+    "regras_extras": "SEM emojis. SEM clipart. SEM icones flat.  SEM cerebro digital generico. SEM robo. Nunca muro de texto — quebrar com cor, metrica ou bloco visual. Alternar slide denso e slide de respiro. Visual HIGH TECH futurista premium."
   },
   "elementos": {
     "badge_topo": "Carlos Viana",
@@ -87,8 +92,25 @@
     "tom": "Tecnico mas acessivel. Direto, sem enrolacao. Anti-guru, anti-promessa facil. Autoridade real baseada em experiencia.",
     "linguagem": "Portugues BR informal tech. Usa termos tecnicos quando necessario mas explica. Frases curtas e impactantes. Quebra crencas.",
     "publico": "Devs brasileiros (iniciante a pleno) que querem trabalhar remoto ou no exterior. Sentem que estudam muito e nao avancam.",
-    "palavras_proibidas": ["facil", "simples", "hack", "segredo", "guru", "revolucionario", "truque", "milagre", "rapido"],
-    "exemplos_frase": ["Consistencia > intensidade", "GitHub pesa mais que certificado", "Ingles tecnico e obrigatorio", "Mercado internacional valoriza comunicacao e clareza", "Ninguem te conta isso sobre trabalhar na gringa", "O mercado nao quer certificado, quer evidencia"],
+    "palavras_proibidas": [
+      "facil",
+      "simples",
+      "hack",
+      "segredo",
+      "guru",
+      "revolucionario",
+      "truque",
+      "milagre",
+      "rapido"
+    ],
+    "exemplos_frase": [
+      "Consistencia > intensidade",
+      "GitHub pesa mais que certificado",
+      "Ingles tecnico e obrigatorio",
+      "Mercado internacional valoriza comunicacao e clareza",
+      "Ninguem te conta isso sobre trabalhar na gringa",
+      "O mercado nao quer certificado, quer evidencia"
+    ],
     "hooks_padrao": [
       "F1 HISTORIA + RESULTADO: historia real + numero que doi",
       "F2 RESULTADO IMPOSSIVEL: numero absurdo + custo zero",
@@ -111,9 +133,32 @@
       "Comenta ai se concorda",
       "Pergunta tecnica que gera comentario + Se voce quer aprender [TECH] na pratica, a gente ensina na Disciplina [X] da nossa pos de IA e ML."
     ],
-    "topicos_autoridade": ["IA aplicada", "MLOps", "Python", "Deep Learning", "NLP", "Cloud AWS/Azure", "carreira dev"],
-    "anti_patterns": ["promessa de resultado rapido", "linguagem de guru", "clickbait vazio", "conteudo generico sem experiencia real", "emojis excessivos", "CTA curte se concorda"],
-    "hashtags": ["#CodigoOuNaoAconteceu", "#NumerosOuEMentira", "#MostreOndeErrou", "#DevPraDevNaoGuruPraSeguidor", "#SemAutoajudaVazia", "#CarlosViana", "#ITValleySchool"],
+    "topicos_autoridade": [
+      "IA aplicada",
+      "MLOps",
+      "Python",
+      "Deep Learning",
+      "NLP",
+      "Cloud AWS/Azure",
+      "carreira dev"
+    ],
+    "anti_patterns": [
+      "promessa de resultado rapido",
+      "linguagem de guru",
+      "clickbait vazio",
+      "conteudo generico sem experiencia real",
+      "emojis excessivos",
+      "CTA curte se concorda"
+    ],
+    "hashtags": [
+      "#CodigoOuNaoAconteceu",
+      "#NumerosOuEMentira",
+      "#MostreOndeErrou",
+      "#DevPraDevNaoGuruPraSeguidor",
+      "#SemAutoajudaVazia",
+      "#CarlosViana",
+      "#ITValleySchool"
+    ],
     "instituicao": "IT Valley School",
     "curso": "Pos-graduacao em IA e Machine Learning",
     "disciplinas": [
@@ -129,6 +174,7 @@
     ]
   },
   "regra_ouro": "NUNCA mentir. Nivel 1: experiencia real. Nivel 2: caso publico documentado. Nivel 3: fato tecnico verificavel. Se nao tem historia real, formato impessoal.",
-  "referencia_imagem": "reference_slide.png",
-  "referencia_content": "reference_content.png"
+  "referencia_imagem": null,
+  "referencia_content": "reference_content.png",
+  "_loaded": true
 }

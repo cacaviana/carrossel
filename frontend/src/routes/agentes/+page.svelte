@@ -79,7 +79,7 @@
 						class="w-full text-left p-4 rounded-xl border transition-all cursor-pointer
 							{selecionado === agente.slug
 								? 'bg-bg-card border-l-[3px] border-purple bg-purple/4'
-								: 'bg-bg-card border-border-default hover:bg-white/2'}"
+								: 'bg-bg-card border-border-default hover:bg-black/3'}"
 					>
 						<div class="flex items-center justify-between mb-1">
 							<span class="text-sm font-medium text-text-primary">{agente.nome}</span>

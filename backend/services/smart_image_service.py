@@ -112,6 +112,11 @@ async def _gerar_slide_smart(
     if skip_validation:
         return img_completa
 
+    # Se tem referências visuais, pular validação (a correção perde o estilo)
+    from factories.imagem_factory import _load_all_references
+    if _load_all_references(brand_slug):
+        return img_completa
+
     # Passo 2: Validar texto
     validacao = await validar_texto_slide(img_completa, slide, api_key)
 

@@ -58,6 +58,18 @@ class PipelineService:
             for versao in saida.get("versoes", []):
                 versao.pop("background_base64", None)
 
+        # Converter image_path em URL servida pelo backend
+        if agente in ("image_generator", "brand_gate") and isinstance(saida, dict):
+            items_key = "imagens" if agente == "image_generator" else "resultados"
+            for item in saida.get(items_key, []):
+                path_rel = item.get("image_path")
+                if path_rel:
+                    slide_idx = item.get("slide_index", 1)
+                    item["image_url"] = f"/api/pipelines/{pipeline_id}/imagens/{slide_idx}"
+                # Retrocompat: se ainda tem image_base64, converter pra URL se possivel
+                if item.get("image_base64") and not item.get("image_url"):
+                    item["image_url"] = None  # legado sem URL
+
         # Progresso em tempo real (para etapas longas como image_generator)
         from services.step_progress import buscar as buscar_progresso
         progresso = buscar_progresso(str(step["id"]))
@@ -178,8 +190,15 @@ class PipelineService:
         if not result:
             return None
 
-        if result["status"] not in ("cancelado", "erro"):
+        # Permitir retomar se pipeline ou alguma etapa tem erro
+        tem_etapa_erro = any(e.get("status") == "erro" for e in result.get("etapas", []))
+        if result["status"] not in ("cancelado", "erro") and not tem_etapa_erro:
             raise ValueError("Apenas pipelines cancelados ou com erro podem ser retomados")
+
+        # Resetar etapas com erro para pendente (cada uma separadamente)
+        for etapa in result.get("etapas", []):
+            if etapa.get("status") == "erro" and etapa.get("id"):
+                await atualizar_etapa(etapa["id"], {"status": "pendente", "erro_mensagem": None})
 
         await atualizar_pipeline(pipeline_id, {"status": "pendente"})
         return {"pipeline_id": pipeline_id, "status": "pendente", "mensagem": "Pipeline retomado"}

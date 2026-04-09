@@ -1,6 +1,8 @@
 import os
 import json
+import base64
 from datetime import datetime, timezone
+from pathlib import Path
 
 from services.pipeline_db_service import (
     buscar_proxima_etapa,
@@ -61,11 +63,23 @@ async def executar_proxima_etapa(pipeline_id: str, tenant_id: str = "") -> dict:
     # Buscar saidas anteriores
     etapas_anteriores = await buscar_etapas_anteriores(pipeline_id, ordem)
     context = _build_context(etapas_anteriores)
+    context["_pipeline_id"] = pipeline_id
 
-    # Se esta etapa foi rejeitada, incluir o feedback no context
+    # Se esta etapa foi rejeitada, incluir o feedback + saída anterior no context
     feedback_rejeicao = step.get("erro_mensagem", "")
+    print(f"[pipeline] Etapa {agente}: status={step.get('status')}, feedback='{feedback_rejeicao}', tem_saida={bool(step.get('saida'))}")
     if feedback_rejeicao and feedback_rejeicao != "Rejeitado pelo usuario":
         context["_feedback_rejeicao"] = feedback_rejeicao
+        print(f"[pipeline] Feedback setado: {feedback_rejeicao[:100]}")
+    # Incluir saída anterior da PRÓPRIA etapa (pra ajustes incrementais)
+    saida_anterior_raw = step.get("saida")
+    if saida_anterior_raw and feedback_rejeicao:
+        try:
+            parsed = json.loads(saida_anterior_raw) if isinstance(saida_anterior_raw, str) else saida_anterior_raw
+            context[agente] = parsed
+            print(f"[pipeline] Saida anterior do {agente} carregada: {list(parsed.keys()) if isinstance(parsed, dict) else 'nao-dict'}")
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"[pipeline] Erro ao parsear saida anterior: {e}")
 
     try:
         saida = await _executar_agente(
@@ -185,7 +199,7 @@ async def _executar_agente(
         return {"hooks": [{"letra": "A", "texto": copy.get("headline", tema), "abordagem": "Auto"}]}
 
     if agente == "art_director":
-        return await _exec_art_director(context, formato, claude_api_key, brand_slug=brand_slug)
+        return await _exec_art_director(context, formato, claude_api_key, brand_slug=brand_slug, avatar_mode=avatar_mode)
 
     if agente == "image_generator":
         return await _exec_image_generator(context, formato, gemini_api_key, step_id, brand_slug=brand_slug, avatar_mode=avatar_mode)
@@ -288,11 +302,31 @@ async def _exec_hook_specialist(context, formato, api_key, brand_slug=None):
     )
 
 
-async def _exec_art_director(context, formato, api_key, brand_slug=None):
+async def _exec_art_director(context, formato, api_key, brand_slug=None, avatar_mode="livre"):
     copy = context.get("copywriter", {})
+    feedback = context.get("_feedback_rejeicao", "")
 
-    # Hook removido do pipeline — usar headline da copy como hook
-    hook_texto = copy.get("headline", "")
+    # Se tem feedback + saida anterior, usar Claude pra AJUSTAR a cena (não recriar)
+    prev_art = context.get("art_director", {})
+    if feedback and prev_art.get("prompts"):
+        import anthropic
+        client = anthropic.AsyncAnthropic(api_key=api_key)
+        prev_prompts = prev_art["prompts"]
+
+        msg = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            messages=[{"role": "user", "content": (
+                f"Aqui esta a descricao de cena anterior de cada slide:\n"
+                f"{json.dumps(prev_prompts, ensure_ascii=False, indent=2)}\n\n"
+                f"O usuario pediu este ajuste: {feedback}\n\n"
+                f"Aplique APENAS o ajuste pedido. Mantenha TODO o resto identico.\n"
+                f"Retorne o JSON atualizado no mesmo formato: {{\"prompts\": [...]}}\n"
+                f"Responda APENAS JSON valido."
+            )}],
+        )
+        from utils.json_parser import parse_llm_json
+        return parse_llm_json(msg.content[0].text)
 
     # Montar palette compacta (sem campos pesados como _raw_content)
     brand_palette_dict = None
@@ -300,12 +334,20 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None):
         from services.brand_prompt_builder import carregar_brand
         brand = carregar_brand(brand_slug)
         if brand:
+            # Extrair prompt_perfeito da analise de referencia (o mais importante)
+            analise = brand.get("_analise_referencia", {})
+            prompt_ref = analise.get("prompt_perfeito") or analise.get("prompt_replicar", "")
+            regras = brand.get("regras_feed") or analise.get("regras_feed", {})
+
             brand_palette_dict = {
                 "nome": brand.get("nome"),
                 "cores": brand.get("cores"),
+                "fontes": brand.get("fontes"),
                 "visual": brand.get("visual"),
                 "elementos": brand.get("elementos"),
                 "comunicacao": {k: v for k, v in brand.get("comunicacao", {}).items() if k != "exemplos_frase"},
+                "prompt_referencia": prompt_ref,
+                "regras_feed": regras,
             }
     else:
         config_service = ConfigService()
@@ -317,10 +359,11 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None):
 
     return await executar_art_director(
         copy=copy,
-        hook=hook_texto,
+        hook="",
         formato=formato,
         brand_palette=brand_palette_dict,
         claude_api_key=api_key,
+        avatar_mode=avatar_mode,
     )
 
 
@@ -354,6 +397,32 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
             bullets = [line.strip() for line in corpo.split("\n") if line.strip()] if corpo else []
             slide = {"type": "content", "title": titulo, "bullets": bullets, "etapa": ""}
         slides.append(slide)
+
+    # Injetar direção de cena do Art Director nos slides (illustration_description)
+    art_output = context.get("art_director", {})
+    art_prompts = art_output.get("prompts", [])
+    for ap in art_prompts:
+        idx = ap.get("slide_index", 0) - 1
+        scene = ap.get("illustration_description", "")
+        if 0 <= idx < len(slides) and scene:
+            slides[idx]["illustration_description"] = scene
+
+    # Se avatar_mode pede pessoa mas slide nao tem illustration_description,
+    # injetar cena com pessoa pra que o PromptComposer use o path de illustration
+    if avatar_mode in ("sim", "capa"):
+        from factories.imagem_factory import _load_avatars
+        has_avatars = len(_load_avatars(brand_slug)) > 0 if brand_slug else False
+        if has_avatars:
+            for i, slide in enumerate(slides):
+                if slide.get("illustration_description"):
+                    continue  # Art Director ja definiu cena
+                if avatar_mode == "capa" and i > 0:
+                    continue  # so capa
+                titulo = slide.get("headline") or slide.get("title", "")
+                slide["illustration_description"] = (
+                    f"The brand's person/creator featured prominently, "
+                    f"in a natural confident pose related to: {titulo}"
+                )
 
     design_system = None  # Usa o DESIGN_SYSTEM padrao do prompt_templates (v9)
 
@@ -391,12 +460,18 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         formato=formato,
     )
 
+    # Salvar imagens no disco ao inves de base64 no banco
+    from utils.pipeline_images import salvar_imagem
     imagens_result = []
     for i, img in enumerate(images):
+        if img:
+            path_rel = salvar_imagem(context.get("_pipeline_id", "temp"), i + 1, img)
+        else:
+            path_rel = None
         imagens_result.append({
             "slide_index": i + 1,
             "variacao": 1,
-            "image_base64": img,
+            "image_path": path_rel,
             "modelo": "v9",
         })
 
@@ -413,15 +488,22 @@ async def _exec_brand_gate(context, formato):
     image_gen_output = context.get("image_generator", {})
     imagens = image_gen_output.get("imagens", [])
 
+    from utils.pipeline_images import carregar_imagem_b64, salvar_imagem
+
     resultados = []
     for img_item in imagens:
-        image_b64 = img_item.get("image_base64")
+        # Carregar imagem: do disco (image_path) ou base64 legado (image_base64)
+        image_b64 = None
+        if img_item.get("image_path"):
+            image_b64 = carregar_imagem_b64(img_item["image_path"])
+        if not image_b64:
+            image_b64 = img_item.get("image_base64")
         if not image_b64:
             resultados.append({
                 "slide_index": img_item.get("slide_index"),
                 "variacao": img_item.get("variacao"),
                 "validacao": {"valido": False, "erros": ["Imagem nao disponivel"]},
-                "image_base64": None,
+                "image_path": None,
             })
             continue
 
@@ -436,11 +518,16 @@ async def _exec_brand_gate(context, formato):
             except Exception:
                 pass
 
+        # Salvar resultado no disco
+        pipeline_id = context.get("_pipeline_id", "temp")
+        slide_idx = img_item.get("slide_index", 1)
+        path_rel = salvar_imagem(pipeline_id, slide_idx, image_final)
+
         resultados.append({
-            "slide_index": img_item.get("slide_index"),
+            "slide_index": slide_idx,
             "variacao": img_item.get("variacao"),
             "validacao": validacao,
-            "image_base64": image_final,
+            "image_path": path_rel,
         })
 
     total = len(resultados)

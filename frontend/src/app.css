@@ -1,29 +1,29 @@
 @import 'tailwindcss';
 
 @theme {
-	/* === Dark Mode Premium === */
-	--color-bg-global: #0A0A0F;
-	--color-bg-card: #12121A;
-	--color-bg-code: #0D0D18;
-	--color-bg-elevated: #1A1A2A;
-	--color-bg-input: #12121A;
+	/* === Light Mode — Corporate Clean === */
+	--color-bg-global: #E6EEEC;
+	--color-bg-card: #FAFCFB;
+	--color-bg-code: #F0F4F3;
+	--color-bg-elevated: #EEF3F1;
+	--color-bg-input: #FFFFFF;
 
-	--color-border-default: rgba(167,139,250,0.2);
-	--color-border-active: #A78BFA;
+	--color-border-default: rgba(53,120,176,0.18);
+	--color-border-active: #3578B0;
 
-	--color-text-primary: #FFFFFF;
-	--color-text-secondary: #9896A3;
-	--color-text-muted: #5A5A66;
+	--color-text-primary: #0D2033;
+	--color-text-secondary: #3D5A6E;
+	--color-text-muted: #7A9299;
 
-	--color-purple: #A78BFA;
-	--color-purple-soft: #C4B5FD;
-	--color-purple-deep: #6D28D9;
+	--color-purple: #3578B0;
+	--color-purple-soft: #5A9ACC;
+	--color-purple-deep: #265A87;
 
-	--color-green: #34D399;
-	--color-amber: #FBBF24;
-	--color-red: #F87171;
+	--color-green: #2A9D6E;
+	--color-amber: #D4930A;
+	--color-red: #DC4F4F;
 
-	/* === Legado (manter para paginas existentes) === */
+	/* === Teal palette === */
 	--color-teal-0: #F4F9F7;
 	--color-teal-1: #EEF5F2;
 	--color-teal-2: #E6EEEC;
@@ -65,8 +65,8 @@
 }
 
 @keyframes pulse-border {
-	0%, 100% { border-color: rgba(251, 191, 36, 0.4); }
-	50% { border-color: rgba(251, 191, 36, 0.8); }
+	0%, 100% { border-color: rgba(212, 147, 10, 0.4); }
+	50% { border-color: rgba(212, 147, 10, 0.8); }
 }
 
 .animate-fade-up {
@@ -74,7 +74,7 @@
 }
 
 .animate-shimmer {
-	background: linear-gradient(90deg, transparent 0%, rgba(167,139,250,0.06) 50%, transparent 100%);
+	background: linear-gradient(90deg, transparent 0%, rgba(53,120,176,0.08) 50%, transparent 100%);
 	background-size: 200% 100%;
 	animation: shimmer 2s infinite;
 }
@@ -109,14 +109,14 @@
 /* === Hero Landing === */
 .hero-bg {
 	background:
-		radial-gradient(ellipse 60% 50% at 75% 30%, rgba(107,33,168,0.18) 0%, transparent 60%),
-		radial-gradient(ellipse 40% 40% at 25% 70%, rgba(167,139,250,0.08) 0%, transparent 50%),
-		radial-gradient(ellipse 30% 30% at 50% 50%, rgba(109,40,217,0.06) 0%, transparent 50%),
-		linear-gradient(160deg, #07060D 0%, #0A0914 25%, #0E0B1E 50%, #0A0A14 75%, #07060D 100%);
+		radial-gradient(ellipse 60% 50% at 75% 30%, rgba(53,120,176,0.10) 0%, transparent 60%),
+		radial-gradient(ellipse 40% 40% at 25% 70%, rgba(122,173,166,0.08) 0%, transparent 50%),
+		radial-gradient(ellipse 30% 30% at 50% 50%, rgba(53,120,176,0.05) 0%, transparent 50%),
+		linear-gradient(160deg, #E6EEEC 0%, #EEF5F2 25%, #F4F9F7 50%, #EEF5F2 75%, #E6EEEC 100%);
 }
 
 .hero-galaxy-text {
-	background: linear-gradient(135deg, #A78BFA 0%, #34D399 100%);
+	background: linear-gradient(135deg, #3578B0 0%, #7AADA6 100%);
 	-webkit-background-clip: text;
 	background-clip: text;
 	-webkit-text-fill-color: transparent;
@@ -154,7 +154,7 @@
 /* Scrollbar fina e discreta */
 .scrollbar-thin {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(167,139,250,0.2) transparent;
+	scrollbar-color: rgba(53,120,176,0.2) transparent;
 }
 .scrollbar-thin::-webkit-scrollbar {
 	width: 4px;
@@ -163,9 +163,9 @@
 	background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-	background: rgba(167,139,250,0.2);
+	background: rgba(53,120,176,0.2);
 	border-radius: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-	background: rgba(167,139,250,0.4);
+	background: rgba(53,120,176,0.4);
 }

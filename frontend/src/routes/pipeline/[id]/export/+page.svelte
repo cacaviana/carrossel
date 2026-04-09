@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { jsPDF } from 'jspdf';
 	import { ExportService } from '$lib/services/ExportService';
 	import { ImagemService } from '$lib/services/ImagemService';
 	import { PipelineService } from '$lib/services/PipelineService';
@@ -20,6 +21,7 @@
 	let carregando = $state(true);
 	let salvandoDrive = $state(false);
 	let exportandoPdf = $state(false);
+	let baixandoPngs = $state(false);
 	let driveLink = $state('');
 	let copiado = $state(false);
 	let erro = $state('');
@@ -39,11 +41,81 @@
 		} catch {}
 	}
 
+	function getSlideUrl(slide: any): string | null {
+		const v = slide?.variacoes?.[0];
+		return v?.url || v?.base64 || null;
+	}
+
+	async function loadImageAsDataUrl(src: string): Promise<string> {
+		if (src.startsWith('data:')) return src;
+		const resp = await fetch(src);
+		const blob = await resp.blob();
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result as string);
+			reader.onerror = reject;
+			reader.readAsDataURL(blob);
+		});
+	}
+
 	async function exportarPdf() {
 		exportandoPdf = true;
-		await new Promise(r => setTimeout(r, 1500));
-		exportandoPdf = false;
-		// Mock: seria jsPDF aqui
+		erro = '';
+		try {
+			const dims = getDims(formato);
+			const pxToMm = 0.2645833333;
+			const wMm = dims.w * pxToMm;
+			const hMm = dims.h * pxToMm;
+
+			const pdf = new jsPDF({
+				orientation: dims.w > dims.h ? 'landscape' : 'portrait',
+				unit: 'mm',
+				format: [wMm, hMm]
+			});
+
+			for (let i = 0; i < slides.length; i++) {
+				const url = getSlideUrl(slides[i]);
+				if (!url) continue;
+
+				if (i > 0) pdf.addPage([wMm, hMm]);
+				const dataUrl = await loadImageAsDataUrl(url);
+				pdf.addImage(dataUrl, 'PNG', 0, 0, wMm, hMm);
+			}
+
+			pdf.save(`carrossel-${pipelineId}.pdf`);
+		} catch (e) {
+			console.error('Erro ao gerar PDF:', e);
+			erro = 'Erro ao gerar PDF';
+		} finally {
+			exportandoPdf = false;
+		}
+	}
+
+	async function downloadPngs() {
+		baixandoPngs = true;
+		erro = '';
+		try {
+			for (let i = 0; i < slides.length; i++) {
+				const url = getSlideUrl(slides[i]);
+				if (!url) continue;
+
+				const dataUrl = await loadImageAsDataUrl(url);
+				const a = document.createElement('a');
+				a.href = dataUrl;
+				a.download = `slide-${String(i + 1).padStart(2, '0')}.png`;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+
+				// Small delay between downloads to avoid browser blocking
+				if (i < slides.length - 1) await new Promise(r => setTimeout(r, 200));
+			}
+		} catch (e) {
+			console.error('Erro ao baixar PNGs:', e);
+			erro = 'Erro ao baixar PNGs';
+		} finally {
+			baixandoPngs = false;
+		}
 	}
 
 	async function salvarDrive() {
@@ -122,8 +194,8 @@
 					{#if slides.length > 0}
 						{@const currentSlide = slides[slideAtual]}
 						<div class="flex items-center justify-center relative" style="aspect-ratio: {getDims(formato).cssRatio}">
-							{#if currentSlide?.variacoes?.[0]?.base64}
-								<img src={currentSlide.variacoes[0].base64} alt="Slide {slideAtual + 1}" class="w-full h-full object-contain" />
+							{#if currentSlide?.variacoes?.[0]?.url || currentSlide?.variacoes?.[0]?.base64}
+								<img src={currentSlide.variacoes[0].url || currentSlide.variacoes[0].base64} alt="Slide {slideAtual + 1}" class="w-full h-full object-contain" />
 							{:else}
 								<span class="text-text-muted">Sem preview</span>
 							{/if}
@@ -211,9 +283,9 @@
 						class="w-full py-3 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 transition-all cursor-pointer disabled:opacity-50">
 						{exportandoPdf ? 'Gerando PDF...' : 'Exportar PDF'}
 					</button>
-					<button data-testid="btn-download-pngs"
-						class="w-full py-3 rounded-full text-sm font-medium text-purple border border-purple/20 hover:bg-purple/8 transition-all cursor-pointer">
-						Download PNGs
+					<button data-testid="btn-download-pngs" onclick={downloadPngs} disabled={baixandoPngs}
+						class="w-full py-3 rounded-full text-sm font-medium text-purple border border-purple/20 hover:bg-purple/8 transition-all cursor-pointer disabled:opacity-50">
+						{baixandoPngs ? 'Baixando PNGs...' : 'Download PNGs'}
 					</button>
 					<button data-testid="btn-salvar-drive" onclick={salvarDrive} disabled={salvandoDrive}
 						class="w-full py-3 rounded-full text-sm font-medium text-bg-global bg-green hover:opacity-90 transition-all cursor-pointer disabled:opacity-50">

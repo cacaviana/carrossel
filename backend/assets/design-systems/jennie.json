@@ -1,0 +1,235 @@
+{
+  "nome": "jennie",
+  "slug": "jennie",
+  "cores": {
+    "fundo": "#FDFBF8",
+    "gradiente_de": "#FFC0CB",
+    "gradiente_ate": "#FF99AA",
+    "card": "#C6E0FF",
+    "card_borda": "rgba(224, 224, 224, 0.8)",
+    "acento_principal": "#FFC0CB",
+    "acento_secundario": "#ADD8E6",
+    "acento_terciario": "#C9F0E0",
+    "acento_negativo": "#F87171",
+    "texto_principal": "#000000",
+    "texto_secundario": "#333333"
+  },
+  "visual": {
+    "estilo_fundo": "Fundo liso, cor creme muito clara (#FDFBF8).",
+    "estilo_desenho": "Elementos gráficos simples e fofos (estrelas, pontos, ondas, setas) em cores pastel, com um toque desenhado à mão e arredondado.",
+    "estilo_card": "Círculos ou retângulos arredondados com bordas finas e sutis em cinza claro, preenchidos com cores pastel vibrantes.",
+    "estilo_texto": "Títulos grandes e chamativos com efeito 3D/inflado em cores pastel. Textos menores em sans-serif limpo e legível, com peso leve a regular.",
+    "regras_extras": "NUNCA usar cores escuras e saturadas como fundo. SEMPRE usar tipografia arredondada e amigável para títulos. SEMPRE incluir elementos gráficos fofos e desenhados à mão. Manter um espaçamento generoso entre os elementos para uma sensação clean.. Estetica: cute aesthetic / feminine clean. Vibe: aconchegante, fofo, divertido"
+  },
+  "elementos": {
+    "badge_topo": "jennie",
+    "badge_topo_cor": "#FFD9E2",
+    "rodape_nome": "jennie"
+  },
+  "comunicacao": {
+    "persona": "Oie sou jennie amo doramas comidinhas gostosas e fazer muitas comprinhas na shopee e compartilhar tudo",
+    "tom": "acessivel e sobre coisas do dia a dia",
+    "linguagem": "portugues br girias fofas e falar em primeira pessoa",
+    "publico": "pessoas que curtem life style meninas de 18 a 25 antenadas",
+    "palavras_proibidas": []
+  },
+  "referencia_imagem": "brand-assets/jennie/ref_cute_3.jpg",
+  "_loaded": true,
+  "fontes": {
+    "titulo": "Bubblegum Sans",
+    "corpo": "Poppins",
+    "codigo": "JetBrains Mono",
+    "google_fonts": "https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Poppins:wght@300;400;500;600;700&display=swap"
+  },
+  "_analise_referencia": {
+    "resumo": "Estética cute e feminina com tons pasteis, tipografia display 3D inflada e elementos gráficos desenhados à mão, apresentando um feed de Instagram.",
+    "estetica": "cute aesthetic / feminine clean",
+    "vibe": "aconchegante, fofo, divertido",
+    "cores": {
+      "fundo": {
+        "hex": "#FDFBF8",
+        "descricao": "Fundo liso em um tom creme muito claro, quase branco."
+      },
+      "texto_titulo": {
+        "hex": "#FFC0CB",
+        "descricao": "Cor base do texto principal 3D, variando entre rosa pastel, dourado, azul claro e branco/cinza claro."
+      },
+      "texto_corpo": {
+        "hex": "#000000",
+        "descricao": "Cor do texto de navegação e descrições, predominantemente preto ou cinza escuro."
+      },
+      "destaque": {
+        "hex": "#FFC0CB",
+        "descricao": "Rosa pastel, usado em textos 3D e elementos decorativos."
+      },
+      "secundaria": {
+        "hex": "#ADD8E6",
+        "descricao": "Azul claro pastel, usado em textos 3D e elementos decorativos."
+      },
+      "extra": [
+        {
+          "hex": "#B3E0E0",
+          "onde": "Círculo superior esquerdo (teal)"
+        },
+        {
+          "hex": "#FFD6D6",
+          "onde": "Círculo superior central (rosa claro)"
+        },
+        {
+          "hex": "#C6E0FF",
+          "onde": "Círculo superior direito (azul pastel)"
+        },
+        {
+          "hex": "#E0FFB3",
+          "onde": "Círculo superior extremo direito (verde limão pastel)"
+        },
+        {
+          "hex": "#E0E0E0",
+          "onde": "Borda sutil dos círculos superiores"
+        },
+        {
+          "hex": "#FFD700",
+          "onde": "Texto 3D dourado ('FREE Download') e estrelas decorativas"
+        },
+        {
+          "hex": "#CCAA00",
+          "onde": "Sombra do texto 3D dourado"
+        },
+        {
+          "hex": "#FF99AA",
+          "onde": "Sombra do texto 3D rosa pastel"
+        },
+        {
+          "hex": "#87CEEB",
+          "onde": "Sombra do texto 3D azul claro"
+        },
+        {
+          "hex": "#F0F0F0",
+          "onde": "Cor base do texto 3D branco/cinza claro ('GADGETS', 'MODERN MEDIA')"
+        },
+        {
+          "hex": "#D0D0D0",
+          "onde": "Sombra do texto 3D branco/cinza claro"
+        },
+        {
+          "hex": "#333333",
+          "onde": "Texto secundário como 'DID THEY REALLY HELP?' e 'I USE FOR'"
+        },
+        {
+          "hex": "#2F4F4F",
+          "onde": "Contorno e rabiscos decorativos em azul escuro ('AESTHETIC SOCIAL MEOTS')"
+        },
+        {
+          "hex": "#FFFFFF",
+          "onde": "Texto dentro do badge '15 COLLECTIONS'"
+        }
+      ],
+      "paleta_hex": [
+        "#FDFBF8",
+        "#B3E0E0",
+        "#FFD6D6",
+        "#C6E0FF",
+        "#E0FFB3",
+        "#E0E0E0",
+        "#000000",
+        "#FFC0CB",
+        "#FFD700",
+        "#ADD8E6",
+        "#CCAA00",
+        "#FF99AA",
+        "#87CEEB",
+        "#F0F0F0",
+        "#D0D0D0",
+        "#333333",
+        "#2F4F4F",
+        "#FFFFFF"
+      ]
+    },
+    "tipografia": {
+      "titulo": {
+        "fonte": "Bubblegum Sans (mais próxima) / Fredoka One",
+        "peso": "extrabold",
+        "tamanho": "gigante",
+        "tipo": "display / sans-serif",
+        "caixa": "maiuscula / capitalizada",
+        "espacamento": "normal",
+        "efeito": "sombra projetada 3D (inflado)",
+        "cor_hex": "#FFC0CB"
+      },
+      "corpo": {
+        "fonte": "Poppins (mais próxima) / Nunito Sans",
+        "peso": "light / regular",
+        "tipo": "sans-serif",
+        "cor_hex": "#333333"
+      },
+      "destaque": {
+        "como": "Palavras-chave são destacadas com a tipografia 3D inflada e cores vibrantes. Pequenos badges coloridos também destacam informações.",
+        "cor_hex": "#FFC0CB"
+      },
+      "google_fonts_sugeridas": "Bubblegum Sans, Fredoka One, Poppins, Nunito Sans"
+    },
+    "layout": {
+      "estrutura": "Topo com 4 ícones circulares e textos, seguido por 3 ícones de navegação de feed (grid, reels, tagged). Abaixo, uma grade de 3x3 posts quadrados.",
+      "alinhamento": "misto (elementos superiores centralizados, posts da grade com alinhamento interno variado)",
+      "espacamento": "generoso",
+      "margens": "medias — conteúdo com respiro nas bordas",
+      "grid": "3 colunas para os posts principais"
+    },
+    "decoracao": {
+      "fundo_tipo": "cor solida",
+      "fundo_detalhe": "Fundo liso em tom creme muito claro (#FDFBF8).",
+      "elementos": [
+        "4 círculos coloridos no topo (teal, rosa, azul, verde limão)",
+        "3 ícones de navegação do Instagram (grid, reels, tagged posts)",
+        "Textos grandes com efeito 3D/inflado em diversas cores pastel",
+        "Ícones de Reels (câmera de vídeo) no canto superior direito de alguns posts",
+        "Ícones de Carrossel (quadrado sobreposto) no canto superior direito de alguns posts",
+        "Pequenas estrelas amarelas decorativas",
+        "Pontos coloridos (rosa, azul) espalhados",
+        "Ondas e rabiscos desenhados à mão em cores pastel",
+        "Setas desenhadas à mão",
+        "Badge retangular arredondado '15 COLLECTIONS' em rosa pastel"
+      ],
+      "bordas": "Círculos superiores com borda fina e sutil em cinza claro (#E0E0E0).",
+      "sombras": "Sombra projetada distinta na tipografia principal, criando um efeito 3D inflado.",
+      "cantos": "Arredondados, tanto nos elementos gráficos quanto na sensação geral.",
+      "stickers": "Estrelas, pontos, ondas, setas, corações (implícitos na vibe cute).",
+      "texturas": "Fundo liso, sem textura visível."
+    },
+    "foto_pessoa": {
+      "tem": true,
+      "descricao": "Uma mulher (provavelmente a criadora de conteúdo) aparece em quase todos os posts da grade, interagindo com o texto 3D ou segurando objetos como tablets e quadros.",
+      "posicao": "Dentro de cada post da grade, geralmente centralizada ou ligeiramente deslocada para interagir com o texto.",
+      "tamanho": "media / dominante dentro de cada post"
+    },
+    "formato": "post quadrado 1:1 (exibido como um feed de perfil do Instagram)",
+    "prompt_replicar": "Crie um design de feed de Instagram com estética cute e feminina, utilizando uma paleta de cores pastel e um fundo creme liso (`#FDFBF8`). O layout deve apresentar uma seção superior com quatro ícones circulares coloridos (teal `#B3E0E0`, rosa claro `#FFD6D6`, azul pastel `#C6E0FF`, verde limão `#E0FFB3`), cada um com uma borda sutil `#E0E0E0` e um texto em Poppins Regular preto `#000000` abaixo. Abaixo, inclua os ícones de navegação do Instagram (grid, reels, tagged posts). A parte principal deve ser um grid de 3x3 posts quadrados. Cada post deve ter uma foto de uma pessoa interagindo com um texto principal. Este texto principal deve ser em uma fonte display extrabold, arredondada e inflada, com efeito 3D de sombra projetada, similar a 'Bubblegum Sans' ou 'Fredoka One'. As cores do texto 3D devem variar entre rosa pastel (`#FFC0CB` com sombra `#FF99AA`), dourado (`#FFD700` com sombra `#CCAA00`), azul claro (`#ADD8E6` com sombra `#87CEEB`) e branco/cinza claro (`#F0F0F0` com sombra `#D0D0D0`). Adicione pequenos elementos decorativos como estrelas amarelas (`#FFD700`), pontos coloridos (rosa `#FFC0CB`, azul `#ADD8E6`), ondas e setas desenhadas à mão. Textos secundários devem usar uma fonte sans-serif simples como Poppins Light/Regular em preto ou cinza escuro (`#333333`). Inclua ícones de Reels e Carrossel nos cantos superiores direitos de alguns posts da grade.",
+    "brand_profile": {
+      "cores_aplicar": {
+        "fundo": "#FDFBF8",
+        "gradiente_de": "#FFC0CB",
+        "gradiente_ate": "#FF99AA",
+        "card": "#C6E0FF",
+        "card_borda": "rgba(224, 224, 224, 0.8)",
+        "acento_principal": "#FFC0CB",
+        "acento_secundario": "#ADD8E6",
+        "texto_principal": "#000000",
+        "texto_secundario": "#333333"
+      },
+      "fontes_aplicar": {
+        "titulo": "Bubblegum Sans",
+        "corpo": "Poppins",
+        "codigo": "JetBrains Mono",
+        "google_fonts": "https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Poppins:wght@300;400;500;600;700&display=swap"
+      },
+      "visual_aplicar": {
+        "estilo_fundo": "Fundo liso, cor creme muito clara (#FDFBF8).",
+        "estilo_desenho": "Elementos gráficos simples e fofos (estrelas, pontos, ondas, setas) em cores pastel, com um toque desenhado à mão e arredondado.",
+        "estilo_card": "Círculos ou retângulos arredondados com bordas finas e sutis em cinza claro, preenchidos com cores pastel vibrantes.",
+        "estilo_texto": "Títulos grandes e chamativos com efeito 3D/inflado em cores pastel. Textos menores em sans-serif limpo e legível, com peso leve a regular.",
+        "regras_extras": "NUNCA usar cores escuras e saturadas como fundo. SEMPRE usar tipografia arredondada e amigável para títulos. SEMPRE incluir elementos gráficos fofos e desenhados à mão. Manter um espaçamento generoso entre os elementos para uma sensação clean."
+      }
+    },
+    "asset": "ref_cute"
+  }
+}

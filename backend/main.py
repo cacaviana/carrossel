@@ -16,7 +16,7 @@ from middleware.rate_limiter import limiter, rate_limit_handler
 
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:4173",
+    "http://localhost:5173,http://localhost:5174,http://localhost:4173",
 ).split(",")
 
 app = FastAPI(title="Carrossel System API", version="1.0.0")

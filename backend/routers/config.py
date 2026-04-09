@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 from middleware.rate_limiter import limiter
 
 from dtos.config.request import SaveConfigRequest
@@ -30,6 +31,7 @@ from services.brand_service import (
     listar_assets as _listar_assets,
     upload_asset as _upload_asset,
     deletar_asset as _deletar_asset,
+    definir_referencia as _definir_referencia,
 )
 from services.editor_service import (
     salvar_pdf as _salvar_pdf,
@@ -227,8 +229,33 @@ async def editor_slides_limpos(brand: str):
 
 @router.get("/brands/{slug}/foto")
 async def buscar_foto_brand(slug: str):
-    """Retorna foto da marca como base64."""
+    """Retorna URL da foto da marca."""
     return _buscar_foto_brand(slug)
+
+
+@router.get("/brands/{slug}/foto/file")
+async def servir_foto_brand(slug: str):
+    """Serve o arquivo da foto da marca direto do disco (JPG/PNG)."""
+    from pathlib import Path
+    fotos_dir = Path(__file__).parent.parent / "assets" / "fotos"
+    for ext in ("jpg", "png", "jpeg"):
+        path = fotos_dir / f"{slug}.{ext}"
+        if path.exists():
+            media = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
+            return FileResponse(path, media_type=media)
+    raise HTTPException(status_code=404, detail="Foto nao encontrada")
+
+
+@router.get("/brands/{slug}/assets/{nome}/file")
+async def servir_asset_brand(slug: str, nome: str):
+    """Serve arquivo de asset da marca direto do disco (JPG/PNG)."""
+    from pathlib import Path
+    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / slug
+    for f in assets_dir.glob(f"{nome}.*"):
+        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+            media = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
+            return FileResponse(f, media_type=media)
+    raise HTTPException(status_code=404, detail=f"Asset '{nome}' nao encontrado")
 
 
 @router.post("/editor/corrigir-texto")
@@ -251,6 +278,36 @@ async def editor_corrigir_texto(request: Request, data: dict):
     if result is None:
         raise HTTPException(status_code=500, detail="Falha ao corrigir texto")
     return result
+
+
+@router.post("/editor/ajustar-imagem")
+@limiter.limit("10/minute")
+async def editor_ajustar_imagem(request: Request, data: dict):
+    """Recebe imagem existente + feedback e aplica ajuste minimo (image-to-image).
+    Body: {imagem: base64, feedback: string, brand_slug?: string}"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="GEMINI_API_KEY nao configurada")
+    imagem = data.get("imagem", "")
+    feedback = data.get("feedback", "")
+    brand_slug = data.get("brand_slug")
+    if not imagem or not feedback:
+        raise HTTPException(status_code=400, detail="Campos 'imagem' e 'feedback' obrigatorios")
+    try:
+        import httpx
+        from utils.image_adjuster import ajustar_imagem
+        from factories.imagem_factory import _load_all_references
+        ref = None
+        if brand_slug:
+            refs = _load_all_references(brand_slug)
+            if refs:
+                import random
+                ref = random.choice(refs)
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            result = await ajustar_imagem(client, imagem, feedback, api_key, ref_image_b64=ref)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --- Brand Assets (banco de imagens da marca) ---
@@ -278,3 +335,29 @@ async def deletar_asset(slug: str, nome: str):
     if result is None:
         raise HTTPException(status_code=404, detail=f"Asset '{nome}' nao encontrado")
     return result
+
+
+@router.put("/brands/{slug}/referencia")
+async def definir_referencia(slug: str, data: dict):
+    """Define qual asset eh a referencia visual para geracao de imagens.
+    Body: {nome: 'asset_name'} ou {nome: null} para remover."""
+    nome = data.get("nome")
+    result = _definir_referencia(slug, nome)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Marca ou asset nao encontrado")
+    return result
+
+
+@router.post("/descrever-referencia")
+@limiter.limit("10/minute")
+async def descrever_referencia(request: Request, data: dict):
+    """Recebe uma imagem base64 e retorna descricao do estilo visual.
+    Body: {imagem: 'base64...'}. Usa Gemini Flash (gratis)."""
+    imagem = data.get("imagem", "")
+    if not imagem:
+        raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
+    try:
+        result = await BrandAnalyzerService.descrever_estilo(imagem)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar imagem: {str(e)}")

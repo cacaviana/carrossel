@@ -11,8 +11,8 @@
 	let { variant = 'primary', size = 'md', loading = false, children, ...rest }: Props = $props();
 
 	const variantClasses: Record<string, string> = {
-		primary: 'text-bg-global bg-purple hover:shadow-[0_0_20px_rgba(167,139,250,0.2)] hover:opacity-90',
-		secondary: 'text-bg-global bg-green hover:shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:opacity-90',
+		primary: 'text-bg-global bg-purple hover:shadow-[0_0_20px_rgba(53,120,176,0.2)] hover:opacity-90',
+		secondary: 'text-bg-global bg-green hover:shadow-[0_0_20px_rgba(42,157,110,0.2)] hover:opacity-90',
 		outline: 'border border-purple/20 text-purple hover:bg-purple/8',
 		ghost: 'text-purple hover:bg-purple/8',
 		danger: 'text-red bg-red/9 border border-red/15 hover:bg-red/15'

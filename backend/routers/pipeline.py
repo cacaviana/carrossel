@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 
 from dtos.pipeline.criar_pipeline.request import CriarPipelineRequest
 from dtos.pipeline.aprovar_etapa.request import AprovarEtapaRequest
@@ -91,6 +92,17 @@ async def cancelar_pipeline(pipeline_id: str):
     if not result:
         raise HTTPException(status_code=404, detail="Pipeline nao encontrado")
     return result
+
+
+@router.get("/{pipeline_id}/imagens/{slide_index}")
+async def servir_imagem_pipeline(pipeline_id: str, slide_index: int):
+    """Serve imagem de slide direto do disco (PNG)."""
+    from utils.pipeline_images import caminho_absoluto
+    path_rel = f"pipeline-images/{pipeline_id}/slide-{slide_index:02d}.png"
+    path = caminho_absoluto(path_rel)
+    if not path:
+        raise HTTPException(status_code=404, detail="Imagem nao encontrada")
+    return FileResponse(path, media_type="image/png")
 
 
 @router.post("/{pipeline_id}/retomar")

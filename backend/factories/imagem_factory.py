@@ -4,7 +4,39 @@ import base64
 from pathlib import Path
 
 from factories.prompt_composer import PromptComposer
-from services.brand_prompt_builder import get_reference_image_path
+from services.brand_prompt_builder import get_reference_image_path, carregar_brand
+
+def _load_avatars(brand_slug: str) -> list[str]:
+    """Carrega fotos de avatar da marca (tudo que NAO e ref_*)."""
+    if not brand_slug:
+        return []
+    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
+    if not assets_dir.exists():
+        return []
+    avatars = []
+    for f in sorted(assets_dir.iterdir()):
+        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and not f.stem.startswith("ref_"):
+            avatars.append(base64.b64encode(f.read_bytes()).decode())
+    return avatars[:3]
+
+
+def _load_all_references(brand_slug: str) -> list[str]:
+    """Carrega TODAS as imagens de referência (arquivos ref_*) da marca."""
+    if not brand_slug:
+        return []
+    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
+    if not assets_dir.exists():
+        return []
+    refs = []
+    for f in sorted(assets_dir.glob("ref_*")):
+        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+            refs.append(base64.b64encode(f.read_bytes()).decode())
+    # Também incluir referência principal do JSON se existir
+    ref_principal = _load_reference_for_brand(brand_slug)
+    if ref_principal and ref_principal not in refs:
+        refs.insert(0, ref_principal)
+    return refs[:5]
+
 
 def _load_reference_for_brand(brand_slug: str) -> str | None:
     """Carrega imagem de referencia da marca (sem cache — sempre le do disco)."""
@@ -12,6 +44,71 @@ def _load_reference_for_brand(brand_slug: str) -> str | None:
     if ref_path:
         return base64.b64encode(ref_path.read_bytes()).decode()
     return None
+
+
+def _build_style_instruction(brand_slug: str) -> str:
+    """Monta instrução detalhada de estilo a partir da análise salva na marca."""
+    brand = carregar_brand(brand_slug) if brand_slug else None
+    if not brand:
+        return ""
+
+    parts = []
+
+    # Prompt perfeito extraído pela IA (o mais importante)
+    analise = brand.get("_analise_referencia", {})
+    prompt_perfeito = analise.get("prompt_perfeito") or analise.get("prompt_replicar", "")
+    if prompt_perfeito:
+        # Limpar instruções de feed/grid/profile — focar no estilo visual de 1 post
+        import re
+        adapted = prompt_perfeito
+        # Remover frases sobre layout de feed/grid/profile
+        adapted = re.sub(r'[^.]*(?:feed|grid|grade|3x3|9 posts|seção superior|ícones? circulare?s|highlight|navega[çc][ãa]o|tabs?)[^.]*\.?\s*', '', adapted, flags=re.IGNORECASE)
+        adapted = adapted.strip()
+        if len(adapted) < 50:
+            adapted = prompt_perfeito  # fallback se limpou demais
+        parts.append(
+            f"=== STYLE INSTRUCTIONS (from reference analysis) ===\n"
+            f"CRITICAL: Generate a SINGLE post filling the entire canvas. NO Instagram UI, NO profile header, NO highlights, NO grid. Just ONE post image.\n"
+            f"{adapted}"
+        )
+
+    # Regras do feed
+    regras = analise.get("regras_feed") or brand.get("regras_feed", {})
+    if regras:
+        regras_text = "\n".join(f"- {v}" for v in regras.values() if v)
+        if regras_text:
+            parts.append(f"=== FEED RULES ===\n{regras_text}")
+
+    # Visual da marca (estilo_fundo, estilo_texto, etc)
+    visual = brand.get("visual", {})
+    if visual:
+        visual_parts = []
+        if visual.get("estilo_fundo"):
+            visual_parts.append(f"Background: {visual['estilo_fundo']}")
+        if visual.get("estilo_texto"):
+            visual_parts.append(f"Typography: {visual['estilo_texto']}")
+        if visual.get("estilo_desenho"):
+            visual_parts.append(f"Illustrations/decorations: {visual['estilo_desenho']}")
+        if visual.get("estilo_card"):
+            visual_parts.append(f"Cards: {visual['estilo_card']}")
+        if visual.get("regras_extras"):
+            visual_parts.append(f"Rules: {visual['regras_extras']}")
+        if visual_parts:
+            parts.append(f"=== VISUAL IDENTITY ===\n" + "\n".join(visual_parts))
+
+    # Fontes
+    fontes = brand.get("fontes", {})
+    if fontes.get("titulo"):
+        parts.append(f"=== FONTS ===\nTitle font: {fontes['titulo']}\nBody font: {fontes.get('corpo', fontes['titulo'])}")
+
+    # Cores
+    cores = brand.get("cores", {})
+    if cores.get("fundo"):
+        cores_text = ", ".join(f"{k}: {v}" for k, v in cores.items() if v and isinstance(v, str) and (v.startswith("#") or v.startswith("rgba")))
+        if cores_text:
+            parts.append(f"=== COLOR PALETTE ===\n{cores_text}")
+
+    return "\n\n".join(parts)
 
 
 def select_model(slide: dict, position: int, total: int) -> str:
@@ -56,21 +153,108 @@ def build_payload(
     assets = get_brand_assets(brand_slug) if (brand_slug and usar_assets) else []
 
     parts: list[dict] = []
-    if assets:
+
+    # Carregar marca pra saber o modo de geração
+    brand = carregar_brand(brand_slug) if brand_slug else None
+    modo_geracao = brand.get("modo_geracao", "referencia") if brand else "prompt"
+    ref_images = _load_all_references(brand_slug) if brand_slug else []
+    avatar_images = _load_avatars(brand_slug) if brand_slug else []
+
+    # Se não tem refs, forçar modo prompt
+    if not ref_images:
+        modo_geracao = "prompt"
+
+    if modo_geracao == "referencia" and ref_images:
+        # === MODO REFERÊNCIA: imagem fala, texto mínimo ===
+        # A imagem de referência JÁ define cores, fontes, doodles, vibe.
+        # Prompt deve ser CLEAN: ref + avatar + direção de arte + formato + segurança.
+        import random
+        from utils.dimensions import get_dims, get_prompt_size_str
+
+        ref_escolhida = random.choice(ref_images)
+        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_escolhida}})
+
+        has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
+        if has_avatar:
+            av = random.choice(avatar_images)
+            parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
+
+        # Textos do slide
+        headline = slide.get("headline") or slide.get("title", "")
+        subline = slide.get("subline") or slide.get("caption", "")
+        bullets = slide.get("bullets", [])
+        body_text = "\n".join(f"- {b}" for b in bullets) if bullets else subline
+
+        # Direção de arte do Art Director (cena, pose, objetos, mood)
+        scene = slide.get("illustration_description", "")
+
+        # Formato
+        dims = get_dims(formato)
+        size_str = get_prompt_size_str(formato)
+
+        # Montar prompt CLEAN
+        prompt_lines = [
+            f"Generate a single image ({size_str}, {dims['ratio']}).",
+            f"First image = style reference. Match its aesthetic exactly.",
+        ]
+        if has_avatar:
+            prompt_lines.append("Second image = the person for this post. Include them naturally.")
+        if scene:
+            prompt_lines.append(f"Scene: {scene}")
+        prompt_lines.append(
+            f"TEXT LAYOUT RULES: All text must be INSIDE the image. "
+            f"Nothing touches the edges. Minimum 80px padding on all 4 sides. "
+            f"Center text blocks vertically and horizontally within safe area."
+        )
+        prompt_lines.append(f"Title (big, bold): \"{headline}\"")
+        if body_text:
+            prompt_lines.append(f"Subtitle (smaller, below title): \"{body_text}\"")
+        prompt_lines.append("No nudity, no violence. Every letter must be legible.")
+
+        parts.append({"text": "\n".join(prompt_lines)})
+
+        payload = {
+            "contents": [{"parts": parts}],
+            "generationConfig": {
+                "responseModalities": ["IMAGE", "TEXT"],
+                "temperature": 0.9,
+            },
+        }
+        return model, payload
+
+    # Remover regra contraditoria de "no real faces" quando tem avatar
+    has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
+    if has_avatar:
+        prompt = prompt.replace("NO real person photos — never draw/generate realistic human faces.", "")
+        prompt = prompt.replace("(Fotos reais sao adicionadas via overlay na pos-producao, pelo Pillow.)", "")
+
+    if has_avatar:
+        # Prompt primeiro (contexto visual da marca)
+        import random
+        parts.append({"text": prompt})
+
+        # Avatar por ultimo — Gemini da mais peso ao final
+        av = random.choice(avatar_images)
+        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
+
+        if avatar_mode == "livre":
+            parts.append({"text": (
+                "The photo above is a person who MAY appear in this post if it fits the content. "
+                "If you include them, keep the SAME appearance but in a new pose."
+            )})
+        else:
+            parts.append({"text": (
+                "MANDATORY: The photo above is the REAL PERSON who MUST appear PROMINENTLY in this post. "
+                "Draw this EXACT person — same face, same skin tone, same hair, same build. "
+                "Place them in a natural pose related to the topic. "
+                "The person must be the MAIN VISUAL ELEMENT of the post, not a small detail."
+            )})
+    elif assets:
         import random
         refs = random.sample(assets, min(2, len(assets)))
         for ref in refs:
             parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
-        avatar_instruction = (
-            "Use the characters/person from the reference images in this slide. "
-            "Keep the SAME appearance but in new poses related to the topic. "
-        )
-        if avatar_mode == "livre":
-            avatar_instruction = (
-                "You MAY use the characters/person from the reference images if it fits the slide. "
-                "If you use them, keep the SAME appearance. You can also choose NOT to include them. "
-            )
-        parts.append({"text": avatar_instruction + prompt})
+        parts.append({"text": prompt})
     else:
         parts.append({"text": prompt})
 

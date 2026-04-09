@@ -12,6 +12,33 @@ from PIL import Image, ImageDraw
 from utils.dimensions import get_dims
 
 
+def _resolve_image(image_str: str) -> bytes:
+    """Resolve imagem: URL interna vira bytes, data URI vira bytes, base64 puro vira bytes."""
+    if image_str.startswith("http"):
+        import re
+        from pathlib import Path
+        # Pipeline image: /api/pipelines/{id}/imagens/{index}
+        m = re.search(r"/pipelines/([^/]+)/imagens/(\d+)", image_str)
+        if m:
+            pid, idx = m.group(1), int(m.group(2))
+            from utils.pipeline_images import caminho_absoluto
+            path = caminho_absoluto(f"pipeline-images/{pid}/slide-{idx:02d}.png")
+            if path:
+                return Path(path).read_bytes()
+        # Brand foto: /api/brands/{slug}/foto/file
+        m = re.search(r"/brands/([^/]+)/foto/file", image_str)
+        if m:
+            slug = m.group(1)
+            assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / slug
+            if assets_dir.exists():
+                for f in assets_dir.iterdir():
+                    if f.stem.startswith("avatar") and f.suffix.lower() in (".jpg", ".jpeg", ".png"):
+                        return f.read_bytes()
+        raise ValueError(f"Nao consegui resolver URL: {image_str}")
+    raw = image_str.split(",")[1] if "," in image_str else image_str
+    return b64.b64decode(raw)
+
+
 def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = None, formato: str = "carrossel") -> dict:
     """Recebe slides + logo + posicoes e gera PDF. Retorna {pdf_base64, total_slides}."""
     dims = get_dims(formato)
@@ -21,9 +48,13 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
     # Decodificar logo (pode ser vazio se toggle "Logo" desligado)
     logo_img = None
     if logo_data:
-        logo_raw = logo_data.split(",")[1] if "," in logo_data else logo_data
-        if logo_raw:
-            logo_img = Image.open(io.BytesIO(b64.b64decode(logo_raw))).convert("RGBA")
+        logo_bytes = _resolve_image(logo_data) if logo_data.startswith("http") else None
+        if logo_bytes:
+            logo_img = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+        else:
+            logo_raw = logo_data.split(",")[1] if "," in logo_data else logo_data
+            if logo_raw:
+                logo_img = Image.open(io.BytesIO(b64.b64decode(logo_raw))).convert("RGBA")
 
     def _hex_rgba(hex_color):
         h = hex_color.lstrip("#")
@@ -33,8 +64,8 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
 
     pil_pages = []
     for s in slides_data:
-        img_raw = s["image"].split(",")[1] if "," in s["image"] else s["image"]
-        slide_img = Image.open(io.BytesIO(b64.b64decode(img_raw))).convert("RGBA")
+        img_bytes = _resolve_image(s["image"])
+        slide_img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
 
         logo_size = int(s.get("logo_size", 0))
 
