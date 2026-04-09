@@ -181,7 +181,7 @@ async def aplicar_instrucao(image: str, instrucao: str) -> dict | None:
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         res = await client.post(
-            API_URL.format(model="gemini-3-pro-image-preview"),
+            API_URL.format(model="gemini-2.0-flash-exp"),
             json=payload,
             headers={"x-goog-api-key": api_key},
         )

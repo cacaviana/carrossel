@@ -115,8 +115,8 @@ def select_model(slide: dict, position: int, total: int) -> str:
     """Pro para capa, codigo e CTA. Flash para content."""
     slide_type = slide.get("type", "content")
     if position == 1 or position == total or slide_type == "code":
-        return "gemini-3-pro-image-preview"
-    return "gemini-2.5-flash-image"
+        return "gemini-2.0-flash-exp"
+    return "gemini-2.0-flash-exp"
 
 
 def build_payload(

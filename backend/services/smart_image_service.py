@@ -141,7 +141,7 @@ async def _gerar_slide_smart(
         corpo=corpo,
         api_key=api_key,
         max_tentativas=2,
-        modelo="gemini-3-pro-image-preview",
+        modelo="gemini-2.0-flash-exp",
     )
 
     if result["corrigido"]:

@@ -15,7 +15,7 @@ async def ajustar_imagem(
     feedback: str,
     api_key: str,
     ref_image_b64: str | None = None,
-    modelo: str = "gemini-3-pro-image-preview",
+    modelo: str = "gemini-2.0-flash-exp",
 ) -> dict:
     """Aplica ajuste minimo na imagem baseado no feedback.
 

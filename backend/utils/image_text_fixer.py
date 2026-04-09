@@ -26,7 +26,7 @@ async def corrigir_texto_na_imagem(
     corpo: str,
     api_key: str,
     max_tentativas: int = 3,
-    modelo: str = "gemini-3-pro-image-preview",
+    modelo: str = "gemini-2.0-flash-exp",
 ) -> dict:
     """Tenta corrigir o texto na imagem ate max_tentativas vezes.
 

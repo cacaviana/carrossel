@@ -5,7 +5,7 @@ import httpx
 from pathlib import Path
 
 API_KEY = "AIzaSyA1bjrpLUNieurdOBioV0EJLVlYdDet-9g"
-API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
+API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
 OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "static"
 
 DESIGN_SYSTEM = """
