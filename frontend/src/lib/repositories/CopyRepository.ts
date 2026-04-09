@@ -49,10 +49,12 @@ function _findSlides(obj: any): any[] {
   // Nivel raiz
   if (Array.isArray(obj.slides) && obj.slides.length > 0) return obj.slides;
   if (Array.isArray(obj.sequencia_slides) && obj.sequencia_slides.length > 0) return obj.sequencia_slides;
+  if (Array.isArray(obj.carrossel) && obj.carrossel.length > 0) return obj.carrossel;
   if (obj.slide && typeof obj.slide === 'object' && !Array.isArray(obj.slide)) return [obj.slide];
-  // Um nivel abaixo (ex: saida.carrossel.slides, saida.post_unico.slides)
+  // Um nivel abaixo (ex: saida.post_unico.slides, saida.carrossel_data.slides)
   for (const key of Object.keys(obj)) {
     const val = obj[key];
+    if (Array.isArray(val) && val.length > 0 && val[0]?.titulo) return val;
     if (val && typeof val === 'object' && !Array.isArray(val)) {
       if (Array.isArray(val.slides) && val.slides.length > 0) return val.slides;
       if (val.slide && typeof val.slide === 'object') return [val.slide];
