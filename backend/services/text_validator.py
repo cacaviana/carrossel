@@ -9,7 +9,7 @@ import os
 import httpx
 
 from utils.constants import GEMINI_API_URL
-API_URL = GEMINI_API_URL.format(model="gemini-2.0-flash")
+API_URL = GEMINI_API_URL.format(model="gemini-2.5-flash")
 
 
 async def validar_texto_slide(
