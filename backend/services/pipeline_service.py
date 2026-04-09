@@ -21,8 +21,11 @@ class PipelineService:
         slides_pronto = None
         if dto.slides_texto_pronto:
             slides_pronto = [s.model_dump() for s in dto.slides_texto_pronto]
+        tema = dto.tema
+        if dto.max_slides and dto.modo_entrada == "ideia":
+            tema = f"{tema} [MAX {dto.max_slides} SLIDES]"
         result = await criar_pipeline(
-            dto.tema, formato, dto.modo_funil,
+            tema, formato, dto.modo_funil,
             modo_entrada=dto.modo_entrada,
             slides_texto_pronto=slides_pronto,
             brand_slug=dto.brand_slug,

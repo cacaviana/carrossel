@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import base64
 from datetime import datetime, timezone
@@ -280,6 +281,11 @@ async def _exec_copywriter(context, formato, api_key, brand_slug=None):
     brand_ctx = _get_brand_context(brand_slug)
     if brand_ctx:
         briefing = {**briefing, "_brand_context": brand_ctx}
+    # Extrair max_slides do tema (formato: "tema [MAX N SLIDES]")
+    tema_str = briefing.get("briefing", {}).get("tema_principal", "") or context.get("_tema", "")
+    m = re.search(r'\[MAX\s+(\d+)\s+SLIDES?\]', tema_str, re.IGNORECASE)
+    if m:
+        briefing["_max_slides"] = int(m.group(1))
     return await executar_copywriter(
         briefing=briefing,
         formato=formato,

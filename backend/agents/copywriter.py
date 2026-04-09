@@ -26,9 +26,12 @@ def _load_prompt(formato: str) -> str:
     return ""
 
 
+import re
+
 def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
-    # Extrair brand context se existir
+    # Extrair brand context e max_slides se existirem
     brand_ctx = briefing.pop("_brand_context", "")
+    max_slides = briefing.pop("_max_slides", None)
 
     user_prompt = f"Briefing aprovado:\n{json.dumps(briefing, ensure_ascii=False, indent=2)}\n\nFormato: {formato}\n"
 
@@ -50,7 +53,8 @@ def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
         user_prompt += f"ATENCAO: formato '{formato}' = APENAS 1 SLIDE. Gere exatamente 1 slide. NAO gere multiplos slides."
         user_prompt += " Responda em JSON."
     else:
-        user_prompt += "Gere a copy completa com NO MAXIMO 7 slides. Responda em JSON."
+        n = max_slides or 7
+        user_prompt += f"Gere a copy completa com NO MAXIMO {n} slides. Responda em JSON."
     user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
     return user_prompt
 
