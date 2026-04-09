@@ -132,13 +132,30 @@
 				const allImgs = saida?.imagens || saida?.resultados || [];
 				const imgs = allImgs.filter((i: any) => i.image_url || i.image_base64 || i.image_path);
 				if (imgs.length > 0) {
-					slides = imgs.map((i: any) => {
-						if (i.image_url) return i.image_url.startsWith('http') ? i.image_url : `${API_BASE}${i.image_url}`;
+					const slideUrls = imgs.map((i: any) => {
 						if (i.image_base64) return i.image_base64.startsWith('data:') ? i.image_base64 : `data:image/png;base64,${i.image_base64}`;
+						if (i.image_url) return i.image_url.startsWith('http') ? i.image_url : `${API_BASE}${i.image_url}`;
 						if (i.image_path) return `${API_BASE}/api/pipeline-images/${i.image_path}`;
 						return '';
 					});
-					slidesCarregados = true;
+					// Verificar se URLs realmente carregam (disco pode ter sido apagado)
+					const validados = await Promise.all(slideUrls.map(async (url: string) => {
+						if (!url || url.startsWith('data:')) return url;
+						try {
+							const r = await fetch(url, { method: 'HEAD' });
+							return r.ok ? url : '';
+						} catch { return ''; }
+					}));
+					const temValido = validados.some((v: string) => v !== '');
+					if (temValido) {
+						slides = validados;
+						slidesCarregados = true;
+					} else if (textos.length > 0) {
+						// Todas as URLs deram 404 — auto-regenerar
+						slides = imgs.map(() => '');
+						slidesCarregados = true;
+						autoRegenerar = true;
+					}
 				}
 				// Pipeline tem slides mas imagens vazias — criar placeholders pra regenerar
 				if (!slidesCarregados && allImgs.length > 0 && textos.length > 0) {
