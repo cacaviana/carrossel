@@ -81,6 +81,7 @@ export class CopyRepository {
       cta,
       provider: saida._provider ?? 'anthropic',
       model: saida._model ?? '',
+      fallback: saida._fallback ?? false,
       sequencia_slides: slides.map((s: any, i: number) => {
         const { titulo, conteudo } = _extractText(s);
         return {

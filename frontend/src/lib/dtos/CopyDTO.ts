@@ -12,6 +12,7 @@ export class CopyDTO {
   readonly cta: string;
   readonly provider: string;
   readonly model: string;
+  readonly fallback: boolean;
   readonly sequencia_slides: SlideItem[];
 
   constructor(data: Record<string, any>) {
@@ -21,6 +22,7 @@ export class CopyDTO {
     this.cta = data.cta ?? '';
     this.provider = data.provider ?? '';
     this.model = data.model ?? '';
+    this.fallback = data.fallback ?? false;
     this.sequencia_slides = (data.sequencia_slides ?? []).map((s: any, i: number) => ({
       titulo: s.titulo ?? '',
       conteudo: s.conteudo ?? '',

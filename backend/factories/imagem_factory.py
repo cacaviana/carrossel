@@ -206,19 +206,20 @@ def build_payload(
         modo_geracao = "prompt"
 
     if modo_geracao == "referencia" and ref_images:
-        # === MODO REFERÊNCIA: template-based ===
-        # Imagem 1 = template. Copiar EXATAMENTE. So trocar o texto.
+        # === MODO REFERÊNCIA ===
+        # Referencia fixa por carrossel (mesma ref pra todos os slides do post)
+        # Prompt simples: "faz essa pessoa nesse estilo com esse texto"
         import random
         from utils.dimensions import get_dims, get_prompt_size_str
 
-        # Variar referencia por slide pra diversidade visual
-        ref_escolhida = ref_images[(position - 1) % len(ref_images)]
-        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_escolhida}})
+        # Referencia fixa — usar seed do slide_index pra ser deterministica por post
+        # Todos os slides de um mesmo carrossel usam a mesma ref
+        ref_idx = hash(str(total)) % len(ref_images)
+        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": ref_images[ref_idx]}})
 
         has_avatar = len(avatar_images) > 0 and avatar_mode != "sem"
         if has_avatar:
-            # Variar foto do avatar por slide
-            av = avatar_images[(position - 1) % len(avatar_images)]
+            av = random.choice(avatar_images)
             parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av}})
 
         headline = slide.get("headline") or slide.get("title", "")
@@ -229,46 +230,20 @@ def build_payload(
         dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
 
-        prompt_lines = [
-            f"Create a {size_str} ({dims['ratio']}) social media image.",
-            "",
-            "IMAGE 1 above is the TEMPLATE. You MUST:",
-            "- Use the EXACT SAME background (colors, gradients, textures)",
-            "- Use the EXACT SAME font style and typography",
-            "- Use the EXACT SAME layout structure (where title goes, where body goes)",
-            "- Use the EXACT SAME decorative elements (shapes, lines, icons, doodles)",
-            "- ONLY change the text content to what I specify below",
-        ]
+        # Prompt simples e direto — como funcionava ontem
+        prompt = f"Create a {size_str} ({dims['ratio']}) social media post image.\n\n"
+        prompt += "Use the style of IMAGE 1 — same colors, same palette, same fonts, same visual identity, same layout grid.\n\n"
 
         if has_avatar:
-            prompt_lines.extend([
-                "",
-                "IMAGE 2 above is the person's PHOTO. You MUST:",
-                "- Place this EXACT person in the image (same face, hair, skin)",
-                "- Use a DIFFERENT pose and angle than other slides — vary between: looking at camera, looking sideways, gesturing, arms crossed, pointing, holding something related to the topic",
-                "- NO other people, NO other faces, NO invented characters",
-                "- If the template has a person area, put this person there",
-                f"- This is slide {position} of {total} — make the person's pose UNIQUE for this slide",
-            ])
+            prompt += "Put the person from IMAGE 2 in the image. Same face, same appearance. No other people.\n\n"
 
-        prompt_lines.extend([
-            "",
-            "TEXT TO PUT IN THE IMAGE:",
-            f"TITLE: {headline}",
-        ])
+        prompt += f"Title: \"{headline}\"\n"
         if body_text:
-            prompt_lines.append(f"BODY: {body_text}")
+            prompt += f"Body: \"{body_text}\"\n"
 
-        prompt_lines.extend([
-            "",
-            "RULES:",
-            "- Text must be INSIDE the image, rendered as part of the design",
-            "- Text must be clearly legible against the background",
-            "- Keep 80px padding from all edges",
-            "- No nudity, no violence",
-        ])
+        prompt += "\nText must be inside the image, legible. No nudity, no violence."
 
-        parts.append({"text": "\n".join(prompt_lines)})
+        parts.append({"text": prompt})
 
         payload = {
             "contents": [{"parts": parts}],
