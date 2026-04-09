@@ -194,15 +194,25 @@
 		try {
 			const data = await EditorService.gerarImagem({ slides: allSlides, brand_slug: brandSlug, formato });
 			const imgs = data.images || [];
+			let geradas = 0;
 			for (let i = 0; i < imgs.length; i++) {
 				if (imgs[i]) {
 					slides[i] = imgs[i].startsWith('data:') ? imgs[i] : `data:image/png;base64,${imgs[i]}`;
+					geradas++;
 				}
 				regenerandoTodosProgresso = `${i + 1}/${allSlides.length}`;
 			}
+			slides = [...slides];
+			if (geradas === 0) {
+				ultimoFeedback = 'Gemini nao retornou imagens. Tente novamente em alguns segundos.';
+				setTimeout(() => ultimoFeedback = '', 8000);
+			} else if (geradas < allSlides.length) {
+				ultimoFeedback = `${geradas}/${allSlides.length} imagens geradas. Clique "Regenerar slide" nos vazios.`;
+				setTimeout(() => ultimoFeedback = '', 8000);
+			}
 		} catch (e) {
-			ultimoFeedback = 'Erro ao regenerar todos';
-			setTimeout(() => ultimoFeedback = '', 5000);
+			ultimoFeedback = 'Erro ao regenerar: ' + (e instanceof Error ? e.message : 'falha na requisicao');
+			setTimeout(() => ultimoFeedback = '', 8000);
 		}
 		regenerandoTodos = false;
 		currentSlide = 0;
