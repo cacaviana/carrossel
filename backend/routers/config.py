@@ -325,7 +325,10 @@ async def upload_asset(slug: str, data: dict):
     imagem = data.get("imagem", "")
     if not imagem:
         raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
-    return _upload_asset(slug, nome, imagem)
+    try:
+        return _upload_asset(slug, nome, imagem)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar asset: {str(e)}")
 
 
 @router.delete("/brands/{slug}/assets/{nome}")
