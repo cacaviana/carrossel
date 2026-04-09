@@ -253,18 +253,17 @@ def build_payload(
 
         prompt_lines.extend([
             "",
-            "⚠️ CRITICAL — TEXT IS MANDATORY:",
-            f"You MUST render this EXACT text as large, bold typography INSIDE the image:",
-            f"",
-            f"TITLE (biggest text, prominent): \"{headline}\"",
+            "TEXT TO PUT IN THE IMAGE:",
+            f"TITLE: {headline}",
         ])
         if body_text:
-            prompt_lines.append(f"BODY (smaller, below title): \"{body_text}\"")
+            prompt_lines.append(f"BODY: {body_text}")
 
         prompt_lines.extend([
             "",
-            f"The image MUST contain readable text. An image WITHOUT text is WRONG.",
-            f"Render the text as part of the graphic design — big, bold, with contrast against the background.",
+            "RULES:",
+            "- Text must be INSIDE the image, rendered as part of the design",
+            "- Text must be clearly legible against the background",
             "- Keep 80px padding from all edges",
             "- No nudity, no violence",
         ])
