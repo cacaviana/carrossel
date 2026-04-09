@@ -69,7 +69,7 @@ async def executar(
             if tema:
                 prompt += f"\nSubtle thematic connection to: {tema}"
 
-            modelo = "gemini-2.0-flash-exp"  # Flash pra backgrounds (gratis)
+            modelo = "gemini-2.5-flash-image"  # Flash pra backgrounds (gratis)
             try:
                 payload = {
                     "contents": [{"parts": [{"text": prompt}]}],
