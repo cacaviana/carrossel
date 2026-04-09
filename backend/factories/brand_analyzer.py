@@ -81,7 +81,7 @@ RETORNE APENAS JSON VALIDO neste formato exato (sem markdown, sem explicacao):
             },
         }
 
-        model = "gemini-2.0-flash"
+        model = "gemini-2.5-flash"
         url = GEMINI_API_URL.format(model=model)
 
         async with httpx.AsyncClient(timeout=60.0) as client:
