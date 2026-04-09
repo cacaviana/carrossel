@@ -196,17 +196,30 @@
 			<div class="space-y-2">
 				{#each slides as slide, i}
 					<div class="rounded-lg bg-bg-elevated border border-border-default overflow-hidden">
-						<button
-							onclick={() => slideExpandido = slideExpandido === i ? -1 : i}
-							class="w-full flex items-center gap-2 p-3 cursor-pointer hover:bg-black/3 transition-all"
-						>
-							<span class="text-xs font-mono text-text-muted">{i + 1}</span>
-							<span class="text-sm font-medium text-text-primary flex-1 text-left">{slide.titulo}</span>
-							<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-bg-card text-text-muted border border-border-default">{slide.tipo}</span>
-							<svg class="w-4 h-4 text-text-muted transition-transform {slideExpandido === i ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-							</svg>
-						</button>
+						<div class="flex items-center">
+							<button
+								onclick={() => slideExpandido = slideExpandido === i ? -1 : i}
+								class="flex-1 flex items-center gap-2 p-3 cursor-pointer hover:bg-black/3 transition-all"
+							>
+								<span class="text-xs font-mono text-text-muted">{i + 1}</span>
+								<span class="text-sm font-medium text-text-primary flex-1 text-left">{slide.titulo}</span>
+								<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-bg-card text-text-muted border border-border-default">{slide.tipo}</span>
+								<svg class="w-4 h-4 text-text-muted transition-transform {slideExpandido === i ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							</button>
+							{#if slides.length > 1}
+								<button
+									onclick={() => { slides = slides.filter((_, idx) => idx !== i); if (slideExpandido === i) slideExpandido = -1; else if (slideExpandido > i) slideExpandido--; }}
+									class="p-2 mr-1 text-text-muted hover:text-red cursor-pointer transition-all rounded-lg hover:bg-red/10"
+									title="Remover slide"
+								>
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									</svg>
+								</button>
+							{/if}
+						</div>
 
 						{#if slideExpandido === i}
 							<div class="px-3 pb-3 border-t border-border-default pt-3 space-y-2">
