@@ -244,7 +244,7 @@ async def buscar_proxima_etapa(pipeline_id, tenant_id="itvalley"):
 
         result3 = await session.execute(
             text("""SELECT TOP 1 * FROM carrossel.pipeline_step
-            WHERE pipeline_id = :pipeline_id AND status IN ('pendente', 'rejeitado')
+            WHERE pipeline_id = :pipeline_id AND status IN ('pendente', 'rejeitado', 'erro')
             ORDER BY ordem ASC"""),
             {"pipeline_id": pipeline_id},
         )

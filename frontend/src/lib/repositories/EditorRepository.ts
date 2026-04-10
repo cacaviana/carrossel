@@ -29,9 +29,20 @@ export class EditorRepository {
       await new Promise(r => setTimeout(r, 400));
       return { saida: { imagens: [] } };
     }
+    // Tentar etapa image_generator primeiro
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/image_generator`);
-    if (!res.ok) throw new Error('Erro ao carregar imagens');
-    return res.json();
+    if (res.ok) {
+      const data = await res.json();
+      const saida = data.saida ?? data;
+      const imgs = saida?.imagens || saida?.resultados || [];
+      if (imgs.length > 0 && imgs.some((i: any) => i.image_path || i.image_base64 || i.image_url)) {
+        return data;
+      }
+    }
+    // Fallback: listar imagens direto do disco
+    const diskRes = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/imagens`);
+    if (!diskRes.ok) throw new Error('Erro ao carregar imagens');
+    return { saida: await diskRes.json() };
   }
 
   static async carregarBrand(slug: string): Promise<any> {

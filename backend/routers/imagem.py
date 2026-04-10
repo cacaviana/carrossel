@@ -64,6 +64,40 @@ async def api_ajustar_imagem(request: Request, data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/corrigir-avatar")
+@limiter.limit("10/minute")
+async def api_corrigir_avatar(request: Request, data: dict):
+    """Recebe imagem gerada + brand_slug, regenera com o avatar correto da marca.
+    Body: {imagem: base64, brand_slug: string, pipeline_id?: string, slide_index?: int}"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="GEMINI_API_KEY nao configurada")
+
+    imagem = data.get("imagem", "")
+    brand_slug = data.get("brand_slug", "")
+    pipeline_id = data.get("pipeline_id")
+    slide_index = data.get("slide_index")
+
+    if not imagem:
+        raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
+    if not brand_slug:
+        raise HTTPException(status_code=400, detail="Campo 'brand_slug' obrigatorio")
+
+    try:
+        from services.avatar_fixer import corrigir_avatar
+        result_b64 = await corrigir_avatar(imagem, brand_slug, api_key)
+
+        # Se veio pipeline_id + slide_index, salvar no disco
+        if pipeline_id and slide_index:
+            from utils.pipeline_images import salvar_imagem
+            path_rel = salvar_imagem(pipeline_id, int(slide_index), result_b64)
+            return {"image": result_b64, "image_path": path_rel}
+
+        return {"image": result_b64}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/gerar-imagem-slide", response_model=GerarImagemSlideResponse)
 @limiter.limit("5/minute")
 async def api_gerar_imagem_slide(request: Request, req: GerarImagemSlideRequest):

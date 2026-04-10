@@ -37,11 +37,12 @@ def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
 
     if brand_ctx:
         user_prompt += (
-            f"\n=== CONTEXTO DA MARCA (OBRIGATORIO — substitui qualquer persona padrao) ===\n"
+            f"\n=== CONTEXTO DA MARCA (APENAS TOM E ESTILO — NAO E O TEMA!) ===\n"
             f"{brand_ctx}\n"
-            f"IMPORTANTE: Use EXATAMENTE o tom, linguagem e persona descritos acima. "
-            f"NAO use persona de outra marca. Use EXATAMENTE a persona descrita acima. "
-            f"Adapte TUDO para esta marca.\n"
+            f"IMPORTANTE: Use EXATAMENTE o tom, linguagem e persona descritos acima.\n"
+            f"MAS o ASSUNTO/TEMA do carrossel vem do BRIEFING acima — NAO mude o tema.\n"
+            f"A persona so define COMO falar (tom, girias, estilo). O QUE falar vem do briefing.\n"
+            f"NAO fale sobre hobbies, produtos ou interesses pessoais da persona.\n"
             f"=== FIM CONTEXTO DA MARCA ===\n"
         )
 

@@ -1,3 +1,4 @@
+# reload: fix estilo ilustracao + dimensoes + avatar desenhado
 import os
 
 from dotenv import load_dotenv

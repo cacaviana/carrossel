@@ -1,6 +1,8 @@
+import os
 from pathlib import Path
 
 import anthropic
+import openai
 
 from utils.json_parser import parse_llm_json
 
@@ -41,15 +43,38 @@ async def executar(
         user_prompt += "GERE um briefing COMPLETAMENTE DIFERENTE, seguindo o feedback acima.\n"
     user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
 
-    client = anthropic.AsyncAnthropic(api_key=claude_api_key)
-    message = await client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=4096,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    # Tentar Claude primeiro, fallback pra OpenAI
+    try:
+        client = anthropic.AsyncAnthropic(api_key=claude_api_key)
+        message = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4096,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        result = parse_llm_json(message.content[0].text)
+        if "raw_text" in result:
+            return {"briefing": result["raw_text"], "raw": True}
+        return result
+    except Exception as e:
+        print(f"[strategist] Claude falhou: {e}. Tentando OpenAI...")
 
-    result = parse_llm_json(message.content[0].text)
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    if not openai_key:
+        raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
+    oai_client = openai.AsyncOpenAI(api_key=openai_key)
+    response = await oai_client.chat.completions.create(
+        model="gpt-4o",
+        max_tokens=4096,
+        temperature=0.9,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+    result = parse_llm_json(response.choices[0].message.content or "")
+    result["_provider"] = "openai"
+    result["_fallback"] = True
     if "raw_text" in result:
         return {"briefing": result["raw_text"], "raw": True}
     return result

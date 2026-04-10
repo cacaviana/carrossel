@@ -69,7 +69,7 @@ def _load_all_references(brand_slug: str) -> list[str]:
         assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
         if assets_dir.exists():
             for f in sorted(assets_dir.glob("ref_*")):
-                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and f.stat().st_size >= 50 * 1024:
                     refs.append(base64.b64encode(f.read_bytes()).decode())
 
     # Referência principal do JSON
@@ -205,12 +205,17 @@ def build_payload(
         import random
         from utils.dimensions import get_dims, get_prompt_size_str
 
-        # 1 ref por carrossel (mesma pra todos os slides do post)
-        ref = ref_images[hash(str(total)) % len(ref_images)]
+        # Variar ref por slide (cada slide usa uma ref diferente se tiver varias)
+        ref = ref_images[(position - 1) % len(ref_images)]
         parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
 
-        # Avatar separado (se tem)
-        if avatar_images and avatar_mode != "sem":
+        # Avatar separado — so capa e CTA pra nao ficar colagem repetida
+        is_capa_ou_cta = (position == 1 or position == total)
+        include_avatar = avatar_images and avatar_mode != "sem" and (
+            avatar_mode == "sim" or
+            (avatar_mode in ("livre", "capa") and is_capa_ou_cta)
+        )
+        if include_avatar:
             av = random.choice(avatar_images)
             parts.append({"inline_data": {"mime_type": "image/png", "data": av}})
 
@@ -223,15 +228,29 @@ def build_payload(
         dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
 
-        # Prompt CURTO — deixar a referencia guiar
+        # Variacao SO de pose/angulo, nao de estilo
+        POSES = [
+            "person standing facing camera, confident smile",
+            "person slightly turned to the side, natural expression",
+            "person from a side profile, looking at camera",
+            "person from a lower angle, looking up confidently",
+            "person with arms raised, energetic pose",
+            "person leaning slightly, casual pose",
+            "person centered, warm smile",
+        ]
+        pose = POSES[(position - 1) % len(POSES)]
+
+        # Prompt rigoroso: MESMO ESTILO da ref, so varia pose da pessoa
         p = f"Create a {size_str} social media image in the EXACT style of the reference image above.\n"
-        p += "Same colors, same fonts, same layout, same decorative elements.\n"
-        if avatar_images and avatar_mode != "sem":
-            p += "Include the person from the photo above. Same face, same look. No other people.\n"
+        p += "MUST MATCH: same exact colors, same exact fonts, same exact decorative elements (stickers, badges, doodles), same background style, same overall aesthetic.\n"
+        if include_avatar:
+            p += f"Include a person — DIFFERENT pose from typical: {pose}. Natural look, not a copy of the reference person.\n"
+        else:
+            p += "NO person, NO face in this image. Replace where the person would be with decorative elements, badges or illustrations matching the brand style.\n"
         p += f"\nText in the image:\n{headline}"
         if body:
             p += f"\n{body}"
-        p += "\n\nNo nudity, no violence."
+        p += "\n\nNo nudity, no violence. Text must be spelled correctly in Portuguese."
 
         parts.append({"text": p})
 

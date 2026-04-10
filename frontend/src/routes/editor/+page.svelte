@@ -33,6 +33,7 @@
 	let formato = $state('carrossel');
 	let qualidade = $state<'media' | 'alta'>('alta');
 	let removendoTexto = $state(false);
+	let corrigindoAvatar = $state(false);
 	let feedbackRegenerar = $state('');
 	let autoRegenerar = false;
 
@@ -142,7 +143,8 @@
 					const validados = await Promise.all(slideUrls.map(async (url: string) => {
 						if (!url || url.startsWith('data:')) return url;
 						try {
-							const r = await fetch(url, { method: 'HEAD' });
+							// HEAD pode dar 405 em algumas rotas; GET garante resposta real
+							const r = await fetch(url);
 							return r.ok ? url : '';
 						} catch { return ''; }
 					}));
@@ -343,6 +345,48 @@
 			setTimeout(() => ultimoFeedback = '', 5000);
 		} finally {
 			removendoTexto = false;
+		}
+	}
+
+	async function corrigirAvatar() {
+		if (corrigindoAvatar || !brandSlug || !currentImage) return;
+		corrigindoAvatar = true;
+		ultimoFeedback = 'Corrigindo avatar...';
+		try {
+			const imgB64 = await imgToBase64(currentImage);
+			const imgRaw = imgB64.startsWith('data:') ? imgB64.split(',')[1] : imgB64;
+			const pipelineId = page.url.searchParams.get('pipeline') || '';
+			const res = await fetch(`${API_BASE}/api/corrigir-avatar`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					imagem: imgRaw,
+					brand_slug: brandSlug,
+					pipeline_id: pipelineId || undefined,
+					slide_index: currentSlide + 1,
+				}),
+				signal: AbortSignal.timeout(120_000),
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				throw new Error(err.detail || 'Erro ao corrigir avatar');
+			}
+			const data = await res.json();
+			if (data.image) {
+				const newImg = data.image.startsWith('data:') ? data.image : `data:image/png;base64,${data.image}`;
+				slides[currentSlide] = newImg;
+				slides = [...slides];
+				ultimoFeedback = 'Avatar corrigido!';
+				setTimeout(() => ultimoFeedback = '', 3000);
+			} else {
+				ultimoFeedback = 'Gemini nao retornou imagem.';
+				setTimeout(() => ultimoFeedback = '', 5000);
+			}
+		} catch (e) {
+			ultimoFeedback = 'Erro: ' + (e instanceof Error ? e.message : 'falha');
+			setTimeout(() => ultimoFeedback = '', 5000);
+		} finally {
+			corrigindoAvatar = false;
 		}
 	}
 
@@ -572,6 +616,21 @@
 			{/if}
 		</div>
 
+		<!-- Navegacao slides (logo abaixo da imagem) -->
+		<div class="mt-3 mx-auto flex items-center justify-between gap-2" style="max-width: 540px;">
+			<button onclick={anterior} disabled={currentSlide === 0}
+				class="px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0
+					{currentSlide === 0 ? 'text-text-muted opacity-30' : 'text-text-secondary border border-border-default hover:border-purple/40'}">
+				Anterior
+			</button>
+			<SlideDotsNav total={total} current={currentSlide} onSelect={(i) => currentSlide = i} />
+			<button onclick={proximo} disabled={currentSlide >= total - 1}
+				class="px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0
+					{currentSlide >= total - 1 ? 'text-text-muted opacity-30' : 'text-bg-global bg-purple hover:opacity-90'}">
+				Proximo
+			</button>
+		</div>
+
 		<!-- Texto esperado -->
 		{#if textos[currentSlide]}
 			<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-4" style="max-width: 540px;">
@@ -616,6 +675,14 @@
 						disabled:opacity-50">
 					{removendoTexto ? 'Gerando...' : 'Tirar texto'}
 				</button>
+				{#if brandSlug}
+				<button data-testid="btn-corrigir-avatar" onclick={corrigirAvatar} disabled={regenerando || removendoTexto || corrigindoAvatar}
+					class="px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer
+						{corrigindoAvatar ? 'bg-teal/20 text-teal' : 'text-teal border border-teal/30 hover:bg-teal/10'}
+						disabled:opacity-50">
+					{corrigindoAvatar ? 'Corrigindo...' : 'Corrigir avatar'}
+				</button>
+				{/if}
 			</div>
 		</div>
 
@@ -694,31 +761,8 @@
 			<p class="text-center text-xs text-text-muted mt-1">Clique no slide pra posicionar</p>
 		{/if}
 
-		<!-- Navegacao -->
+		<!-- Exportar (ultimo slide) -->
 		<div class="mt-6 space-y-3">
-			<div class="flex justify-center">
-				<SlideDotsNav total={total} current={currentSlide} onSelect={(i) => currentSlide = i} />
-			</div>
-
-			<div class="flex items-center justify-between gap-3">
-				<button data-testid="btn-anterior" onclick={anterior} disabled={currentSlide === 0}
-					class="px-6 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer shrink-0
-						{currentSlide === 0 ? 'text-text-muted opacity-30' : 'text-text-secondary border border-border-default hover:border-purple/40'}">
-					Anterior
-				</button>
-
-				{#if currentSlide < total - 1}
-					<button data-testid="btn-proximo" onclick={proximo}
-						class="px-6 py-2.5 rounded-full text-sm font-medium text-bg-global bg-purple hover:opacity-90 cursor-pointer transition-all">
-						Proximo
-					</button>
-				{:else}
-					<button data-testid="btn-proximo" onclick={proximo} disabled class="px-6 py-2.5 rounded-full text-sm font-medium text-text-muted opacity-30">
-						Proximo
-					</button>
-				{/if}
-			</div>
-
 			{#if currentSlide === total - 1}
 				<div class="bg-bg-card rounded-xl border border-border-default p-3">
 					<p class="text-[10px] text-text-muted uppercase tracking-wider mb-2">Exportar</p>

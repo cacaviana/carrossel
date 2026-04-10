@@ -206,7 +206,7 @@ async def _executar_agente(
         return await _exec_image_generator(context, formato, gemini_api_key, step_id, brand_slug=brand_slug, avatar_mode=avatar_mode)
 
     if agente == "brand_gate":
-        return await _exec_brand_gate(context, formato)
+        return await _exec_brand_gate(context, formato, brand_slug=brand_slug)
 
     if agente == "content_critic":
         return await _exec_content_critic(context, formato, claude_api_key)
@@ -218,14 +218,60 @@ async def _exec_strategist(tema, formato, modo_funil, api_key, feedback="", bran
     brand_ctx = _get_brand_context(brand_slug)
     tema_com_marca = tema
     if brand_ctx:
-        tema_com_marca = f"{tema}\n\n=== CONTEXTO DA MARCA ===\n{brand_ctx}\nCrie o briefing para ESTA marca, usando o tom e linguagem dela. NAO use IT Valley ou Carlos Viana se a marca for outra.\n=== FIM ==="
-    return await executar_strategist(
-        tema=tema_com_marca,
-        formato=formato,
-        modo_funil=modo_funil,
-        feedback=feedback,
-        claude_api_key=api_key,
-    )
+        tema_com_marca = (
+            f"{tema}\n\n"
+            f"=== CONTEXTO DA MARCA (APENAS TOM E ESTILO — NAO E O TEMA!) ===\n"
+            f"{brand_ctx}\n"
+            f"INSTRUCAO: Use APENAS o tom, linguagem e estilo visual desta marca.\n"
+            f"O TEMA do carrossel e EXCLUSIVAMENTE o que esta acima: '{tema}'.\n"
+            f"NAO mude o assunto. NAO fale sobre hobbies, produtos ou interesses da persona.\n"
+            f"A persona da marca so define COMO falar, nunca SOBRE O QUE falar.\n"
+            f"=== FIM ==="
+        )
+    try:
+        return await executar_strategist(
+            tema=tema_com_marca,
+            formato=formato,
+            modo_funil=modo_funil,
+            feedback=feedback,
+            claude_api_key=api_key,
+        )
+    except Exception as e:
+        print(f"[executor] strategist falhou: {e}. Tentando fallback OpenAI...")
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if not openai_key:
+            raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
+        import openai
+        from utils.json_parser import parse_llm_json
+        from pathlib import Path
+        prompt_path = Path(__file__).parent.parent / "agents" / "strategist.md"
+        system_prompt = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else ""
+        user_prompt = (
+            f"TEMA OBRIGATORIO (nao mude, nao substitua, nao invente outro): {tema_com_marca}\n"
+            f"Formato: {formato}\n"
+            f"REGRA CRITICA: O briefing DEVE ser sobre o tema acima. "
+            f"Use EXATAMENTE esse assunto como tema_principal. "
+            f"NAO gere conteudo sobre outro assunto.\n"
+        )
+        if feedback:
+            user_prompt += f"\nFEEDBACK DO USUARIO: {feedback}\n"
+        user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
+        client = openai.AsyncOpenAI(api_key=openai_key)
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=4096,
+            temperature=0.9,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        result = parse_llm_json(response.choices[0].message.content or "")
+        result["_provider"] = "openai"
+        result["_fallback"] = True
+        if "raw_text" in result:
+            return {"briefing": result["raw_text"], "raw": True}
+        return result
 
 
 def _get_brand_context(brand_slug: str | None) -> str:
@@ -315,24 +361,41 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None, avatar_
     # Se tem feedback + saida anterior, usar Claude pra AJUSTAR a cena (não recriar)
     prev_art = context.get("art_director", {})
     if feedback and prev_art.get("prompts"):
-        import anthropic
-        client = anthropic.AsyncAnthropic(api_key=api_key)
-        prev_prompts = prev_art["prompts"]
-
-        msg = await client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2048,
-            messages=[{"role": "user", "content": (
-                f"Aqui esta a descricao de cena anterior de cada slide:\n"
-                f"{json.dumps(prev_prompts, ensure_ascii=False, indent=2)}\n\n"
-                f"O usuario pediu este ajuste: {feedback}\n\n"
-                f"Aplique APENAS o ajuste pedido. Mantenha TODO o resto identico.\n"
-                f"Retorne o JSON atualizado no mesmo formato: {{\"prompts\": [...]}}\n"
-                f"Responda APENAS JSON valido."
-            )}],
-        )
         from utils.json_parser import parse_llm_json
-        return parse_llm_json(msg.content[0].text)
+        prev_prompts = prev_art["prompts"]
+        adjust_prompt = (
+            f"Aqui esta a descricao de cena anterior de cada slide:\n"
+            f"{json.dumps(prev_prompts, ensure_ascii=False, indent=2)}\n\n"
+            f"O usuario pediu este ajuste: {feedback}\n\n"
+            f"Aplique APENAS o ajuste pedido. Mantenha TODO o resto identico.\n"
+            f"Retorne o JSON atualizado no mesmo formato: {{\"prompts\": [...]}}\n"
+            f"Responda APENAS JSON valido."
+        )
+        try:
+            import anthropic
+            client = anthropic.AsyncAnthropic(api_key=api_key)
+            msg = await client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=2048,
+                messages=[{"role": "user", "content": adjust_prompt}],
+            )
+            return parse_llm_json(msg.content[0].text)
+        except Exception as e:
+            print(f"[art_director adjust] Claude falhou: {e}. Tentando OpenAI...")
+            import openai
+            openai_key = os.getenv("OPENAI_API_KEY", "")
+            if not openai_key:
+                raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
+            oai_client = openai.AsyncOpenAI(api_key=openai_key)
+            response = await oai_client.chat.completions.create(
+                model="gpt-4o",
+                max_tokens=2048,
+                messages=[{"role": "user", "content": adjust_prompt}],
+            )
+            result = parse_llm_json(response.choices[0].message.content or "")
+            result["_provider"] = "openai"
+            result["_fallback"] = True
+            return result
 
     # Montar palette compacta (sem campos pesados como _raw_content)
     brand_palette_dict = None
@@ -498,18 +561,35 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
     }
 
 
-async def _exec_brand_gate(context, formato):
-    """Executa brand_validator + brand_overlay sobre as imagens geradas.
-    Deterministico, sem LLM.
+async def _exec_brand_gate(context, formato, brand_slug=None):
+    """Executa validacao visual de identidade de marca usando Gemini Vision.
+
+    Compara cada imagem gerada com as refs da marca.
+    Se score < 7, marca como reprovado com feedback pra regenerar.
     """
     image_gen_output = context.get("image_generator", {})
     imagens = image_gen_output.get("imagens", [])
 
     from utils.pipeline_images import carregar_imagem_b64, salvar_imagem
+    from skills.brand_visual_checker import validar_imagem
+    from factories.imagem_factory import _load_all_references
+
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+
+    # Carregar brand e ref pra comparacao visual
+    print(f"[brand_gate] brand_slug={brand_slug}, imagens={len(imagens)}")
+    brand = None
+    ref_b64 = None
+    if brand_slug:
+        from services.brand_prompt_builder import carregar_brand
+        brand = carregar_brand(brand_slug)
+        refs = _load_all_references(brand_slug)
+        if refs:
+            ref_b64 = refs[0]  # Usar primeira ref como referencia
 
     resultados = []
     for img_item in imagens:
-        # Carregar imagem: do disco (image_path) ou base64 legado (image_base64)
+        # Carregar imagem
         image_b64 = None
         if img_item.get("image_path"):
             image_b64 = carregar_imagem_b64(img_item["image_path"])
@@ -524,10 +604,29 @@ async def _exec_brand_gate(context, formato):
             })
             continue
 
-        # Validar contra brand palette
-        validacao = brand_validar(image_b64, formato)
+        # Validacao visual com Gemini (se tem brand + ref)
+        visual_check = {"aprovado": True, "score": 7, "problemas": [], "sugestao_prompt": ""}
+        if brand and ref_b64:
+            try:
+                visual_check = await validar_imagem(
+                    image_b64=image_b64,
+                    ref_b64=ref_b64,
+                    brand=brand,
+                    gemini_api_key=gemini_api_key,
+                )
+                slide_idx = img_item.get("slide_index", "?")
+                print(f"[brand_gate] Slide {slide_idx}: score={visual_check.get('score',0)} aprovado={visual_check.get('aprovado',False)} problemas={visual_check.get('problemas',[])}")
+            except Exception as e:
+                print(f"[brand_gate] Validacao visual falhou: {e}")
 
-        # Aplicar overlay (foto criador + logo) se validacao passou
+        validacao = {
+            "valido": visual_check.get("aprovado", True),
+            "score": visual_check.get("score", 7),
+            "erros": visual_check.get("problemas", []),
+            "sugestao_prompt": visual_check.get("sugestao_prompt", ""),
+        }
+
+        # Aplicar overlay se aprovado
         image_final = image_b64
         if validacao["valido"]:
             try:
@@ -549,12 +648,15 @@ async def _exec_brand_gate(context, formato):
 
     total = len(resultados)
     validos = sum(1 for r in resultados if r["validacao"]["valido"])
+    scores = [r["validacao"].get("score", 0) for r in resultados]
+    avg_score = sum(scores) / len(scores) if scores else 0
 
     return {
         "resultados": resultados,
         "total": total,
         "validos": validos,
         "aprovado": validos == total,
+        "score_medio": round(avg_score, 1),
     }
 
 
