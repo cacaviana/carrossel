@@ -3,6 +3,9 @@
 Diferente do visual_extractor (que extrai TUDO em dezenas de campos), esse aqui
 devolve so 4 strings curtas: estilo, cores, tipografia, elementos. Feito pra
 alimentar o bloco [DNA] do prompt composer (Fase 0).
+
+IMPORTANTE: analisa MULTIPLAS imagens juntas pra extrair o DNA COMUM da marca,
+nao cores pontuais de uma unica foto. Isso reflete melhor a identidade real.
 """
 
 import json
@@ -10,45 +13,72 @@ import httpx
 from utils.constants import GEMINI_API_URL
 
 
-_PROMPT = """Voce analisa uma imagem de referencia visual e extrai 4 linhas CURTAS que definem o DNA visual da marca.
+_PROMPT_MULTI = """Voce analisa {n} imagens de referencia visual de uma mesma marca e extrai o DNA VISUAL COMUM entre elas — os elementos que se repetem e definem a identidade.
+
+NAO descreva o que aparece em UMA imagem especifica — descreva o PADRAO que se repete em todas.
+Se uma foto tem cores pontuais que nao aparecem nas outras, IGNORE — nao faz parte do DNA.
 
 Responda em JSON valido com APENAS estes 4 campos, cada um com 3-6 palavras em portugues:
 
-{
-    "estilo": "palavras-chave do estilo (ex: cute clean moderno)",
-    "cores": "3-5 cores principais (ex: rosa pastel, branco, dourado)",
-    "tipografia": "tipo de fonte (ex: bold arredondada fofa)",
-    "elementos": "elementos decorativos (ex: doodles leves, stickers)"
-}
+{{
+    "estilo": "estilo COMUM entre as imagens (ex: cute clean moderno)",
+    "cores": "3-5 cores que se REPETEM nas imagens (ex: rosa pastel, branco, bege)",
+    "tipografia": "tipo de fonte COMUM (ex: bold arredondada fofa)",
+    "elementos": "elementos decorativos RECORRENTES (ex: doodles leves, stickers)"
+}}
 
 REGRAS:
 - Maximo 6 palavras por campo
+- So inclui o que aparece em 2+ imagens
 - Sem narrativa, sem explicacao
 - APENAS o JSON, sem markdown, sem texto fora do JSON
 """
 
 
-async def extrair_dna(imagem_b64: str, api_key: str) -> dict:
-    """Extrai DNA visual (4 linhas) de uma imagem de referencia.
+def _detect_mime(raw_b64: str) -> str:
+    """Detecta mime a partir dos primeiros bytes do base64."""
+    # PNG: iVBOR, JPEG: /9j/, WebP: UklGR
+    if raw_b64.startswith("/9j/"):
+        return "image/jpeg"
+    if raw_b64.startswith("iVBOR"):
+        return "image/png"
+    if raw_b64.startswith("UklGR"):
+        return "image/webp"
+    return "image/jpeg"
+
+
+async def extrair_dna(imagens_b64: list[str], api_key: str) -> dict:
+    """Extrai DNA visual (4 linhas) comum a multiplas imagens de referencia.
 
     Args:
-        imagem_b64: imagem em base64 (com ou sem data URI prefix)
+        imagens_b64: lista de imagens em base64 (com ou sem data URI prefix).
+                     Analise agregada pra extrair o DNA REAL da marca, nao
+                     cores pontuais de uma foto isolada.
         api_key: Gemini API key
 
     Returns:
         dict com chaves 'estilo', 'cores', 'tipografia', 'elementos'
 
     Raises:
+        ValueError: se lista vazia
         httpx.HTTPError: se a API falhou
         json.JSONDecodeError: se a resposta nao eh JSON valido
     """
-    clean = imagem_b64.split(",")[-1] if "," in imagem_b64 else imagem_b64
+    if not imagens_b64:
+        raise ValueError("Nenhuma imagem fornecida pra extrair DNA")
+
+    # Limitar a 5 imagens pra caber no payload Gemini sem estourar
+    imagens_b64 = imagens_b64[:5]
+
+    parts: list[dict] = []
+    for img in imagens_b64:
+        clean = img.split(",")[-1] if "," in img else img
+        parts.append({"inline_data": {"mime_type": _detect_mime(clean), "data": clean}})
+
+    parts.append({"text": _PROMPT_MULTI.format(n=len(imagens_b64))})
 
     payload = {
-        "contents": [{"parts": [
-            {"inline_data": {"mime_type": "image/png", "data": clean}},
-            {"text": _PROMPT},
-        ]}],
+        "contents": [{"parts": parts}],
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
@@ -58,7 +88,7 @@ async def extrair_dna(imagem_b64: str, api_key: str) -> dict:
     model = "gemini-2.5-flash"
     url = GEMINI_API_URL.format(model=model)
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=90.0) as client:
         res = await client.post(url, json=payload, headers={"x-goog-api-key": api_key})
         res.raise_for_status()
         data = res.json()

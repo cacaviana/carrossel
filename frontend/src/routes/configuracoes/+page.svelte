@@ -806,7 +806,7 @@
 																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
 														</div>
 													</div>
-													<p class="text-[10px] text-text-muted mt-2">Na Fase 2 esses campos serao gerados automaticamente ao subir a primeira referencia.</p>
+													<p class="text-[10px] text-text-muted mt-2">Campos auto-gerados analisando todas as referencias da marca. Edite livremente se quiser ajustar.</p>
 												</div>
 
 												<!-- REFERENCIAS VISUAIS - POOL COM AVATAR -->
