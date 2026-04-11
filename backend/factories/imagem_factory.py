@@ -247,10 +247,20 @@ def build_payload(
             p += f"Include a person — DIFFERENT pose from typical: {pose}. Natural look, not a copy of the reference person.\n"
         else:
             p += "NO person, NO face in this image. Replace where the person would be with decorative elements, badges or illustrations matching the brand style.\n"
-        p += f"\nText in the image:\n{headline}"
+
+        # Texto EXATO — proibir inventar texto adicional
+        p += f"\n=== TEXT TO DISPLAY (use EXACTLY this, nothing else) ===\n"
+        p += f"HEADLINE: {headline}\n"
         if body:
-            p += f"\n{body}"
-        p += "\n\nNo nudity, no violence. Text must be spelled correctly in Portuguese."
+            p += f"BODY: {body}\n"
+        p += "=== END TEXT ===\n\n"
+        p += "CRITICAL TEXT RULES:\n"
+        p += "- Use ONLY the headline and body text provided above. Do NOT add any other text.\n"
+        p += "- Do NOT invent code snippets, color codes, technical labels, or lorem ipsum.\n"
+        p += "- Do NOT copy text from the reference image.\n"
+        p += "- All text must be spelled correctly in Portuguese — no typos, no gibberish.\n"
+        p += "- Text must fit inside the image frame with proper padding.\n"
+        p += "\nNo nudity, no violence."
 
         parts.append({"text": p})
 
