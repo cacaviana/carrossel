@@ -363,6 +363,32 @@ async def definir_referencia(slug: str, data: dict):
     return result
 
 
+@router.post("/brands/{slug}/dna/regenerate")
+@limiter.limit("10/minute")
+async def regenerate_dna(request: Request, slug: str, data: dict | None = None):
+    """Gera o DNA da marca (4 linhas: estilo, cores, tipografia, elementos)
+    a partir de uma imagem de referencia.
+
+    Body (opcional):
+        imagem: base64 — se omitido, usa a primeira ref do brand
+                (pool com_avatar preferido, sem_avatar como fallback).
+
+    Returns:
+        {slug, dna: {estilo, cores, tipografia, elementos}}
+    """
+    from services.dna_generator import regenerar_dna
+
+    imagem_b64 = (data or {}).get("imagem") if data else None
+    try:
+        return await regenerar_dna(slug, imagem_b64)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar DNA: {str(e)}")
+
+
 @router.post("/descrever-referencia")
 @limiter.limit("10/minute")
 async def descrever_referencia(request: Request, data: dict):

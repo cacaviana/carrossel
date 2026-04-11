@@ -128,6 +128,26 @@
 
 	let menuAberto = $state('');
 	let brandTab = $state<Record<string, string>>({});
+	let regenerandoDna = $state<Record<string, boolean>>({});
+
+	async function autoGerarDnaSeVazio(slug: string, mi: number) {
+		const dna = marcas[mi].dna;
+		const vazio = !dna || (!dna.estilo && !dna.cores && !dna.tipografia && !dna.elementos);
+		if (!vazio || regenerandoDna[slug]) return;
+		regenerandoDna = { ...regenerandoDna, [slug]: true };
+		try {
+			const res = await fetch(`${backendUrl}/api/brands/${slug}/dna/regenerate`, {
+				method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+			});
+			if (res.ok) {
+				const body = await res.json();
+				marcas[mi].dna = body.dna;
+				marcas = [...marcas];
+				showSucesso('DNA gerado automaticamente!');
+			}
+		} catch {}
+		regenerandoDna = { ...regenerandoDna, [slug]: false };
+	}
 	function getBrandTab(slug: string) { return brandTab[slug] || 'aparencia'; }
 	function setBrandTab(slug: string, tab: string) { brandTab = { ...brandTab, [slug]: tab }; }
 	let showClonarModal = $state(false);
@@ -702,7 +722,38 @@
 
 												<!-- DNA DA MARCA (4 linhas que definem a identidade) -->
 												<div class="bg-purple/5 rounded-xl p-5 border border-purple/20">
-													<p class="text-sm text-text-primary font-semibold mb-1">DNA da marca</p>
+													<div class="flex items-start justify-between gap-3 mb-1">
+														<p class="text-sm text-text-primary font-semibold">DNA da marca</p>
+														<button
+															onclick={async () => {
+																if (regenerandoDna[marca.slug]) return;
+																regenerandoDna = { ...regenerandoDna, [marca.slug]: true };
+																try {
+																	const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/dna/regenerate`, {
+																		method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+																	});
+																	if (res.ok) {
+																		const body = await res.json();
+																		marcas[mi].dna = body.dna;
+																		marcas = [...marcas];
+																		showSucesso('DNA regenerado!');
+																	} else {
+																		const err = await res.json().catch(() => ({}));
+																		erro = err.detail || 'Erro ao gerar DNA (precisa ter pelo menos 1 referencia)';
+																		setTimeout(() => erro = '', 5000);
+																	}
+																} catch {
+																	erro = 'Erro de rede ao gerar DNA';
+																	setTimeout(() => erro = '', 5000);
+																} finally {
+																	regenerandoDna = { ...regenerandoDna, [marca.slug]: false };
+																}
+															}}
+															disabled={regenerandoDna[marca.slug]}
+															class="text-[10px] text-purple border border-purple/30 px-2 py-0.5 rounded-full hover:bg-purple/10 disabled:opacity-50 disabled:cursor-wait cursor-pointer">
+															{regenerandoDna[marca.slug] ? 'Gerando...' : 'Regerar com IA'}
+														</button>
+													</div>
 													<p class="text-xs text-text-secondary mb-4">4 linhas que definem a identidade visual. Entram no prompt de geracao de imagem.</p>
 
 													<div class="grid grid-cols-2 gap-3">
@@ -796,7 +847,7 @@
 																			});
 																			if (res.ok) {
 																				const body = await res.json();
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'com_avatar' }];
+																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'com_avatar' }]; autoGerarDnaSeVazio(marca.slug, mi);
 																				showSucesso('Referencia adicionada!');
 																			}
 																		} catch {}
@@ -847,7 +898,7 @@
 																			});
 																			if (res.ok) {
 																				const body = await res.json();
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'sem_avatar' }];
+																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'sem_avatar' }]; autoGerarDnaSeVazio(marca.slug, mi);
 																				showSucesso('Referencia adicionada!');
 																			}
 																		} catch {}
