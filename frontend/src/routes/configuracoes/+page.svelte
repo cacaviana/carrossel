@@ -129,6 +129,7 @@
 	let menuAberto = $state('');
 	let brandTab = $state<Record<string, string>>({});
 	let regenerandoDna = $state<Record<string, boolean>>({});
+	let padraoExpandido = $state<Record<string, boolean>>({});
 
 	async function autoGerarDnaSeVazio(slug: string, mi: number) {
 		const dna = marcas[mi].dna;
@@ -697,7 +698,6 @@
 										<div class="flex border-b border-border-default bg-bg-elevated/50">
 											{#each [
 												{ id: 'aparencia', label: 'Aparencia', desc: 'Cores e fontes' },
-												{ id: 'estilo', label: 'Estilo dos Slides', desc: 'Como a IA desenha' },
 												{ id: 'voz', label: 'Voz da Marca', desc: 'Como a marca fala' },
 												{ id: 'imagens', label: 'Imagens', desc: 'Logo e referencias' },
 											] as tab}
@@ -718,6 +718,101 @@
 
 										<!-- ===== ABA: APARENCIA ===== -->
 										{#if currentTab === 'aparencia'}
+											{#snippet padraoPool(mi: number, pool: 'com_avatar' | 'sem_avatar')}
+												{@const pv = marcas[mi].padrao_visual?.[pool]}
+												{@const expKey = `${marcas[mi].slug}_${pool}`}
+												{@const aberto = padraoExpandido[expKey] || false}
+												<div class="mt-4 rounded-lg border border-purple/20 bg-purple/5">
+													<button type="button"
+														onclick={() => { padraoExpandido = { ...padraoExpandido, [expKey]: !aberto }; }}
+														class="w-full flex items-center justify-between px-3 py-2 cursor-pointer select-none text-left">
+														<span class="text-xs text-text-primary font-medium flex items-center gap-2">
+															<svg class="w-3.5 h-3.5 text-purple transition-transform {aberto ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+															Padrao visual deste pool
+															{#if !pv}<span class="text-[9px] text-text-muted font-normal">(regenere o DNA pra gerar)</span>{/if}
+														</span>
+														<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-purple/10 text-purple border border-purple/30 font-mono uppercase">auto</span>
+													</button>
+													{#if aberto && pv}
+														<div class="px-3 pb-3 pt-1 space-y-3">
+															<div>
+																<label class="block text-[10px] text-text-muted mb-1">Tipo de foto</label>
+																<input type="text" value={pv.tipo_foto || ''}
+																	oninput={(e) => { marcas[mi].padrao_visual[pool].tipo_foto = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																	placeholder="ex: fotorealista editorial feminina"
+																	class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+															</div>
+
+															<div>
+																<label class="block text-[10px] text-text-muted mb-1">Composicoes recorrentes</label>
+																{#each (pv.composicoes || []) as _comp, ci}
+																	<div class="flex gap-1 mb-1">
+																		<input type="text" value={pv.composicoes[ci]}
+																			oninput={(e) => { marcas[mi].padrao_visual[pool].composicoes[ci] = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																			placeholder="descreva uma composicao recorrente"
+																			class="flex-1 px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																		<button onclick={() => { marcas[mi].padrao_visual[pool].composicoes = marcas[mi].padrao_visual[pool].composicoes.filter((_: any, i: number) => i !== ci); marcas = [...marcas]; }} title="Remover"
+																			class="w-7 h-7 rounded border border-border-default text-text-muted hover:text-red hover:border-red/40 text-xs cursor-pointer">x</button>
+																	</div>
+																{/each}
+																{#if (pv.composicoes || []).length < 3}
+																	<button onclick={() => { if (!marcas[mi].padrao_visual[pool].composicoes) marcas[mi].padrao_visual[pool].composicoes = []; marcas[mi].padrao_visual[pool].composicoes = [...marcas[mi].padrao_visual[pool].composicoes, '']; marcas = [...marcas]; }}
+																		class="text-[10px] text-teal-6 border border-teal-6/30 px-2 py-1 rounded-full hover:bg-teal-6/10 cursor-pointer">+ adicionar</button>
+																{/if}
+															</div>
+
+															<div class="grid grid-cols-2 gap-2">
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Fundo/cenario</label>
+																	<input type="text" value={pv.fundo_cenario || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].fundo_cenario = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Iluminacao</label>
+																	<input type="text" value={pv.iluminacao || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].iluminacao = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Mood</label>
+																	<input type="text" value={pv.mood || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].mood = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Relacao pessoa/fundo</label>
+																	<input type="text" value={pv.relacao_pessoa_fundo || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].relacao_pessoa_fundo = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+															</div>
+
+															<div>
+																<label class="block text-[10px] text-text-muted mb-1">Elementos overlay</label>
+																<input type="text" value={pv.elementos_overlay || ''}
+																	oninput={(e) => { marcas[mi].padrao_visual[pool].elementos_overlay = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																	class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+															</div>
+
+															{#if (pv.paleta_dominante || []).length > 0}
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Paleta dominante</label>
+																	<div class="flex gap-1.5 flex-wrap">
+																		{#each pv.paleta_dominante as cor}
+																			<div class="flex items-center gap-1 px-1.5 py-1 rounded border border-border-default bg-bg-input">
+																				<span class="w-4 h-4 rounded border border-border-default" style="background: {cor}"></span>
+																				<span class="text-[10px] font-mono text-text-secondary">{cor}</span>
+																			</div>
+																		{/each}
+																	</div>
+																</div>
+															{/if}
+														</div>
+													{/if}
+												</div>
+											{/snippet}
+
 											<div class="space-y-6">
 
 												<!-- DNA DA MARCA (4 linhas que definem a identidade) -->
@@ -735,6 +830,7 @@
 																	if (res.ok) {
 																		const body = await res.json();
 																		marcas[mi].dna = body.dna;
+																		if (body.padrao_visual) marcas[mi].padrao_visual = body.padrao_visual;
 																		marcas = [...marcas];
 																		showSucesso('DNA regenerado!');
 																	} else {
@@ -858,6 +954,7 @@
 															</label>
 														{/if}
 													</div>
+													{@render padraoPool(mi, 'com_avatar')}
 												</div>
 
 												<!-- REFERENCIAS VISUAIS - POOL SEM AVATAR -->
@@ -912,6 +1009,7 @@
 													{#if marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length === 0 && marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length === 0}
 														<p class="text-[10px] text-text-muted mt-2">Sem referencias? A IA vai usar os campos de cores e estilo abaixo.</p>
 													{/if}
+													{@render padraoPool(mi, 'sem_avatar')}
 												</div>
 
 												<div class="bg-steel-0/50 rounded-xl p-4 border border-steel-3/10">

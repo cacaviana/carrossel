@@ -205,6 +205,7 @@ def build_payload(
     )
 
     avatar_images = _load_avatars(brand_slug) if brand_slug else []
+    brand = carregar_brand(brand_slug) if brand_slug else None
 
     # REGRA DE OURO (Fase 3): selecao fixa de REF1 + REF2 por pool
     from factories.refs_selector import get_refs_do_slide, decidir_pool
@@ -236,12 +237,15 @@ def build_payload(
 
         # Injeta REF1 (estilo) e REF2 (composicao) na ordem — ordem importa
         parts.append({"inline_data": {"mime_type": "image/png", "data": ref1_estilo}})
-        if ref2_composicao and ref2_composicao != ref1_estilo:
+        tem_2_refs = bool(ref2_composicao and ref2_composicao != ref1_estilo)
+        if tem_2_refs:
             parts.append({"inline_data": {"mime_type": "image/png", "data": ref2_composicao}})
 
+        num_refs_style = 2 if tem_2_refs else 1
+        num_avatars = 0
         if include_avatar:
-            # Manda TODOS os avatares (ate 3) juntos pra garantir a mesma pessoa
-            for av in avatar_images[:3]:
+            num_avatars = min(3, len(avatar_images))
+            for av in avatar_images[:num_avatars]:
                 parts.append({"inline_data": {"mime_type": "image/png", "data": av}})
 
         # Textos do slide
@@ -252,37 +256,129 @@ def build_payload(
 
         size_str = get_prompt_size_str(formato)
 
-        # REGRA DE OURO no prompt — REF1 = estilo, REF2 = composicao
-        p = f"Create a {size_str} social media image following this GOLDEN RULE:\n\n"
-        if ref2_composicao and ref2_composicao != ref1_estilo:
-            p += (
-                "REFERENCE 1 (STYLE DNA): copy colors, fonts, vibe, doodles from this image. Do NOT copy its layout.\n"
-                "REFERENCE 2 (LAYOUT): copy where text lives, image proportions, composition from this image. Do NOT copy its colors.\n"
-                "HIERARCHY: layout from REF2 > style from REF1 > new content adapts to both.\n\n"
-            )
-        else:
-            p += (
-                "REFERENCE (STYLE+LAYOUT): copy colors, fonts, vibe, doodles, and composition from this image.\n\n"
-            )
+        # DNA resumido (4 linhas curtas) pro bloco [ESTILO]
+        dna = (brand.get("dna") or {}) if brand else {}
+        dna_block = ""
+        if dna:
+            estilo_dna = dna.get("estilo", "")
+            cores_dna = dna.get("cores", "")
+            tipo_dna = dna.get("tipografia", "")
+            elem_dna = dna.get("elementos", "")
+            dna_parts = []
+            if estilo_dna: dna_parts.append(f"- estilo: {estilo_dna}")
+            if cores_dna: dna_parts.append(f"- cores: {cores_dna}")
+            if tipo_dna: dna_parts.append(f"- tipografia: {tipo_dna}")
+            if elem_dna: dna_parts.append(f"- elementos: {elem_dna}")
+            if dna_parts:
+                dna_block = "\n".join(dna_parts)
 
+        # Illustration_description do art_director (cena desenhada pro slide)
+        illustration = slide.get("illustration_description", "")
+
+        # === PROMPT MONTADO — estrutura validada pelo usuario ===
+        p = f"Create a {size_str} social media image.\n\n"
+
+        # === IMAGENS ANEXADAS (map de ordem pra Gemini saber o que eh cada uma)
         if include_avatar:
-            num_avatars = min(3, len(avatar_images))
             p += (
-                f"The following {num_avatars} photos show the SAME person of this brand from different angles. "
-                f"USE THIS SPECIFIC PERSON in the slide — her real face, her real identity, exactly as she looks in those photos. "
-                f"Keep her recognizable. New pose/angle ok, but it must clearly be HER.\n\n"
+                f"=== IMAGES ATTACHED ({num_refs_style + num_avatars} total) ===\n"
+                f"- Image 1 = REFERENCIA 1 (ESTILO): cores, tipografia, iluminacao, textura, vibe\n"
+            )
+            if tem_2_refs:
+                p += f"- Image 2 = REFERENCIA 2 (LAYOUT): estrutura, composicao, posicao dos elementos\n"
+            start = num_refs_style + 1
+            end = num_refs_style + num_avatars
+            p += f"- Images {start} to {end} = BRAND PERSON (fotos da pessoa real da marca)\n\n"
+        else:
+            p += (
+                f"=== IMAGES ATTACHED ({num_refs_style} total) ===\n"
+                f"- Image 1 = REFERENCIA 1 (ESTILO): cores, tipografia, iluminacao, textura, vibe\n"
+            )
+            if tem_2_refs:
+                p += f"- Image 2 = REFERENCIA 2 (LAYOUT): estrutura, composicao, posicao dos elementos\n"
+            p += "\n"
+
+        # === REGRA DE HIERARQUIA OBRIGATORIA
+        p += (
+            "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
+            "1. Layout da REFERENCIA 2 manda na ESTRUTURA (divisao do espaco, alinhamento, proporcao, onde fica texto vs imagem)\n"
+        ) if tem_2_refs else (
+            "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
+            "1. Layout e composicao seguem a REFERENCIA (divisao, alinhamento, proporcao)\n"
+        )
+        p += (
+            "2. Estilo da REFERENCIA 1 manda na APARENCIA (cores, estetica, luz, textura)\n"
+            "3. Conteudo NOVO adapta aos dois — nao copia elementos literais de nenhuma\n"
+            "\n"
+        )
+
+        # === ANTI-COPIA
+        p += (
+            "[ANTI-COPIA — REGRAS ABSOLUTAS]\n"
+            "- PROIBIDO replicar a cena original das referencias\n"
+            "- PROIBIDO copiar objetos especificos (xicaras, livros, roupas, props)\n"
+            "- PROIBIDO copiar pose identica ou expressao identica\n"
+            "- PROIBIDO copiar composicao exata (mesma divisao de cards, mesma moldura)\n"
+            "- O resultado deve ser uma NOVA imagem INSPIRADA no estilo, nao uma copia\n"
+            "- NAO misturar as imagens de referencia entre si\n"
+            "- NAO distorcer rostos nem texto — priorizar legibilidade\n"
+            "\n"
+        )
+
+        # === ESTILO (DNA)
+        if dna_block:
+            p += (
+                "[ESTILO — DNA da marca]\n"
+                f"{dna_block}\n"
+                "\n"
+            )
+
+        # === BRAND PERSON (avatar) — overrides anti-copia de pessoa
+        if include_avatar:
+            p += (
+                f"[BRAND PERSON — excecao a regra anti-copia]\n"
+                f"As {num_avatars} ultimas imagens anexadas sao da pessoa real da marca. "
+                f"USE essa pessoa no slide — mesmo rosto, mesma identidade, mesmo cabelo, mesma idade, mesmo genero. "
+                f"Ela DEVE ser reconhecivel. Nova pose/angulo/contexto OK, mas a face eh INSTANTANEAMENTE a mesma das fotos.\n"
+                f"Se a REFERENCIA 1 ou 2 mostrar a MESMA pessoa, tudo bem — use as fotos BRAND PERSON como fonte da verdade pra rosto, e as referencias so pra estilo/layout.\n"
+                f"\n"
             )
         else:
-            p += "NO person, NO face in this image. Focus on text, decorations and background.\n\n"
+            p += "[SEM PESSOA] Este slide NAO deve ter pessoa nem rosto. Foco em objetos, cenario, texto e decoracoes.\n\n"
 
-        # Texto EXATO — proibir inventar
-        p += "=== TEXT TO DISPLAY (use EXACTLY this, nothing else) ===\n"
-        p += f"HEADLINE: {headline}\n"
+        # === CENA (illustration_description do art_director)
+        if illustration:
+            p += (
+                "[CENA A RENDERIZAR — direcao do art director]\n"
+                f"{illustration}\n"
+                "\n"
+            )
+
+        # === TEXTO EXATO (nunca inventar)
+        p += (
+            "[TEXTO A EXIBIR — use EXATAMENTE estes textos, nada mais]\n"
+            f"HEADLINE: {headline}\n"
+        )
         if body:
             p += f"BODY: {body}\n"
-        p += "=== END TEXT ===\n\n"
-        p += "TEXT RULES: use only the headline and body above. Do NOT invent code, color codes, or lorem ipsum. Spell everything correctly in Portuguese.\n"
-        p += "\nNo nudity, no violence."
+        p += (
+            "- Nao inventar codigo, color codes, lorem ipsum ou texto extra\n"
+            "- Escrever corretamente em portugues\n"
+            "\n"
+        )
+
+        # === RODAPE / CONTADOR — bloquear clone das refs
+        p += (
+            "[RODAPE — REGRA ABSOLUTA]\n"
+            "- ZERO contadores de slide (ex: 1/3, 2/7)\n"
+            "- ZERO numeros de pagina\n"
+            "- ZERO circulos com numeros dentro\n"
+            "- As referencias podem ter contadores no rodape — IGNORE isso\n"
+            "- Rodape vazio ou apenas com o nome da marca\n"
+            "\n"
+        )
+
+        p += "No nudity, no violence."
 
         parts.append({"text": p})
     else:

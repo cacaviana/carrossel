@@ -62,7 +62,7 @@
       "fonte_badge": "JetBrains Mono, uppercase, 12px"
     },
     "rodape": {
-      "formato": "Apenas paginacao no canto inferior direito. SEM nome de autor no rodape, SEM miniatura de perfil no rodape, SEM texto DESLIZA. Limpo e minimalista.",
+      "formato": "Apenas paginacao no canto inferior direito. SEM nome, SEM foto, SEM 'DESLIZA'. Limpo e minimalista.",
       "paginacao": "XX/N em monospace cinza #5A5A66 no canto inferior direito"
     },
     "slide_codigo": {
@@ -174,7 +174,52 @@
     ]
   },
   "regra_ouro": "NUNCA mentir. Nivel 1: experiencia real. Nivel 2: caso publico documentado. Nivel 3: fato tecnico verificavel. Se nao tem historia real, formato impessoal.",
-  "referencia_imagem": null,
+  "referencia_imagem": "reference_slide.png",
   "referencia_content": "reference_content.png",
-  "_loaded": true
+  "_loaded": true,
+  "dna": {
+    "estilo": "tech profissional moderno informativo",
+    "cores": "roxo escuro, azul, branco, verde água",
+    "tipografia": "sans-serif bold limpa",
+    "elementos": "linhas de grid, servidores, esferas"
+  },
+  "padrao_visual": {
+    "com_avatar": {
+      "tipo_foto": "foto tech com pessoa interagindo",
+      "composicoes": [
+        "pessoa em primeiro plano sentada em mesa com laptop, interagindo com o ambiente tech",
+        "pessoa em primeiro plano em pé, apontando, com elementos tech abstratos ao fundo"
+      ],
+      "fundo_cenario": "cenário tech escuro com elementos de rede, servidores e luzes roxas/azuis",
+      "iluminacao": "neon roxo frio, com brilho de tela",
+      "mood": "autoridade tech futurista informativo",
+      "elementos_overlay": "retângulo com bordas arredondadas, texto em destaque, avatar do autor",
+      "paleta_dominante": [
+        "#1A0033",
+        "#8A2BE2",
+        "#00FFCC",
+        "#FFFFFF"
+      ],
+      "relacao_pessoa_fundo": "pessoa em primeiro plano, integrada com elementos tech do fundo"
+    },
+    "sem_avatar": {
+      "tipo_foto": "fundo abstrato digital com elementos tech",
+      "composicoes": [
+        "texto central grande com título principal e subtítulo, acompanhado de elementos gráficos abstratos",
+        "bloco de texto informativo com parágrafos e elementos visuais de suporte"
+      ],
+      "fundo_cenario": "fundo escuro com padrões de circuitos digitais e formas geométricas abstratas, com brilhos roxos e verdes",
+      "iluminacao": "luzes neon roxas e verdes, criando um ambiente escuro e futurista",
+      "mood": "autoridade tech, futurista, informativo, moderno",
+      "elementos_overlay": "títulos e textos em destaque, caixas de texto com informações, ícones de perfil, elementos gráficos abstratos (globo, cabeça humana, formas geométricas)",
+      "paleta_dominante": [
+        "#1A0033",
+        "#8A2BE2",
+        "#00FF00",
+        "#FFFFFF",
+        "#FFD700"
+      ],
+      "relacao_pessoa_fundo": "elementos gráficos e texto dominam o primeiro plano, com o fundo abstrato digital servindo de suporte visual"
+    }
+  }
 }

@@ -33,7 +33,7 @@
 
 	// Avatar
 	type AvatarMode = 'capa' | 'livre' | 'sem' | 'sim';
-	let avatarMode = $state<AvatarMode>('livre');
+	let avatarMode = $state<AvatarMode>('capa');
 
 	const avatarOptions = $derived(
 		formatoAtual === 'thumbnail_youtube'

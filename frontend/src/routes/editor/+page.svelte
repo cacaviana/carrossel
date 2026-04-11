@@ -487,20 +487,36 @@
 	}
 
 	async function _downloadViaCanvas(format: 'png' | 'jpeg') {
-		const dataUri = await imgToBase64(currentImage);
-		const filename = `slide-${String(currentSlide + 1).padStart(2, '0')}.${format}`;
+		if (slides.length === 0) return;
+		salvando = true;
+		try {
+			for (let i = 0; i < slides.length; i++) {
+				if (!slides[i]) continue;
+				const dataUri = await imgToBase64(slides[i]);
+				const filename = `slide-${String(i + 1).padStart(2, '0')}.${format}`;
 
-		const res = await fetch(dataUri);
-		const blob = await res.blob();
-		const finalBlob = format === 'jpeg' && blob.type !== 'image/jpeg'
-			? await _convertBlob(blob, 'image/jpeg')
-			: blob;
-		const url = URL.createObjectURL(finalBlob);
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = filename;
-		link.click();
-		URL.revokeObjectURL(url);
+				const res = await fetch(dataUri);
+				const blob = await res.blob();
+				const finalBlob = format === 'jpeg' && blob.type !== 'image/jpeg'
+					? await _convertBlob(blob, 'image/jpeg')
+					: blob;
+				const url = URL.createObjectURL(finalBlob);
+				const link = document.createElement('a');
+				link.href = url;
+				link.download = filename;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				// Delay entre downloads — navegador throttle consecutivos se rapido demais
+				await new Promise(r => setTimeout(r, 250));
+				URL.revokeObjectURL(url);
+			}
+		} catch (e) {
+			console.error('Erro ao baixar imagens:', e);
+			ultimoFeedback = 'Erro ao baixar imagens';
+		} finally {
+			salvando = false;
+		}
 	}
 
 	async function _convertBlob(blob: Blob, mimeType: string): Promise<Blob> {

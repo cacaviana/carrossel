@@ -40,6 +40,11 @@ backend/test_output/
 backend/*_slides.json
 test_output/
 
+# Artefatos de runtime (geradas pelo pipeline)
+backend/assets/pipeline-images/
+backend/assets/brand-assets/
+backend/pass2.log
+
 # HTMLs de preview (geradas durante dev)
 *.preview.html
 *_preview.html

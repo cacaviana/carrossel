@@ -231,5 +231,51 @@
       }
     },
     "asset": "ref_cute"
+  },
+  "dna": {
+    "estilo": "cute clean moderno feminino",
+    "cores": "rosa pastel, branco, amarelo, azul",
+    "tipografia": "bold arredondada inflada fofa",
+    "elementos": "doodles leves, stickers, icones"
+  },
+  "padrao_visual": {
+    "com_avatar": {
+      "tipo_foto": "fotorealista feminina com pessoa interagindo",
+      "composicoes": [
+        "pessoa em primeiro plano olhando para a camera, segurando um objeto",
+        "pessoa em primeiro plano interagindo com elementos ao redor ou olhando para baixo"
+      ],
+      "fundo_cenario": "paredes claras brancas ou creme, minimamente decoradas",
+      "iluminacao": "natural suave, brilhante e uniforme",
+      "mood": "playful, amigavel, informativo, clean",
+      "elementos_overlay": "titulo bold inflado pastel, doodles fofos, icones de redes sociais",
+      "paleta_dominante": [
+        "#FFC0CB",
+        "#FFFFFF",
+        "#FDD835",
+        "#A7D9E8",
+        "#F5F5F5"
+      ],
+      "relacao_pessoa_fundo": "pessoa domina primeiro plano, fundo simples e nao distrai"
+    },
+    "sem_avatar": {
+      "tipo_foto": "fotorealista lifestyle com fundo desfocado",
+      "composicoes": [
+        "Texto em destaque no primeiro plano com pessoa desfocada ao fundo.",
+        "Texto organizado em bolhas coloridas sobre fundo desfocado, sem pessoa."
+      ],
+      "fundo_cenario": "cenários internos desfocados, sem detalhes nítidos",
+      "iluminacao": "natural suave tom quente",
+      "mood": "aconchegante amigável leve",
+      "elementos_overlay": "títulos arredondados, bolhas coloridas, doodles fofos",
+      "paleta_dominante": [
+        "#FDFBF8",
+        "#F7B5D1",
+        "#94D0F4",
+        "#B5A0D7",
+        "#FCE88D"
+      ],
+      "relacao_pessoa_fundo": "fundo sempre borrado, pessoa se integra ao fundo"
+    }
   }
 }

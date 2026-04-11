@@ -65,6 +65,7 @@ async def executar_proxima_etapa(pipeline_id: str, tenant_id: str = "") -> dict:
     etapas_anteriores = await buscar_etapas_anteriores(pipeline_id, ordem)
     context = _build_context(etapas_anteriores)
     context["_pipeline_id"] = pipeline_id
+    context["_tema"] = tema
 
     # Se esta etapa foi rejeitada, incluir o feedback + saída anterior no context
     feedback_rejeicao = step.get("erro_mensagem", "")
@@ -328,7 +329,9 @@ async def _exec_copywriter(context, formato, api_key, brand_slug=None):
     if brand_ctx:
         briefing = {**briefing, "_brand_context": brand_ctx}
     # Extrair max_slides do tema (formato: "tema [MAX N SLIDES]")
-    tema_str = briefing.get("briefing", {}).get("tema_principal", "") or context.get("_tema", "")
+    # Priorizar context._tema (tema raw da pipeline com o sufixo MAX intacto) —
+    # strategist limpa o sufixo de tema_principal, entao nunca achava o MAX.
+    tema_str = context.get("_tema", "") or briefing.get("briefing", {}).get("tema_principal", "")
     m = re.search(r'\[MAX\s+(\d+)\s+SLIDES?\]', tema_str, re.IGNORECASE)
     if m:
         briefing["_max_slides"] = int(m.group(1))
@@ -417,6 +420,7 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None, avatar_
                 "comunicacao": {k: v for k, v in brand.get("comunicacao", {}).items() if k != "exemplos_frase"},
                 "prompt_referencia": prompt_ref,
                 "regras_feed": regras,
+                "padrao_visual": brand.get("padrao_visual"),
             }
     else:
         config_service = ConfigService()
@@ -541,10 +545,41 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         pipeline_id=context.get("_pipeline_id"),
     )
 
-    # PASS 2 (avatar_fixer) foi REMOVIDO na Fase 8.
-    # A estrategia que funcionou foi mandar os 3 avatares juntos no pass 1
-    # (commit 04baa9a). Pass 2 fazia face swap carimbado e dava resultado
-    # pior. O endpoint manual /corrigir-avatar ainda existe pra uso avulso.
+    # PASS 2: Correcao automatica de avatar nos slides com pessoa.
+    # Pass 1 gera a cena (estilo+layout+pessoa generica seguindo o art director).
+    # Pass 2 pega essa imagem + 3 fotos do avatar real e troca APENAS o rosto
+    # mantendo pose/cena/iluminacao. Resolve o problema de Gemini alucinar a
+    # face no pass unico (ex: Carlos virando outra pessoa).
+    if brand_slug and avatar_mode != "sem":
+        from factories.imagem_factory import _load_avatars
+        brand_has_avatar = len(_load_avatars(brand_slug)) > 0
+
+        if brand_has_avatar:
+            from services.avatar_fixer import corrigir_avatar
+
+            total_slides = len(slides)
+            for i, img in enumerate(images):
+                if not img:
+                    continue
+                position = i + 1
+                is_capa_ou_cta = (position == 1 or position == total_slides)
+                should_fix = (
+                    avatar_mode == "sim" or
+                    (avatar_mode in ("livre", "capa") and is_capa_ou_cta)
+                )
+                # capa mode: so slide 1
+                if avatar_mode == "capa" and position != 1:
+                    should_fix = False
+                if not should_fix:
+                    continue
+
+                try:
+                    print(f"[pass2] Slide {position}: corrigindo avatar...")
+                    images[i] = await corrigir_avatar(img, brand_slug, gemini_api_key)
+                    print(f"[pass2] Slide {position}: OK")
+                except Exception as e:
+                    print(f"[pass2] Slide {position} falhou: {type(e).__name__}: {e}")
+                    # mantem a imagem do pass 1 em caso de erro
 
     # Salvar imagens no disco ao inves de base64 no banco
     from utils.pipeline_images import salvar_imagem

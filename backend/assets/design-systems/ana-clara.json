@@ -1,0 +1,90 @@
+{
+  "nome": "Ana Clara",
+  "slug": "ana-clara",
+  "cores": {
+    "fundo": "#0F1923",
+    "gradiente_de": "#0F1923",
+    "gradiente_ate": "#1A2A3A",
+    "card": "#1C2B3D",
+    "card_borda": "rgba(139,169,196,0.2)",
+    "acento_principal": "#C9A96E",
+    "acento_secundario": "#8BA9C4",
+    "acento_terciario": "#E8D5B0",
+    "acento_negativo": "#C0392B",
+    "texto_principal": "#FFFFFF",
+    "texto_secundario": "#B0BEC5",
+    "texto_muted": "#607D8B"
+  },
+  "visual": {
+    "estilo_fundo": "Elegant professional. Law themed. NO code, NO tech.",
+    "estilo_elemento": {
+      "tipo": "geometric",
+      "linhas": "clean",
+      "complexidade": "minimal",
+      "profundidade": "subtle",
+      "opacidade": "0.15"
+    }
+  },
+  "elementos": {
+    "badge_topo": "Ana Clara Advocacia",
+    "badge_topo_cor": "#C9A96E",
+    "rodape_nome": "Ana Clara | Advogada Trabalhista"
+  },
+  "comunicacao": {
+    "persona": "Ana Clara, advogada trabalhista",
+    "tom": "Tecnica mas acessivel",
+    "linguagem": "Portugues BR formal",
+    "publico": "Trabalhadores CLT",
+    "palavras_proibidas": []
+  },
+  "fontes": {
+    "titulo": "Playfair Display",
+    "corpo": "Inter",
+    "destaque": "Inter"
+  },
+  "modo_geracao": "referencia",
+  "_loaded": true,
+  "padrao_visual": {
+    "com_avatar": {
+      "tipo_foto": "Fotorealista editorial feminina",
+      "composicoes": [
+        "Pessoa em primeiro plano no lado esquerdo, com painel de cor sólida à direita para texto.",
+        "Pessoa em destaque no centro/esquerda, com overlay de cor e texto no lado direito."
+      ],
+      "fundo_cenario": "Cenário urbano moderno, exterior",
+      "iluminacao": "Natural brilhante, tom quente",
+      "mood": "Sofisticado confiante profissional",
+      "elementos_overlay": "Títulos e texto, linhas gráficas, gradiente",
+      "paleta_dominante": [
+        "#FF6B00",
+        "#FFFFFF",
+        "#333333",
+        "#E0DED9"
+      ],
+      "relacao_pessoa_fundo": "Pessoa domina primeiro plano, fundo contextualiza"
+    },
+    "sem_avatar": {
+      "tipo_foto": "fotorealista editorial feminina",
+      "composicoes": [
+        "objetos e mãos em flat lay com arranjo estético"
+      ],
+      "fundo_cenario": "superfície clara e limpa, sem distração",
+      "iluminacao": "natural suave tom quente",
+      "mood": "aconchegante estético feminino",
+      "elementos_overlay": "texto vertical, texto simples, ícone de estrela",
+      "paleta_dominante": [
+        "#FF6600",
+        "#F8F8F8",
+        "#F0D9C9",
+        "#C04F00"
+      ],
+      "relacao_pessoa_fundo": "mão e objetos dominam primeiro plano, fundo suporta"
+    }
+  },
+  "dna": {
+    "estilo": "Chic moderno profissional",
+    "cores": "Laranja vibrante, branco, neutros",
+    "tipografia": "Serif elegante, sans-serif simples",
+    "elementos": "Texto, linhas, icones simples"
+  }
+}

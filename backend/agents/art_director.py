@@ -48,6 +48,34 @@ async def executar(
 
     has_references = brand_palette and brand_palette.get("prompt_referencia")
 
+    # padrao_visual pode ter dois formatos:
+    # - novo: {com_avatar: {...}, sem_avatar: {...}} — um bloco por pool
+    # - legado: {tipo_foto, composicoes, ...} — um bloco unico pra todos slides
+    padrao_raw = (brand_palette or {}).get("padrao_visual") or {}
+    if isinstance(padrao_raw, dict) and ("com_avatar" in padrao_raw or "sem_avatar" in padrao_raw):
+        padrao_com_avatar = padrao_raw.get("com_avatar") or {}
+        padrao_sem_avatar = padrao_raw.get("sem_avatar") or {}
+    else:
+        # Legado: mesmo padrao serve pros dois pools
+        padrao_com_avatar = padrao_raw if padrao_raw else {}
+        padrao_sem_avatar = padrao_raw if padrao_raw else {}
+
+    def _bloco_padrao(label: str, padrao: dict) -> str:
+        if not padrao:
+            return f"  {label}: (sem refs nesse pool — fallback pro outro pool)\n"
+        composicoes = padrao.get("composicoes") or []
+        comp_str = "\n".join(f"    - {c}" for c in composicoes) if composicoes else "    - (sem composicoes capturadas)"
+        return (
+            f"  {label}:\n"
+            f"    tipo_foto: {padrao.get('tipo_foto', '')}\n"
+            f"    iluminacao: {padrao.get('iluminacao', '')}\n"
+            f"    mood: {padrao.get('mood', '')}\n"
+            f"    fundo_cenario: {padrao.get('fundo_cenario', '')}\n"
+            f"    relacao_pessoa_fundo: {padrao.get('relacao_pessoa_fundo', '')}\n"
+            f"    elementos_overlay: {padrao.get('elementos_overlay', '')}\n"
+            f"    composicoes recorrentes (escolha UMA por slide):\n{comp_str}\n"
+        )
+
     if brand_palette and has_references:
         # === MODO REFERENCIA: Art Director foca em DIRECAO DE CENA ===
         nome = brand_palette.get("nome", "")
@@ -56,17 +84,31 @@ async def executar(
         user_prompt += (
             f"\n=== MARCA: {nome} ===\n"
             f"TOM: {com.get('tom', '')}\n"
-            f"PUBLICO: {com.get('publico', '')}\n\n"
-            f"=== INSTRUCAO ESPECIAL ===\n"
+            f"PUBLICO: {com.get('publico', '')}\n"
+        )
+
+        # Bloco PADRAO VISUAL — um por pool. Art director escolhe qual usar por slide.
+        if padrao_com_avatar or padrao_sem_avatar:
+            user_prompt += (
+                f"\n=== PADRAO VISUAL DA MARCA (extraido das refs) ===\n"
+                f"Dois padroes distintos — use um ou outro dependendo se o slide tem pessoa ou nao:\n"
+                + _bloco_padrao("COM_AVATAR (use quando o slide TEM pessoa)", padrao_com_avatar)
+                + _bloco_padrao("SEM_AVATAR (use quando o slide NAO tem pessoa — foto de fundo/objetos/texto)", padrao_sem_avatar)
+                + f"=== FIM PADRAO VISUAL ===\n"
+            )
+
+        user_prompt += (
+            f"\n=== INSTRUCAO ESPECIAL ===\n"
             f"Esta marca tem IMAGENS DE REFERENCIA que definem o estilo visual (cores, fontes, doodles).\n"
             f"Voce NAO precisa descrever estilo visual nos prompts. A imagem de referencia faz isso.\n\n"
-            f"Seu papel e de DIRETOR DE CENA. Para cada slide, descreva:\n"
-            f"- Que CENA a pessoa/objeto esta (ex: 'sentada no sofa lendo um livro', 'em pe segurando cafe')\n"
-            f"- Que OBJETOS/ELEMENTOS aparecem (ex: 'xicara fumegante, livros empilhados, planta')\n"
-            f"- Que ACAO esta acontecendo (ex: 'sorrindo pra camera', 'escrevendo num caderno')\n"
-            f"- Que MOOD o slide tem (ex: 'aconchegante manha de domingo', 'energia de segunda-feira')\n\n"
+            f"Seu papel e de DIRETOR DE CENA. Para cada slide, escolha o pool CORRETO (com_avatar ou sem_avatar) baseado nas regras abaixo, e pegue UMA das composicoes recorrentes desse pool.\n"
+            f"- Qual COMPOSICAO usar (cite literal do pool escolhido)\n"
+            f"- Que ACAO/POSE a pessoa faz (se tiver pessoa) ou qual OBJETO/CENARIO aparece\n"
+            f"- Que OBJETOS aparecem ao redor coerentes com o tema\n"
+            f"- Que MOOD especifico desse slide (alinhado com o mood do pool)\n\n"
             f"NAO descreva cores, fontes, gradientes, doodles — isso vem da referencia.\n"
-            f"Foque em: cena, pose, objetos, acao, mood.\n"
+            f"Respeite o TIPO DE FOTO do pool escolhido.\n"
+            f"Foque em: composicao, pose/acao, objetos, mood.\n"
         )
 
     elif brand_palette:
@@ -129,31 +171,72 @@ async def executar(
     needs_scene = avatar_mode in ("sim", "capa", "livre")
 
     if has_references or needs_scene:
+        # Tipo de foto e iluminacao — fallback pro com_avatar, depois sem_avatar
+        tipo_foto = (padrao_com_avatar.get("tipo_foto") or padrao_sem_avatar.get("tipo_foto") or "")
+        iluminacao_ref = (padrao_com_avatar.get("iluminacao") or padrao_sem_avatar.get("iluminacao") or "")
+
         scene_instruction = (
             "\nPara cada slide, gere:"
             "\n- 'prompt': o texto do slide (titulo + subtitulo)"
             "\n- 'illustration_description': descricao DETALHADA da cena (MINIMO 80 palavras)"
+            "\n- 'pool_usado': 'com_avatar' ou 'sem_avatar' — qual pool voce usou pra esse slide"
+            "\n- 'composicao_usada': qual composicao do pool escolhido voce usou (cite literal do array)"
+            "\n"
+            "\n=== ESTRUTURA OBRIGATORIA POR TIPO DE SLIDE ==="
+            "\nO tipo do slide (capa/conteudo/codigo/cta) determina a ESTRUTURA VISUAL, "
+            "independente de qual composicao do pool voce escolher. Siga ESTRITAMENTE:"
+            "\n"
+            "\n- CAPA (slide 1): foco em IMPACTO — titulo grande dominante + pessoa (se pool com_avatar) "
+            "ou elemento visual central forte (se sem_avatar). UM UNICO foco. NAO divide em cards."
+            "\n"
+            "\n- CONTEUDO: texto informativo em destaque com apoio visual. Pode ter UM elemento grafico "
+            "ilustrativo (nao multiplos cards comparativos, A MENOS QUE o texto tenha claramente 2 lados "
+            "opostos — ex: 'errado x certo'). Se o texto e unico (sem oposicao explicita), UM foco central."
+            "\n"
+            "\n- CODIGO: bloco de codigo destacado (como janela de IDE) ocupando area principal, "
+            "com titulo curto acima. NUNCA divide em cards."
+            "\n"
+            "\n- CTA: estrutura de CHAMADA UNICA — um elemento focal central (botao, seta, icone grande, "
+            "avatar apontando, convite visual). NUNCA comparacao, NUNCA 2 cards, NUNCA lista de opcoes. "
+            "Um unico direcionamento que convida acao. Exemplo: 'pessoa apontando pra camera com sorriso, "
+            "texto do CTA em overlay grande', ou 'botao luminoso central com icone de seta e titulo curto'."
+            "\n=== FIM ESTRUTURA POR TIPO ==="
             "\n"
             "\nA illustration_description deve descrever a CENA COMPLETA como um diretor de cinema:"
-            "\n  - PESSOA: o que esta fazendo, pose, expressao, roupa, objeto na mao"
-            "\n  - CENARIO: onde esta (sofa, mesa, cozinha, parque), iluminacao"
-            "\n  - OBJETOS: o que aparece ao redor (cafe, livros, plantas, notebook)"
+            "\n  - COMPOSICAO: qual layout escolheu (das composicoes recorrentes da marca)"
+            "\n  - ESTRUTURA DO TIPO: respeite a estrutura obrigatoria acima pro tipo do slide"
+            "\n  - PESSOA (se tiver): pose, expressao, roupa, objeto na mao"
+            "\n  - CENARIO: ambiente coerente com o fundo_cenario da marca, iluminacao coerente"
+            "\n  - OBJETOS: o que aparece ao redor coerente com o tema do slide (SEM multiplicar em cards)"
             "\n  - MOOD: que sentimento transmite"
             "\n"
-            "\nIMPORTANTE: A pessoa DEVE parecer REAL e FOTOGRAFICA. Descreva como se fosse uma "
-            "FOTO PROFISSIONAL de uma pessoa real, NAO um desenho, NAO uma ilustracao, NAO um cartoon."
-            "\n"
-            "\nEXEMPLOS de boa illustration_description:"
-            "\n  'Young man standing confidently in front of a desk with a laptop and code on screen, arms crossed, wearing a dark hoodie. Behind him, a dark modern office with subtle purple neon lighting. Sharp, professional photography style. Focused, determined energy.'"
-            "\n  'Woman standing at a clean white desk, writing in a journal with a pink pen. A laptop is open beside her. Small vase with dried flowers. Natural daylight. Focused but relaxed energy, productive morning vibes. Photorealistic style.'"
-            "\n"
         )
-        if has_references:
-            scene_instruction += "\nNAO descreva estilo visual (cores, fontes, doodles) — so a cena.\n"
+
+        # A instrucao de estilo visual vem do padrao_visual da marca.
+        # Removido o hardcode "FOTO PROFISSIONAL REALISTA" — marcas diferentes tem
+        # tipos de foto diferentes (editorial feminina, tech com neon, lifestyle natural).
+        if tipo_foto:
+            scene_instruction += (
+                f"\nIMPORTANTE: Esta marca usa {tipo_foto}. "
+                f"Respeite esse tipo de foto exatamente — cena, iluminacao e mood devem casar com a identidade da marca."
+                f"\nIluminacao tipica: {iluminacao_ref or 'natural'}.\n"
+            )
+        else:
+            scene_instruction += (
+                "\nIMPORTANTE: A pessoa/cena deve parecer uma FOTO real e coerente com o estilo da marca "
+                "(se a marca tem refs, use o estilo das refs; nao force cena generica).\n"
+            )
 
         scene_instruction += (
-            "\nResponda em JSON: {\"prompts\": [{\"slide_index\": 1, \"prompt\": \"titulo do slide\", \"illustration_description\": \"descricao detalhada da cena com minimo 80 palavras\"}]}"
-            "\nResposta OBRIGATORIAMENTE em JSON valido."
+            "\nResponda em JSON com ESTE schema exato — nao adicione nem remova campos:"
+            "\n{\"prompts\": [{"
+            "\n  \"slide_index\": 1,"
+            "\n  \"prompt\": \"titulo do slide\","
+            "\n  \"illustration_description\": \"descricao detalhada com minimo 80 palavras\","
+            "\n  \"pool_usado\": \"com_avatar ou sem_avatar\","
+            "\n  \"composicao_usada\": \"cite literal uma das composicoes do pool escolhido\""
+            "\n}]}"
+            "\nResposta OBRIGATORIAMENTE em JSON valido com TODOS os 5 campos em cada slide."
         )
         user_prompt += scene_instruction
     else:

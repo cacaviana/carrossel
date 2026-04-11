@@ -1,43 +1,59 @@
-"""Skill de extracao de DNA visual — 4 linhas curtas que definem a identidade.
+"""Skill de extracao de padrao visual — analisa multiplas refs e extrai a identidade recorrente.
 
-Diferente do visual_extractor (que extrai TUDO em dezenas de campos), esse aqui
-devolve so 4 strings curtas: estilo, cores, tipografia, elementos. Feito pra
-alimentar o bloco [DNA] do prompt composer (Fase 0).
+Gera DOIS blocos:
+1. dna: 4 strings curtas (backcompat com composicao do prompt)
+2. padrao_visual: campos ricos que guiam o art_director (tipo_foto, composicoes,
+   fundo_cenario, iluminacao, mood, elementos_overlay, relacao_pessoa_fundo, paleta)
 
-IMPORTANTE: analisa MULTIPLAS imagens juntas pra extrair o DNA COMUM da marca,
-nao cores pontuais de uma unica foto. Isso reflete melhor a identidade real.
+IMPORTANTE: analisa MULTIPLAS imagens juntas pra extrair o padrao COMUM — nao
+cores pontuais de uma foto isolada. So registra o que se repete em 2+ refs.
 """
 
 import json
+
 import httpx
+
 from utils.constants import GEMINI_API_URL
 
 
-_PROMPT_MULTI = """Voce analisa {n} imagens de referencia visual de uma mesma marca e extrai o DNA VISUAL COMUM entre elas — os elementos que se repetem e definem a identidade.
+_PROMPT_MULTI = """Voce analisa {n} imagens de referencia de uma mesma marca e extrai o PADRAO VISUAL recorrente — os elementos que se repetem e definem COMO a marca compoe suas imagens.
 
-NAO descreva o que aparece em UMA imagem especifica — descreva o PADRAO que se repete em todas.
-Se uma foto tem cores pontuais que nao aparecem nas outras, IGNORE — nao faz parte do DNA.
+NAO descreva uma imagem especifica — descreva o PADRAO RECORRENTE.
+Se duas imagens usam estruturas diferentes (ex: uma com pessoa em primeiro plano e outra com foto borrada como fundo), REGISTRE as DUAS no array de composicoes.
 
-Responda em JSON valido com APENAS estes 4 campos, cada um com 3-6 palavras em portugues:
+Responda APENAS em JSON valido com estes campos:
 
 {{
-    "estilo": "estilo COMUM entre as imagens (ex: cute clean moderno)",
-    "cores": "3-5 cores que se REPETEM nas imagens (ex: rosa pastel, branco, bege)",
-    "tipografia": "tipo de fonte COMUM (ex: bold arredondada fofa)",
-    "elementos": "elementos decorativos RECORRENTES (ex: doodles leves, stickers)"
+  "dna": {{
+    "estilo": "estilo COMUM entre as imagens em 3-6 palavras (ex: cute clean moderno)",
+    "cores": "3-5 cores que se repetem nas imagens em 3-6 palavras (ex: rosa pastel, branco, bege)",
+    "tipografia": "tipo de fonte comum em 3-6 palavras (ex: bold arredondada fofa)",
+    "elementos": "elementos decorativos recorrentes em 3-6 palavras (ex: doodles leves, stickers)"
+  }},
+  "padrao_visual": {{
+    "tipo_foto": "tipo de foto COMUM (ex: 'fotorealista editorial feminina', 'foto tech com pessoa interagindo', 'foto lifestyle natural'). Sempre foto real, nunca ilustracao/cartoon mesmo se parecer — isso eh overlay por cima da foto.",
+    "composicoes": [
+      "cada item descreve UMA estrutura recorrente de composicao em 1-2 frases curtas. Ex: 'pessoa em primeiro plano olhando pra camera com cenario simples atras'. Se a marca usa 2 estruturas diferentes, liste as 2. MINIMO 1, MAXIMO 3."
+    ],
+    "fundo_cenario": "o que geralmente aparece atras da pessoa ou como fundo (ex: 'paredes claras creme, sem distracao', 'escritorio tech com luzes neon roxas', 'natureza verde desfocada')",
+    "iluminacao": "tipo de luz predominante (ex: 'natural suave tom quente', 'neon roxo frio', 'dourada editorial')",
+    "mood": "vibe/sensacao que as imagens transmitem (ex: 'aconchegante feminino proximo', 'autoridade tech futurista', 'relaxado natural')",
+    "elementos_overlay": "o que aparece POR CIMA da foto como overlay (ex: 'titulo 3D inflado pastel + doodles fofos', 'texto neon brilhante + linhas de grid', 'nenhum overlay, foto limpa')",
+    "paleta_dominante": ["lista de 3-5 cores em hex que aparecem consistentemente, ex: #FDFBF8"],
+    "relacao_pessoa_fundo": "como pessoa se relaciona com o fundo (ex: 'pessoa domina primeiro plano, fundo suporta', 'pessoa integrada com elementos tech', 'fundo borrado, pessoa nao aparece')"
+  }}
 }}
 
 REGRAS:
-- Maximo 6 palavras por campo
-- So inclui o que aparece em 2+ imagens
-- Sem narrativa, sem explicacao
-- APENAS o JSON, sem markdown, sem texto fora do JSON
+- So inclui o que aparece em 2+ imagens (padrao real)
+- Se a marca tem so 1 ref, baseia o padrao_visual nessa ref, mas reconhece a limitacao
+- composicoes eh ARRAY — se ve variacoes, registra as variacoes
+- Sem markdown, sem texto fora do JSON, APENAS o JSON
 """
 
 
 def _detect_mime(raw_b64: str) -> str:
     """Detecta mime a partir dos primeiros bytes do base64."""
-    # PNG: iVBOR, JPEG: /9j/, WebP: UklGR
     if raw_b64.startswith("/9j/"):
         return "image/jpeg"
     if raw_b64.startswith("iVBOR"):
@@ -47,17 +63,22 @@ def _detect_mime(raw_b64: str) -> str:
     return "image/jpeg"
 
 
+def _trim(val: str, max_words: int = 6) -> str:
+    words = str(val or "").strip().split()
+    return " ".join(words[:max_words])
+
+
 async def extrair_dna(imagens_b64: list[str], api_key: str) -> dict:
-    """Extrai DNA visual (4 linhas) comum a multiplas imagens de referencia.
+    """Extrai DNA curto + padrao_visual rico a partir de multiplas refs.
 
     Args:
         imagens_b64: lista de imagens em base64 (com ou sem data URI prefix).
-                     Analise agregada pra extrair o DNA REAL da marca, nao
-                     cores pontuais de uma foto isolada.
+                     Analise agregada pra extrair o padrao REAL da marca.
         api_key: Gemini API key
 
     Returns:
-        dict com chaves 'estilo', 'cores', 'tipografia', 'elementos'
+        dict com chaves 'estilo', 'cores', 'tipografia', 'elementos' (backcompat)
+        + 'padrao_visual' com os campos ricos.
 
     Raises:
         ValueError: se lista vazia
@@ -88,7 +109,7 @@ async def extrair_dna(imagens_b64: list[str], api_key: str) -> dict:
     model = "gemini-2.5-flash"
     url = GEMINI_API_URL.format(model=model)
 
-    async with httpx.AsyncClient(timeout=90.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         res = await client.post(url, json=payload, headers={"x-goog-api-key": api_key})
         res.raise_for_status()
         data = res.json()
@@ -107,14 +128,33 @@ async def extrair_dna(imagens_b64: list[str], api_key: str) -> dict:
 
     result = json.loads(text.strip())
 
-    # Normalizar: garantir as 4 chaves, cortar em 6 palavras
-    def _trim(val: str, max_words: int = 6) -> str:
-        words = str(val or "").strip().split()
-        return " ".join(words[:max_words])
-
-    return {
-        "estilo": _trim(result.get("estilo", "")),
-        "cores": _trim(result.get("cores", "")),
-        "tipografia": _trim(result.get("tipografia", "")),
-        "elementos": _trim(result.get("elementos", "")),
+    # Extrair DNA curto (backcompat com prompt composer)
+    dna_raw = result.get("dna", {}) if isinstance(result, dict) else {}
+    dna = {
+        "estilo": _trim(dna_raw.get("estilo", "")),
+        "cores": _trim(dna_raw.get("cores", "")),
+        "tipografia": _trim(dna_raw.get("tipografia", "")),
+        "elementos": _trim(dna_raw.get("elementos", "")),
     }
+
+    # Padrao visual rico (campos novos que alimentam o art_director)
+    padrao = result.get("padrao_visual", {}) if isinstance(result, dict) else {}
+    if isinstance(padrao, dict):
+        composicoes = padrao.get("composicoes") or []
+        if not isinstance(composicoes, list):
+            composicoes = [str(composicoes)]
+        paleta = padrao.get("paleta_dominante") or []
+        if not isinstance(paleta, list):
+            paleta = []
+        dna["padrao_visual"] = {
+            "tipo_foto": str(padrao.get("tipo_foto", "")).strip(),
+            "composicoes": [str(c).strip() for c in composicoes if str(c).strip()][:3],
+            "fundo_cenario": str(padrao.get("fundo_cenario", "")).strip(),
+            "iluminacao": str(padrao.get("iluminacao", "")).strip(),
+            "mood": str(padrao.get("mood", "")).strip(),
+            "elementos_overlay": str(padrao.get("elementos_overlay", "")).strip(),
+            "paleta_dominante": [str(c).strip() for c in paleta if str(c).strip()][:5],
+            "relacao_pessoa_fundo": str(padrao.get("relacao_pessoa_fundo", "")).strip(),
+        }
+
+    return dna
