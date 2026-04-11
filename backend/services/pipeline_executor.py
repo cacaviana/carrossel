@@ -538,6 +538,7 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         brand_slug=brand_slug,
         avatar_mode=avatar_mode,
         formato=formato,
+        pipeline_id=context.get("_pipeline_id"),
     )
 
     # PASS 2: Correcao automatica de avatar nos slides com pessoa

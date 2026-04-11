@@ -189,58 +189,58 @@ def build_payload(
     brand_slug: str | None = None,
     avatar_mode: str = "livre",
     formato: str = "carrossel",
+    refs_fixas: dict | None = None,
 ) -> tuple[str, dict]:
-    """Retorna (model, payload) prontos para envio a API Gemini."""
+    """Retorna (model, payload) prontos para envio a API Gemini.
+
+    Args:
+        refs_fixas: dict com refs pre-sorteadas por pool (resultado de
+                    refs_selector.escolher_refs_fixas). Se None, cai
+                    em fallback legado (_load_all_references).
+    """
     model = select_model(slide, position, total)
 
     prompt = PromptComposer.compor_prompt_imagem(
         slide, position, total, brand_slug or "", formato=formato
     )
 
-    slide_type = slide.get("type", "content")
+    avatar_images = _load_avatars(brand_slug) if brand_slug else []
 
-    # Assets da marca baseado no avatar_mode
-    from services.brand_prompt_builder import get_brand_assets
-    usar_assets = False
-    if avatar_mode == "sem":
-        usar_assets = False
-    elif avatar_mode == "capa":
-        usar_assets = (position == 1)  # so na capa
-    elif avatar_mode == "sim":
-        usar_assets = True  # sempre
-    elif avatar_mode == "livre":
-        usar_assets = True  # art director decide, manda os assets pra ele ter opcao
+    # REGRA DE OURO (Fase 3): selecao fixa de REF1 + REF2 por pool
+    from factories.refs_selector import get_refs_do_slide, decidir_pool
 
-    assets = get_brand_assets(brand_slug) if (brand_slug and usar_assets) else []
+    if refs_fixas is None and brand_slug:
+        # Fallback: se ninguem passou refs_fixas, gera aqui com pipeline_id generico
+        from factories.refs_selector import escolher_refs_fixas
+        refs_fixas = escolher_refs_fixas(brand_slug, f"fallback-{brand_slug}")
+
+    refs_slide = get_refs_do_slide(refs_fixas, avatar_mode, position, total) if refs_fixas else None
+    ref1_estilo = refs_slide["ref1_estilo"] if refs_slide else None
+    ref2_composicao = refs_slide["ref2_composicao"] if refs_slide else None
+    pool_atual = decidir_pool(avatar_mode, position, total) if brand_slug else "sem_avatar"
 
     parts: list[dict] = []
 
-    # Combinar refs + avatares como assets (como era ontem)
-    ref_images = _load_all_references(brand_slug) if brand_slug else []
-    avatar_images = _load_avatars(brand_slug) if brand_slug else []
-    all_assets = ref_images + avatar_images
+    if ref1_estilo:
+        from utils.dimensions import get_prompt_size_str
 
-    # Se tem refs, prompt CURTO — a imagem de referencia ja define o estilo
-    if ref_images:
-        import random
-        from utils.dimensions import get_dims, get_prompt_size_str
-
-        # Decidir se este slide deve ter a pessoa
+        # Decidir se este slide vai ter a pessoa (avatar)
         is_capa_ou_cta = (position == 1 or position == total)
         include_avatar = bool(avatar_images) and avatar_mode != "sem" and (
             avatar_mode == "sim" or
             (avatar_mode in ("livre", "capa") and is_capa_ou_cta)
         )
+        # Se pool escolhido pra esse slide eh sem_avatar, NAO inclui avatar
+        if pool_atual == "sem_avatar":
+            include_avatar = False
 
-        # ESTRATEGIA QUE FUNCIONA (igual ao pipeline antigo):
-        # Manda 1 ref de estilo + TODOS os avatares juntos (2-3 fotos da mesma pessoa)
-        # Isso deixa claro pro Gemini que e SEMPRE a mesma pessoa especifica.
-        # Variar ref de estilo por slide pra nao repetir composicao
-        ref = ref_images[(position - 1) % len(ref_images)]
-        parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
+        # Injeta REF1 (estilo) e REF2 (composicao) na ordem — ordem importa
+        parts.append({"inline_data": {"mime_type": "image/png", "data": ref1_estilo}})
+        if ref2_composicao and ref2_composicao != ref1_estilo:
+            parts.append({"inline_data": {"mime_type": "image/png", "data": ref2_composicao}})
 
         if include_avatar:
-            # Mandar TODOS os avatares (ate 3) juntos
+            # Manda TODOS os avatares (ate 3) juntos pra garantir a mesma pessoa
             for av in avatar_images[:3]:
                 parts.append({"inline_data": {"mime_type": "image/png", "data": av}})
 
@@ -250,26 +250,33 @@ def build_payload(
         bullets = slide.get("bullets", [])
         body = "\n".join(f"- {b}" for b in bullets) if bullets else subline
 
-        dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
 
-        # Prompt direto no estilo do pipeline antigo que funcionou
-        p = f"Create a {size_str} social media image in the EXACT visual style of the first reference image.\n"
-        p += "Match: same exact colors, same exact fonts, same exact decorative elements (stickers, badges, doodles), same background style.\n\n"
+        # REGRA DE OURO no prompt — REF1 = estilo, REF2 = composicao
+        p = f"Create a {size_str} social media image following this GOLDEN RULE:\n\n"
+        if ref2_composicao and ref2_composicao != ref1_estilo:
+            p += (
+                "REFERENCE 1 (STYLE DNA): copy colors, fonts, vibe, doodles from this image. Do NOT copy its layout.\n"
+                "REFERENCE 2 (LAYOUT): copy where text lives, image proportions, composition from this image. Do NOT copy its colors.\n"
+                "HIERARCHY: layout from REF2 > style from REF1 > new content adapts to both.\n\n"
+            )
+        else:
+            p += (
+                "REFERENCE (STYLE+LAYOUT): copy colors, fonts, vibe, doodles, and composition from this image.\n\n"
+            )
 
         if include_avatar:
             num_avatars = min(3, len(avatar_images))
             p += (
                 f"The following {num_avatars} photos show the SAME person of this brand from different angles. "
                 f"USE THIS SPECIFIC PERSON in the slide — her real face, her real identity, exactly as she looks in those photos. "
-                f"Keep her recognizable as the same woman from the photos. "
-                f"You can give her a new pose or angle, but it must clearly be HER.\n\n"
+                f"Keep her recognizable. New pose/angle ok, but it must clearly be HER.\n\n"
             )
         else:
             p += "NO person, NO face in this image. Focus on text, decorations and background.\n\n"
 
-        # Texto EXATO — proibir inventar texto adicional
-        p += f"=== TEXT TO DISPLAY (use EXACTLY this, nothing else) ===\n"
+        # Texto EXATO — proibir inventar
+        p += "=== TEXT TO DISPLAY (use EXACTLY this, nothing else) ===\n"
         p += f"HEADLINE: {headline}\n"
         if body:
             p += f"BODY: {body}\n"
@@ -278,20 +285,8 @@ def build_payload(
         p += "\nNo nudity, no violence."
 
         parts.append({"text": p})
-
-    elif all_assets or assets:
-        # Assets sem refs separadas (fallback legado)
-        import random
-        combined = all_assets if all_assets else assets
-        refs = random.sample(combined, min(2, len(combined)))
-        for r in refs:
-            parts.append({"inline_data": {"mime_type": "image/png", "data": r}})
-        avatar_instruction = (
-            "Use the characters/person from the reference images in this slide. "
-            "Keep the SAME appearance but in new poses related to the topic. "
-        )
-        parts.append({"text": avatar_instruction + prompt})
     else:
+        # Sem refs disponiveis — prompt puro
         parts.append({"text": prompt})
 
     payload = {

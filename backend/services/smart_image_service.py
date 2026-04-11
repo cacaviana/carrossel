@@ -33,11 +33,17 @@ async def gerar_imagens_smart(
     avatar_mode: str = "livre",
     formato: str = "carrossel",
     skip_validation: bool = False,
+    pipeline_id: str | None = None,
 ) -> list[str | None]:
     """Gera imagens com fallback inteligente pra texto errado.
 
     Usa asyncio.gather com semaforo para paralelizar chamadas ao Gemini,
     limitando a MAX_CONCURRENT_SLIDES simultaneas pra respeitar rate limit.
+
+    Args:
+        pipeline_id: ID do pipeline (usado como seed pra refs_selector).
+                     Garante que todos os slides do mesmo carrossel usem
+                     as mesmas REF1/REF2 fixas (Fase 3).
     """
     if not gemini_api_key:
         gemini_api_key = os.getenv("GEMINI_API_KEY", "")
@@ -45,6 +51,13 @@ async def gerar_imagens_smart(
     brand = carregar_brand(brand_slug) if brand_slug else None
     total = len(slides)
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_SLIDES)
+
+    # REGRA DE OURO (Fase 3): sortear REF1/REF2 UMA VEZ por carrossel
+    refs_fixas = None
+    if brand_slug:
+        from factories.refs_selector import escolher_refs_fixas
+        seed = pipeline_id or f"default-{brand_slug}"
+        refs_fixas = escolher_refs_fixas(brand_slug, seed)
 
     async def process_slide(i: int, slide: dict) -> tuple[int, str | None]:
         async with semaphore:
@@ -57,6 +70,7 @@ async def gerar_imagens_smart(
                         avatar_mode=avatar_mode,
                         formato=formato,
                         skip_validation=skip_validation,
+                        refs_fixas=refs_fixas,
                     )
                 return (i, img)
             except Exception as e:
@@ -92,11 +106,12 @@ async def _gerar_slide_smart(
     avatar_mode: str = "livre",
     formato: str = "carrossel",
     skip_validation: bool = False,
+    refs_fixas: dict | None = None,
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
     # Passo 1: Gemini gera imagem completa (otimista)
-    model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato)
+    model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato, refs_fixas=refs_fixas)
     res = await client.post(
         API_URL.format(model=model),
         json=payload,
