@@ -95,7 +95,7 @@ test.describe('Fases refatoracao — backend smoke tests', () => {
 
   test('Fase 5: DTO rejeita max_slides invalido pra modo ideia', async () => {
     // max_slides=7 com modo_entrada=ideia deve falhar
-    const res = await fetch(`${BACKEND}/api/pipelines`, {
+    const res = await fetch(`${BACKEND}/api/pipelines/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -110,7 +110,7 @@ test.describe('Fases refatoracao — backend smoke tests', () => {
   });
 
   test('Fase 5: DTO aceita max_slides=4 pra modo ideia', async () => {
-    const res = await fetch(`${BACKEND}/api/pipelines`, {
+    const res = await fetch(`${BACKEND}/api/pipelines/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
