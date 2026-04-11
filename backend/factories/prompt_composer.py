@@ -74,7 +74,28 @@ class PromptComposer:
         brand_slug: str = "",
         formato: str = "carrossel",
     ) -> str:
-        """Junta as 4 camadas e retorna prompt final para geracao de imagem."""
+        """Junta as camadas e retorna prompt final para geracao de imagem.
+
+        Fase 6: se USE_NEW_PROMPT_MODULES=1 (default), usa os 7 modulos
+        composaveis do backend/prompt_modules/. Senao, cai no legado de
+        4 camadas. Feature flag permite rollback rapido.
+        """
+        import os
+
+        use_new = os.getenv("USE_NEW_PROMPT_MODULES", "1") == "1"
+        if use_new:
+            novo = PromptComposer._compor_com_modules(
+                slide, position, total, brand_slug, formato
+            )
+            if novo and len(novo) > 200:
+                # Adicionar instrucao extra se houver
+                instrucao = slide.get("instrucao_extra", "")
+                if instrucao:
+                    novo += f"\n\nINSTRUCAO ADICIONAL DO USUARIO: {instrucao}"
+                return novo
+            # Se falhou, cai no legado
+
+        # --- Legado (4 camadas) ---
         camada_seg = SEGURANCA_IMAGEM.strip()
         camada_plat = PromptComposer._camada_plataforma(formato)
         camada_marca = PromptComposer._camada_marca_imagem(brand_slug)
@@ -95,6 +116,58 @@ class PromptComposer:
         import time
         prompt += f"\n\n[variation-id:{random.randint(10000, 99999)}-{int(time.time())}] Crie uma composicao visual UNICA. Varie posicao dos elementos, angulo da ilustracao e intensidade dos efeitos."
         return prompt
+
+    @staticmethod
+    def _compor_com_modules(
+        slide: dict,
+        position: int,
+        total: int,
+        brand_slug: str,
+        formato: str,
+    ) -> str:
+        """Fase 6: chama os 7 modulos composaveis do backend/prompt_modules/.
+
+        Decide imagem_ativa e cta_forca baseado no tipo do slide.
+        """
+        try:
+            from prompt_modules.composer import montar
+        except Exception:
+            return ""
+
+        # Mapear formato_id do sistema pros modulos (thumb, post_unico, carrossel)
+        formato_map = {
+            "carrossel": "carrossel",
+            "post_unico": "post_unico",
+            "thumbnail_youtube": "thumb",
+            "thumb": "thumb",
+            "capa_reels": "post_unico",
+        }
+        formato_id = formato_map.get(formato, "carrossel")
+
+        # Decidir cta_forca: CTA slide final = 'forte'; slide tipo 'cta' = 'forte';
+        # capa (slide 1) = 'inativo'; resto = 'padrao'
+        slide_type = (slide.get("type") or "").lower()
+        if slide_type == "cta" or (position == total and total > 1):
+            cta_forca = "forte"
+        elif position == 1:
+            cta_forca = "inativo"
+        else:
+            cta_forca = "padrao"
+
+        # Imagem sempre ativa nos formatos visuais
+        imagem_ativa = True
+
+        brand = carregar_brand(brand_slug) if brand_slug else None
+
+        try:
+            return montar(
+                formato_id=formato_id,
+                brand=brand,
+                imagem_ativa=imagem_ativa,
+                cta_forca=cta_forca,
+            )
+        except Exception:
+            return ""
 
     # ------------------------------------------------------------------
     # Prompt de TEXTO (conteudo / copy)

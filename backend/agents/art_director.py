@@ -94,8 +94,39 @@ async def executar(
     if visual_memory:
         user_prompt += f"\nPreferencias visuais do usuario:\n{visual_memory}\n"
 
-    # Avatar: pedir illustration_description com cena de pessoa
-    needs_scene = avatar_mode in ("sim", "capa")
+    # Fase 6 fix: avatar_mode diz quais slides podem ter pessoa.
+    # - "sem": nenhum slide tem pessoa
+    # - "capa": so slide 1 (capa)
+    # - "livre": capa (slide 1) + CTA (slide final)
+    # - "sim": todos os slides
+    # Instruir o Art Director por slide especifico.
+    slides_lista = copy.get("slides", []) if isinstance(copy, dict) else []
+    total_slides = len(slides_lista)
+
+    def _slide_tem_pessoa(idx_1based: int) -> bool:
+        if avatar_mode == "sem":
+            return False
+        if avatar_mode == "sim":
+            return True
+        if avatar_mode == "capa":
+            return idx_1based == 1
+        # livre
+        return idx_1based == 1 or idx_1based == total_slides
+
+    regras_por_slide = []
+    for i, _ in enumerate(slides_lista, start=1):
+        tem = _slide_tem_pessoa(i)
+        regras_por_slide.append(f"  slide {i}: {'COM pessoa' if tem else 'SEM pessoa (objetos, cenario, sem gente)'}")
+    if regras_por_slide:
+        user_prompt += (
+            "\n=== REGRAS DE PESSOA POR SLIDE (OBRIGATORIAS) ===\n"
+            f"avatar_mode='{avatar_mode}' — use EXATAMENTE:\n"
+            + "\n".join(regras_por_slide)
+            + "\nNAO descreva pessoa em slides marcados SEM pessoa. Foco em objetos, cenario, texturas.\n"
+            "=== FIM REGRAS ===\n"
+        )
+
+    needs_scene = avatar_mode in ("sim", "capa", "livre")
 
     if has_references or needs_scene:
         scene_instruction = (
