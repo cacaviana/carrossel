@@ -68,10 +68,10 @@
 		}
 	});
 
-	const MAX_SLIDES = 9; // incluindo capa e CTA
+	const MAX_SLIDES = 7; // maximo de slides texto_pronto (Fase 5)
 	const MAX_CHARS_SLIDE = 500;
 	const MAX_CHARS_IDEIA = 2000;
-	let maxSlidesIdeia = $state(7);
+	let maxSlidesIdeia = $state(5);
 
 	function adicionarSlide() {
 		if (slidesTexto.length >= MAX_SLIDES) return;
@@ -416,7 +416,7 @@
 						<div class="flex items-center gap-2">
 							<span class="text-xs text-text-muted">Max slides:</span>
 							<div class="flex gap-1">
-								{#each [3, 5, 7, 10] as n}
+								{#each [3, 4, 5] as n}
 									<button
 										onclick={() => maxSlidesIdeia = n}
 										class="w-7 h-7 rounded-full text-xs font-medium transition-all cursor-pointer
