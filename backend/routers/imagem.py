@@ -141,17 +141,14 @@ async def image_to_base64(data: dict):
                 b64 = base64.b64encode(Path(path).read_bytes()).decode()
                 return {"data_uri": f"data:image/png;base64,{b64}"}
 
-        # Brand foto: /api/brands/{slug}/foto/file
+        # Brand foto: /api/brands/{slug}/foto/file — le do Mongo
         m = re.search(r"/brands/([^/]+)/foto/file", url)
         if m:
             slug = m.group(1)
-            assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / slug
-            if assets_dir.exists():
-                for f in sorted(assets_dir.iterdir()):
-                    if f.stem.startswith("avatar") and f.suffix.lower() in (".jpg", ".jpeg", ".png"):
-                        b64 = base64.b64encode(f.read_bytes()).decode()
-                        mime = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
-                        return {"data_uri": f"data:{mime};base64,{b64}"}
+            from services.brand_service import buscar_foto_brand
+            result = buscar_foto_brand(slug)
+            if result.get("foto"):
+                return {"data_uri": result["foto"]}
 
         # Fallback: fetch via httpx (para outras URLs internas)
         import httpx

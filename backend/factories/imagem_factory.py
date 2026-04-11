@@ -1,42 +1,47 @@
-"""Factory de imagem — monta prompts e payloads para Gemini usando PromptComposer (4 camadas)."""
+"""Factory de imagem — monta prompts e payloads para Gemini usando PromptComposer (4 camadas).
+
+Todas as leituras de assets (refs + avatares) sao feitas APENAS no MongoDB.
+Sem fallback disco — disco eh efemero em deploy cloud.
+"""
 
 import base64
-from pathlib import Path
 
 from factories.prompt_composer import PromptComposer
-from services.brand_prompt_builder import get_reference_image_path, carregar_brand
+from services.brand_prompt_builder import carregar_brand
 
-def _load_avatars(brand_slug: str) -> list[str]:
-    """Carrega fotos de avatar da marca (tudo que NAO e ref_*).
-    Busca no MongoDB primeiro, disco como fallback."""
+
+def _get_mongo_docs(brand_slug: str) -> list[dict]:
+    """Carrega todos os docs de brand_assets da marca. Retorna [] se Mongo indisponivel."""
     if not brand_slug:
         return []
-
-    avatars = []
-    # MongoDB
     try:
         from data.connections.mongo_connection import get_mongo_db
         db = get_mongo_db()
-        if db:
-            docs = list(db["brand_assets"].find({"slug": brand_slug}))
-            for doc in docs:
-                nome = doc.get("nome", "")
-                if nome.startswith("ref_") or nome == "__foto__":
-                    continue
-                data_uri = doc.get("data_uri", "")
-                if data_uri:
-                    raw = data_uri.split(",")[1] if "," in data_uri else data_uri
-                    avatars.append(raw)
+        if db is None:
+            return []
+        return list(db["brand_assets"].find({"slug": brand_slug}))
     except Exception:
-        pass
+        return []
 
-    # Fallback disco
-    if not avatars:
-        assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
-        if assets_dir.exists():
-            for f in sorted(assets_dir.iterdir()):
-                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and not f.stem.startswith("ref_"):
-                    avatars.append(base64.b64encode(f.read_bytes()).decode())
+
+def _data_uri_to_raw(data_uri: str) -> str:
+    """Extrai o base64 puro de um data URI."""
+    return data_uri.split(",")[1] if "," in data_uri else data_uri
+
+
+def _load_avatars(brand_slug: str) -> list[str]:
+    """Carrega fotos de avatar da marca (tudo que NAO eh ref_* e NAO eh __foto__).
+
+    Retorna ate 3 base64. So le do MongoDB.
+    """
+    avatars = []
+    for doc in _get_mongo_docs(brand_slug):
+        nome = doc.get("nome", "")
+        if nome == "__foto__" or nome.startswith("ref_"):
+            continue
+        data_uri = doc.get("data_uri", "")
+        if data_uri:
+            avatars.append(_data_uri_to_raw(data_uri))
     return avatars[:3]
 
 
@@ -68,94 +73,38 @@ def _load_references_by_pool(brand_slug: str, pool: str) -> list[str]:
         pool: 'com_avatar' | 'sem_avatar'
 
     Returns:
-        Lista de base64 (ate 5 refs do pool).
+        Lista de base64 (ate 5 refs do pool). So le do MongoDB.
     """
-    if not brand_slug or pool not in ("com_avatar", "sem_avatar"):
+    if pool not in ("com_avatar", "sem_avatar"):
         return []
 
     refs = []
-    # MongoDB
-    try:
-        from data.connections.mongo_connection import get_mongo_db
-        db = get_mongo_db()
-        if db:
-            docs = list(db["brand_assets"].find({"slug": brand_slug}))
-            for doc in docs:
-                nome = doc.get("nome", "")
-                if not _nome_match_pool(nome, pool):
-                    continue
-                data_uri = doc.get("data_uri", "")
-                if data_uri:
-                    raw = data_uri.split(",")[1] if "," in data_uri else data_uri
-                    refs.append(raw)
-    except Exception:
-        pass
-
-    # Fallback disco
-    if not refs:
-        assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
-        if assets_dir.exists():
-            for f in sorted(assets_dir.iterdir()):
-                if f.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
-                    continue
-                if not _nome_match_pool(f.stem, pool):
-                    continue
-                if f.stat().st_size < 50 * 1024:
-                    continue
-                refs.append(base64.b64encode(f.read_bytes()).decode())
+    for doc in _get_mongo_docs(brand_slug):
+        nome = doc.get("nome", "")
+        if not _nome_match_pool(nome, pool):
+            continue
+        data_uri = doc.get("data_uri", "")
+        if data_uri:
+            refs.append(_data_uri_to_raw(data_uri))
 
     return refs[:5]
 
 
 def _load_all_references(brand_slug: str) -> list[str]:
-    """Carrega TODAS as imagens de referência (ref_*) da marca — ambos os pools.
-    Busca no MongoDB primeiro, disco como fallback.
+    """Carrega TODAS as imagens de referencia (ref_*) da marca — ambos os pools.
 
     Mantido pra compatibilidade com o pipeline atual. Na Fase 3 (refs_selector),
     essa funcao sera substituida por chamadas a `_load_references_by_pool` por pool.
     """
-    if not brand_slug:
-        return []
-
     refs = []
-    # MongoDB
-    try:
-        from data.connections.mongo_connection import get_mongo_db
-        db = get_mongo_db()
-        if db:
-            docs = list(db["brand_assets"].find({"slug": brand_slug}))
-            for doc in docs:
-                nome = doc.get("nome", "")
-                if not nome.startswith("ref_"):
-                    continue
-                data_uri = doc.get("data_uri", "")
-                if data_uri:
-                    raw = data_uri.split(",")[1] if "," in data_uri else data_uri
-                    refs.append(raw)
-    except Exception:
-        pass
-
-    # Fallback disco
-    if not refs:
-        assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / brand_slug
-        if assets_dir.exists():
-            for f in sorted(assets_dir.glob("ref_*")):
-                if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and f.stat().st_size >= 50 * 1024:
-                    refs.append(base64.b64encode(f.read_bytes()).decode())
-
-    # Referência principal do JSON
-    ref_principal = _load_reference_for_brand(brand_slug)
-    if ref_principal and ref_principal not in refs:
-        refs.insert(0, ref_principal)
+    for doc in _get_mongo_docs(brand_slug):
+        nome = doc.get("nome", "")
+        if not nome.startswith("ref_"):
+            continue
+        data_uri = doc.get("data_uri", "")
+        if data_uri:
+            refs.append(_data_uri_to_raw(data_uri))
     return refs[:5]
-
-
-def _load_reference_for_brand(brand_slug: str) -> str | None:
-    """Carrega imagem de referencia da marca (sem cache — sempre le do disco)."""
-    ref_path = get_reference_image_path(brand_slug)
-    if ref_path:
-        return base64.b64encode(ref_path.read_bytes()).decode()
-    return None
 
 
 def _build_style_instruction(brand_slug: str) -> str:

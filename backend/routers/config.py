@@ -235,27 +235,26 @@ async def buscar_foto_brand(slug: str):
 
 @router.get("/brands/{slug}/foto/file")
 async def servir_foto_brand(slug: str):
-    """Serve o arquivo da foto da marca direto do disco (JPG/PNG)."""
-    from pathlib import Path
-    fotos_dir = Path(__file__).parent.parent / "assets" / "fotos"
-    for ext in ("jpg", "png", "jpeg"):
-        path = fotos_dir / f"{slug}.{ext}"
-        if path.exists():
-            media = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
-            return FileResponse(path, media_type=media)
-    raise HTTPException(status_code=404, detail="Foto nao encontrada")
+    """Serve a foto da marca como bytes. Le do MongoDB."""
+    from fastapi.responses import Response
+    from services.brand_service import buscar_foto_brand_bytes
+    result = buscar_foto_brand_bytes(slug)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Foto nao encontrada")
+    data, mime = result
+    return Response(content=data, media_type=mime)
 
 
 @router.get("/brands/{slug}/assets/{nome}/file")
 async def servir_asset_brand(slug: str, nome: str):
-    """Serve arquivo de asset da marca direto do disco (JPG/PNG)."""
-    from pathlib import Path
-    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / slug
-    for f in assets_dir.glob(f"{nome}.*"):
-        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
-            media = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
-            return FileResponse(f, media_type=media)
-    raise HTTPException(status_code=404, detail=f"Asset '{nome}' nao encontrado")
+    """Serve um asset da marca como bytes. Le do MongoDB."""
+    from fastapi.responses import Response
+    from services.brand_service import buscar_asset_bytes
+    result = buscar_asset_bytes(slug, nome)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Asset '{nome}' nao encontrado")
+    data, mime = result
+    return Response(content=data, media_type=mime)
 
 
 @router.post("/editor/corrigir-texto")
