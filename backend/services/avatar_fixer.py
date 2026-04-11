@@ -47,33 +47,43 @@ async def corrigir_avatar(
     # Prompt direto: identifica a pessoa primeiro, depois pede a troca
     num_refs = len(avatares_para_usar)
 
+    # Linguagem NEUTRA de genero. Hardcoding "woman/she/her" quebrava
+    # brands com avatar masculino (ex: Carlos da itvalley) — o Gemini recebia
+    # pronomes femininos + fotos de homem e ficava confuso, feminizando ou
+    # trocando por outra pessoa.
     if num_refs >= 3:
         person_intro = (
-            "IMPORTANT: Photos 2, 3, and 4 show the SAME woman from different angles. "
-            "This is the brand's real content creator. Study her face carefully across "
-            "all three photos to understand her identity — her face shape, eyes, nose, "
-            "mouth, hair, and skin tone."
+            "IMPORTANT: Photos 2, 3, and 4 show the SAME person from different angles. "
+            "This is the brand's real content creator. Study their face carefully across "
+            "all three photos to understand their identity — face shape, eyes, nose, "
+            "mouth, hair, facial hair (if any), skin tone, gender, and approximate age."
         )
     elif num_refs == 2:
         person_intro = (
-            "IMPORTANT: Photos 2 and 3 show the SAME woman from different angles. "
-            "Study her face carefully across both photos to understand her identity."
+            "IMPORTANT: Photos 2 and 3 show the SAME person from different angles. "
+            "Study their face carefully across both photos to understand their identity, "
+            "including gender and approximate age."
         )
     else:
-        person_intro = "IMPORTANT: Photo 2 shows the brand's real content creator."
+        person_intro = (
+            "IMPORTANT: Photo 2 shows the brand's real content creator. "
+            "Study their face, gender, and approximate age carefully."
+        )
 
     prompt = (
         f"{person_intro}\n\n"
-        f"Photo 1 is a social media post where a DIFFERENT woman appears. "
-        f"I need you to regenerate photo 1 with the SAME woman from photos 2-{num_refs + 1} instead.\n\n"
+        f"Photo 1 is a social media post where a DIFFERENT person appears. "
+        f"I need you to regenerate photo 1 with the SAME person from photos 2-{num_refs + 1} instead.\n\n"
         f"Requirements:\n"
-        f"- The woman in the result MUST be the one from photos 2-{num_refs + 1}. Same face, "
-        f"same features, same identity. Not a different person.\n"
+        f"- The person in the result MUST be the one from photos 2-{num_refs + 1}. Same face, "
+        f"same features, same identity, same gender, same age range. Not a different person.\n"
+        f"- Do NOT change the gender. If photos 2-{num_refs + 1} show a man, keep him as a man. "
+        f"If they show a woman, keep her as a woman. Match exactly.\n"
         f"- Keep the EXACT same scene as photo 1: same pose, same framing, same outfit, "
         f"same lighting, same background, same text, same decorations, same everything.\n"
-        f"- The woman should look natural in the scene, not pasted. Her face must blend "
+        f"- The person should look natural in the scene, not pasted. Their face must blend "
         f"with the scene's lighting and skin tone.\n"
-        f"- Think of it as: 'if SHE had posed for photo 1, what would it look like?'\n\n"
+        f"- Think of it as: 'if THIS person had posed for photo 1, what would it look like?'\n\n"
         f"No nudity, no violence."
     )
     parts.append({"text": prompt})
