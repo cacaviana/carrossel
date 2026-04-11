@@ -385,11 +385,26 @@ def build_payload(
         # Sem refs disponiveis — prompt puro
         parts.append({"text": prompt})
 
+    # Aspect ratio via imageConfig — Gemini ignora hints no texto do prompt.
+    # Mapeia formato -> ratio Gemini (suporta 1:1, 3:4, 4:3, 9:16, 16:9, 4:5, 5:4).
+    from utils.dimensions import get_dims
+    dims = get_dims(formato)
+    ratio_map = {
+        "4:5": "4:5",      # carrossel LinkedIn portrait
+        "1:1": "1:1",      # post unico
+        "16:9": "16:9",    # thumbnail youtube
+        "9:16": "9:16",    # reels
+    }
+    gemini_ratio = ratio_map.get(dims.get("ratio", "4:5"), "4:5")
+
     payload = {
         "contents": [{"parts": parts}],
         "generationConfig": {
             "responseModalities": ["IMAGE", "TEXT"],
             "temperature": 0.9,
+            "imageConfig": {
+                "aspectRatio": gemini_ratio,
+            },
         },
     }
     return model, payload

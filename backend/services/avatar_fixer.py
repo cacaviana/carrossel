@@ -83,6 +83,11 @@ async def corrigir_avatar(
         "generationConfig": {
             "responseModalities": ["IMAGE", "TEXT"],
             "temperature": 0.1,  # baixo pra nao improvisar
+            # PASS2 mantem o mesmo aspect ratio da imagem original (4:5 pra carrossel).
+            # Default carrossel pq o avatar_fixer nao recebe formato — seguro assumir.
+            "imageConfig": {
+                "aspectRatio": "4:5",
+            },
         },
     }
 

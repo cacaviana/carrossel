@@ -550,18 +550,22 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
     # Pass 2 pega essa imagem + 3 fotos do avatar real e troca APENAS o rosto
     # mantendo pose/cena/iluminacao. Resolve o problema de Gemini alucinar a
     # face no pass unico (ex: Carlos virando outra pessoa).
+    print(f"[pass2] iniciando — brand={brand_slug} avatar_mode={avatar_mode} total_imgs={len(images)}")
     if brand_slug and avatar_mode != "sem":
         from factories.imagem_factory import _load_avatars
-        brand_has_avatar = len(_load_avatars(brand_slug)) > 0
+        avatars_count = len(_load_avatars(brand_slug))
+        brand_has_avatar = avatars_count > 0
+        print(f"[pass2] brand_has_avatar={brand_has_avatar} avatars={avatars_count}")
 
         if brand_has_avatar:
             from services.avatar_fixer import corrigir_avatar
 
             total_slides = len(slides)
             for i, img in enumerate(images):
-                if not img:
-                    continue
                 position = i + 1
+                if not img:
+                    print(f"[pass2] slide {position}: sem imagem do pass1, skip")
+                    continue
                 is_capa_ou_cta = (position == 1 or position == total_slides)
                 should_fix = (
                     avatar_mode == "sim" or
@@ -571,15 +575,24 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
                 if avatar_mode == "capa" and position != 1:
                     should_fix = False
                 if not should_fix:
+                    print(f"[pass2] slide {position}: nao precisa corrigir (mode={avatar_mode}, capa/cta={is_capa_ou_cta})")
                     continue
 
                 try:
-                    print(f"[pass2] Slide {position}: corrigindo avatar...")
-                    images[i] = await corrigir_avatar(img, brand_slug, gemini_api_key)
-                    print(f"[pass2] Slide {position}: OK")
+                    print(f"[pass2] slide {position}: corrigindo avatar... (img len={len(img) if isinstance(img, str) else 'nao-str'})")
+                    result = await corrigir_avatar(img, brand_slug, gemini_api_key)
+                    if result and len(result) > 100:
+                        images[i] = result
+                        print(f"[pass2] slide {position}: OK (nova img len={len(result)})")
+                    else:
+                        print(f"[pass2] slide {position}: corrigir_avatar retornou vazio, mantendo pass1")
                 except Exception as e:
-                    print(f"[pass2] Slide {position} falhou: {type(e).__name__}: {e}")
+                    import traceback
+                    print(f"[pass2] slide {position} FALHOU: {type(e).__name__}: {e}")
+                    print(f"[pass2] traceback:\n{traceback.format_exc()}")
                     # mantem a imagem do pass 1 em caso de erro
+    else:
+        print(f"[pass2] skipped — brand_slug={brand_slug} avatar_mode={avatar_mode}")
 
     # Salvar imagens no disco ao inves de base64 no banco
     from utils.pipeline_images import salvar_imagem
