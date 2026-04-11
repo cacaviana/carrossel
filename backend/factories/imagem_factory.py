@@ -205,19 +205,24 @@ def build_payload(
         import random
         from utils.dimensions import get_dims, get_prompt_size_str
 
-        # Variar ref por slide (cada slide usa uma ref diferente se tiver varias)
-        ref = ref_images[(position - 1) % len(ref_images)]
-        parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
-
-        # Avatar separado — so capa e CTA pra nao ficar colagem repetida
+        # Decidir se este slide deve ter a pessoa
         is_capa_ou_cta = (position == 1 or position == total)
-        include_avatar = avatar_images and avatar_mode != "sem" and (
+        include_avatar = bool(avatar_images) and avatar_mode != "sem" and (
             avatar_mode == "sim" or
             (avatar_mode in ("livre", "capa") and is_capa_ou_cta)
         )
+
+        # ESTRATEGIA QUE FUNCIONA (igual ao pipeline antigo):
+        # Manda 1 ref de estilo + TODOS os avatares juntos (2-3 fotos da mesma pessoa)
+        # Isso deixa claro pro Gemini que e SEMPRE a mesma pessoa especifica.
+        # Variar ref de estilo por slide pra nao repetir composicao
+        ref = ref_images[(position - 1) % len(ref_images)]
+        parts.append({"inline_data": {"mime_type": "image/png", "data": ref}})
+
         if include_avatar:
-            av = random.choice(avatar_images)
-            parts.append({"inline_data": {"mime_type": "image/png", "data": av}})
+            # Mandar TODOS os avatares (ate 3) juntos
+            for av in avatar_images[:3]:
+                parts.append({"inline_data": {"mime_type": "image/png", "data": av}})
 
         # Textos do slide
         headline = slide.get("headline") or slide.get("title", "")
@@ -228,38 +233,28 @@ def build_payload(
         dims = get_dims(formato)
         size_str = get_prompt_size_str(formato)
 
-        # Variacao SO de pose/angulo, nao de estilo
-        POSES = [
-            "person standing facing camera, confident smile",
-            "person slightly turned to the side, natural expression",
-            "person from a side profile, looking at camera",
-            "person from a lower angle, looking up confidently",
-            "person with arms raised, energetic pose",
-            "person leaning slightly, casual pose",
-            "person centered, warm smile",
-        ]
-        pose = POSES[(position - 1) % len(POSES)]
+        # Prompt direto no estilo do pipeline antigo que funcionou
+        p = f"Create a {size_str} social media image in the EXACT visual style of the first reference image.\n"
+        p += "Match: same exact colors, same exact fonts, same exact decorative elements (stickers, badges, doodles), same background style.\n\n"
 
-        # Prompt rigoroso: MESMO ESTILO da ref, so varia pose da pessoa
-        p = f"Create a {size_str} social media image in the EXACT style of the reference image above.\n"
-        p += "MUST MATCH: same exact colors, same exact fonts, same exact decorative elements (stickers, badges, doodles), same background style, same overall aesthetic.\n"
         if include_avatar:
-            p += f"Include a person — DIFFERENT pose from typical: {pose}. Natural look, not a copy of the reference person.\n"
+            num_avatars = min(3, len(avatar_images))
+            p += (
+                f"The following {num_avatars} photos show the SAME person of this brand from different angles. "
+                f"USE THIS SPECIFIC PERSON in the slide — her real face, her real identity, exactly as she looks in those photos. "
+                f"Keep her recognizable as the same woman from the photos. "
+                f"You can give her a new pose or angle, but it must clearly be HER.\n\n"
+            )
         else:
-            p += "NO person, NO face in this image. Replace where the person would be with decorative elements, badges or illustrations matching the brand style.\n"
+            p += "NO person, NO face in this image. Focus on text, decorations and background.\n\n"
 
         # Texto EXATO — proibir inventar texto adicional
-        p += f"\n=== TEXT TO DISPLAY (use EXACTLY this, nothing else) ===\n"
+        p += f"=== TEXT TO DISPLAY (use EXACTLY this, nothing else) ===\n"
         p += f"HEADLINE: {headline}\n"
         if body:
             p += f"BODY: {body}\n"
         p += "=== END TEXT ===\n\n"
-        p += "CRITICAL TEXT RULES:\n"
-        p += "- Use ONLY the headline and body text provided above. Do NOT add any other text.\n"
-        p += "- Do NOT invent code snippets, color codes, technical labels, or lorem ipsum.\n"
-        p += "- Do NOT copy text from the reference image.\n"
-        p += "- All text must be spelled correctly in Portuguese — no typos, no gibberish.\n"
-        p += "- Text must fit inside the image frame with proper padding.\n"
+        p += "TEXT RULES: use only the headline and body above. Do NOT invent code, color codes, or lorem ipsum. Spell everything correctly in Portuguese.\n"
         p += "\nNo nudity, no violence."
 
         parts.append({"text": p})

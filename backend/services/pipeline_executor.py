@@ -542,6 +542,9 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
 
     # PASS 2: Correcao automatica de avatar nos slides com pessoa
     # So roda se a marca tem avatar e avatar_mode nao e "sem"
+    # DESLIGADO por enquanto — pass 1 agora manda todos os avatares juntos
+    # e consegue gerar a pessoa certa sem precisar de pass 2
+    PASS2_ENABLED = False
     import sys
     from pathlib import Path as _Path
     _log_file = _Path(__file__).parent.parent / "pass2.log"
@@ -549,8 +552,8 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         with open(_log_file, "a", encoding="utf-8") as f:
             from datetime import datetime
             f.write(f"[{datetime.now().isoformat()}] {msg}\n")
-    _log(f"=== PASS 2 INICIANDO === brand={brand_slug} mode={avatar_mode}")
-    if brand_slug and avatar_mode != "sem":
+    _log(f"=== PASS 2 {'INICIANDO' if PASS2_ENABLED else 'DESLIGADO'} === brand={brand_slug} mode={avatar_mode}")
+    if PASS2_ENABLED and brand_slug and avatar_mode != "sem":
         from factories.imagem_factory import _load_avatars
         brand_has_avatar = len(_load_avatars(brand_slug)) > 0
         _log(f"brand={brand_slug} avatar_mode={avatar_mode} has_avatar={brand_has_avatar}")
