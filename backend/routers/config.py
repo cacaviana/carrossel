@@ -320,13 +320,25 @@ async def listar_assets(slug: str):
 
 @router.post("/brands/{slug}/assets")
 async def upload_asset(slug: str, data: dict):
-    """Upload de asset da marca. Body: {nome, imagem: base64}."""
+    """Upload de asset da marca.
+
+    Body:
+        nome: str              — nome do asset (prefixo auto-aplicado se `pool` passado)
+        imagem: str            — base64 data URI
+        pool: str (opcional)   — 'com_avatar' | 'sem_avatar'. Se passado, prefixa
+                                 o nome com ref_ca_ ou ref_sa_ automaticamente.
+                                 Se omitido, salva com o nome como veio (compat
+                                 com upload de avatar/foto).
+    """
     nome = data.get("nome", "asset")
     imagem = data.get("imagem", "")
+    pool = data.get("pool")
     if not imagem:
         raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
     try:
-        return _upload_asset(slug, nome, imagem)
+        return _upload_asset(slug, nome, imagem, pool=pool)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar asset: {str(e)}")
 

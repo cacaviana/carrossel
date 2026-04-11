@@ -18,6 +18,39 @@ ASSETS_ROOT = Path(__file__).parent.parent / "assets"
 FOTOS_DIR = ASSETS_ROOT / "fotos"
 BRAND_ASSETS_DIR = ASSETS_ROOT / "brand-assets"
 
+# Pools de referencia visual (Fase 1)
+POOL_COM_AVATAR = "com_avatar"
+POOL_SEM_AVATAR = "sem_avatar"
+VALID_POOLS = {POOL_COM_AVATAR, POOL_SEM_AVATAR}
+
+
+def detectar_pool(nome: str) -> str | None:
+    """Detecta pool do asset a partir do prefixo do nome.
+
+    Convencao:
+        ref_ca_*  -> pool com_avatar (refs que mostram a pessoa)
+        ref_sa_*  -> pool sem_avatar (refs puramente visuais)
+        ref_*     -> pool com_avatar (legado, migra invisivel)
+        outros    -> None (nao eh ref, eh avatar ou foto)
+    """
+    if nome.startswith("ref_ca_"):
+        return POOL_COM_AVATAR
+    if nome.startswith("ref_sa_"):
+        return POOL_SEM_AVATAR
+    if nome.startswith("ref_"):
+        return POOL_COM_AVATAR
+    return None
+
+
+def _aplicar_prefixo_pool(nome: str, pool: str) -> str:
+    """Remove prefixo anterior (ref_ca_/ref_sa_/ref_) e aplica o do pool."""
+    base = nome
+    for prefix in ("ref_ca_", "ref_sa_", "ref_"):
+        if base.startswith(prefix):
+            base = base[len(prefix):]
+            break
+    return f"ref_ca_{base}" if pool == POOL_COM_AVATAR else f"ref_sa_{base}"
+
 
 def _get_assets_col():
     db = get_mongo_db()
@@ -156,7 +189,11 @@ def buscar_foto_brand_b64(slug: str) -> str | None:
 
 
 def listar_assets(slug: str) -> dict:
-    """Lista assets: MongoDB primeiro, disco como fallback."""
+    """Lista assets: MongoDB primeiro, disco como fallback.
+
+    Cada item retorna o campo `pool` detectado pelo prefixo do nome:
+    'com_avatar' | 'sem_avatar' | None (se eh avatar/foto).
+    """
     items = []
 
     try:
@@ -166,11 +203,13 @@ def listar_assets(slug: str) -> dict:
             for doc in docs:
                 if doc.get("nome") == "__foto__":
                     continue
+                nome = doc["nome"]
                 items.append({
-                    "nome": doc["nome"],
-                    "arquivo": f"{doc['nome']}.jpg",
+                    "nome": nome,
+                    "arquivo": f"{nome}.jpg",
                     "preview": doc.get("data_uri", ""),
-                    "is_referencia": doc.get("is_referencia", doc.get("nome", "").startswith("ref_")),
+                    "is_referencia": doc.get("is_referencia", nome.startswith("ref_")),
+                    "pool": detectar_pool(nome),
                 })
     except Exception:
         pass
@@ -189,6 +228,7 @@ def listar_assets(slug: str) -> dict:
                             "arquivo": f.name,
                             "preview": f"data:{mime};base64,{data}",
                             "is_referencia": f.stem.startswith("ref_"),
+                            "pool": detectar_pool(f.stem),
                         })
         except Exception:
             pass
@@ -206,8 +246,25 @@ def definir_referencia(slug: str, nome_asset: str | None) -> dict | None:
     return {"slug": slug, "referencia_imagem": nome_asset}
 
 
-def upload_asset(slug: str, nome: str, imagem: str) -> dict:
-    """Salva asset no MongoDB (e disco como fallback)."""
+def upload_asset(slug: str, nome: str, imagem: str, pool: str | None = None) -> dict:
+    """Salva asset no MongoDB (e disco como fallback).
+
+    Args:
+        slug: brand slug
+        nome: nome do asset. Se `pool` for passado, o nome eh automaticamente
+              prefixado com ref_ca_ ou ref_sa_ (substituindo prefixo existente).
+        imagem: base64 data URI
+        pool: 'com_avatar' | 'sem_avatar' | None. Se None, usa o `nome` como veio
+              (compat com upload de avatar/foto que nao eh ref).
+
+    Raises:
+        ValueError: se pool invalido
+    """
+    if pool is not None:
+        if pool not in VALID_POOLS:
+            raise ValueError(f"pool invalido: {pool}. Use 'com_avatar' ou 'sem_avatar'")
+        nome = _aplicar_prefixo_pool(nome, pool)
+
     raw = imagem.split(",")[1] if "," in imagem else imagem
     ext = "png"
     mime = "image/png"
@@ -242,7 +299,7 @@ def upload_asset(slug: str, nome: str, imagem: str) -> dict:
     if not saved:
         raise RuntimeError("Nao foi possivel salvar o asset")
 
-    return {"nome": nome, "arquivo": f"{nome}.{ext}"}
+    return {"nome": nome, "arquivo": f"{nome}.{ext}", "pool": detectar_pool(nome)}
 
 
 def deletar_asset(slug: str, nome: str) -> dict | None:

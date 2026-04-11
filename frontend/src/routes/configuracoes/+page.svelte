@@ -700,13 +700,71 @@
 										{#if currentTab === 'aparencia'}
 											<div class="space-y-6">
 
-												<!-- REFERENCIAS VISUAIS -->
+												<!-- DNA DA MARCA (4 linhas que definem a identidade) -->
+												<div class="bg-purple/5 rounded-xl p-5 border border-purple/20">
+													<p class="text-sm text-text-primary font-semibold mb-1">DNA da marca</p>
+													<p class="text-xs text-text-secondary mb-4">4 linhas que definem a identidade visual. Entram no prompt de geracao de imagem.</p>
+
+													<div class="grid grid-cols-2 gap-3">
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Estilo</label>
+															<input type="text"
+																value={marcas[mi].dna?.estilo || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.estilo = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="cute, clean, moderno"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Cores</label>
+															<input type="text"
+																value={marcas[mi].dna?.cores || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.cores = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="rosa pastel, azul claro, branco"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Tipografia</label>
+															<input type="text"
+																value={marcas[mi].dna?.tipografia || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.tipografia = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="bold arredondada"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Elementos</label>
+															<input type="text"
+																value={marcas[mi].dna?.elementos || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.elementos = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="doodles leves"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+													</div>
+													<p class="text-[10px] text-text-muted mt-2">Na Fase 2 esses campos serao gerados automaticamente ao subir a primeira referencia.</p>
+												</div>
+
+												<!-- REFERENCIAS VISUAIS - POOL COM AVATAR -->
 												<div class="bg-amber/5 rounded-xl p-5 border border-amber/20">
-													<p class="text-sm text-text-primary font-semibold mb-1">Referencias visuais</p>
-													<p class="text-xs text-text-secondary mb-4">Suba prints de posts que voce gostou. A IA copia o ESTILO (cores, fonte, doodles) mas cria composicao nova. Ate 5 imagens.</p>
+													<p class="text-sm text-text-primary font-semibold mb-1">Referencias com avatar</p>
+													<p class="text-xs text-text-secondary mb-4">Refs que mostram a pessoa. Usadas em slides com avatar (capa, CTA). Ate 5 imagens.</p>
 
 													<div class="flex gap-3 flex-wrap mb-3">
-														{#each marcas[mi]._assets.filter((a: any) => a.is_referencia) as asset}
+														{#each marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar') as asset}
 															<div class="relative group">
 																<img src={asset.preview} alt={asset.nome}
 																	class="w-20 h-20 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-sm" />
@@ -720,25 +778,26 @@
 																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
 															</div>
 														{/each}
-														{#if marcas[mi]._assets.filter((a: any) => a.is_referencia).length < 5}
+														{#if marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length < 5}
 															<label class="w-20 h-20 rounded-xl border-2 border-dashed border-amber/40 flex flex-col items-center justify-center text-amber/70 cursor-pointer hover:bg-amber/5 transition-all gap-0.5">
 																<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5</span>
+																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length}/5</span>
 																<input type="file" accept="image/*" onchange={async (e) => {
 																	const input = e.target as HTMLInputElement;
 																	const file = input.files?.[0];
 																	if (!file) return;
-																	const nome = 'ref_' + file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
+																	const nome = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
 																	const reader = new FileReader();
 																	reader.onload = async () => {
 																		try {
 																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
 																				method: 'POST', headers: { 'Content-Type': 'application/json' },
-																				body: JSON.stringify({ nome, imagem: reader.result })
+																				body: JSON.stringify({ nome, imagem: reader.result, pool: 'com_avatar' })
 																			});
 																			if (res.ok) {
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome, preview: reader.result as string, is_referencia: true }];
-																				showSucesso(`Referencia ${marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5 adicionada!`);
+																				const body = await res.json();
+																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'com_avatar' }];
+																				showSucesso('Referencia adicionada!');
 																			}
 																		} catch {}
 																	};
@@ -748,8 +807,59 @@
 															</label>
 														{/if}
 													</div>
-													{#if marcas[mi]._assets.filter((a: any) => a.is_referencia).length === 0}
-														<p class="text-[10px] text-text-muted">Sem referencias? A IA vai usar os campos de cores e estilo abaixo.</p>
+												</div>
+
+												<!-- REFERENCIAS VISUAIS - POOL SEM AVATAR -->
+												<div class="bg-amber/5 rounded-xl p-5 border border-amber/20">
+													<p class="text-sm text-text-primary font-semibold mb-1">Referencias sem avatar</p>
+													<p class="text-xs text-text-secondary mb-4">Refs puramente visuais, sem pessoa. Usadas em slides internos. Ate 5 imagens.</p>
+
+													<div class="flex gap-3 flex-wrap mb-3">
+														{#each marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar') as asset}
+															<div class="relative group">
+																<img src={asset.preview} alt={asset.nome}
+																	class="w-20 h-20 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-sm" />
+																<button onclick={async () => {
+																	try {
+																		await fetch(`${backendUrl}/api/brands/${marca.slug}/assets/${asset.nome}`, { method: 'DELETE' });
+																		marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== asset.nome);
+																		showSucesso('Referencia removida');
+																	} catch {}
+																}}
+																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
+															</div>
+														{/each}
+														{#if marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length < 5}
+															<label class="w-20 h-20 rounded-xl border-2 border-dashed border-amber/40 flex flex-col items-center justify-center text-amber/70 cursor-pointer hover:bg-amber/5 transition-all gap-0.5">
+																<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length}/5</span>
+																<input type="file" accept="image/*" onchange={async (e) => {
+																	const input = e.target as HTMLInputElement;
+																	const file = input.files?.[0];
+																	if (!file) return;
+																	const nome = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
+																	const reader = new FileReader();
+																	reader.onload = async () => {
+																		try {
+																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
+																				method: 'POST', headers: { 'Content-Type': 'application/json' },
+																				body: JSON.stringify({ nome, imagem: reader.result, pool: 'sem_avatar' })
+																			});
+																			if (res.ok) {
+																				const body = await res.json();
+																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'sem_avatar' }];
+																				showSucesso('Referencia adicionada!');
+																			}
+																		} catch {}
+																	};
+																	reader.readAsDataURL(file);
+																	input.value = '';
+																}} class="hidden" />
+															</label>
+														{/if}
+													</div>
+													{#if marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length === 0 && marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length === 0}
+														<p class="text-[10px] text-text-muted mt-2">Sem referencias? A IA vai usar os campos de cores e estilo abaixo.</p>
 													{/if}
 												</div>
 
