@@ -540,6 +540,47 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         formato=formato,
     )
 
+    # PASS 2: Correcao automatica de avatar nos slides com pessoa
+    # So roda se a marca tem avatar e avatar_mode nao e "sem"
+    import sys
+    from pathlib import Path as _Path
+    _log_file = _Path(__file__).parent.parent / "pass2.log"
+    def _log(msg):
+        with open(_log_file, "a", encoding="utf-8") as f:
+            from datetime import datetime
+            f.write(f"[{datetime.now().isoformat()}] {msg}\n")
+    _log(f"=== PASS 2 INICIANDO === brand={brand_slug} mode={avatar_mode}")
+    if brand_slug and avatar_mode != "sem":
+        from factories.imagem_factory import _load_avatars
+        brand_has_avatar = len(_load_avatars(brand_slug)) > 0
+        _log(f"brand={brand_slug} avatar_mode={avatar_mode} has_avatar={brand_has_avatar}")
+
+        if brand_has_avatar:
+            from services.avatar_fixer import corrigir_avatar
+
+            for i, img in enumerate(images):
+                if not img:
+                    _log(f"Slide {i+1}: sem imagem, pulando")
+                    continue
+                position = i + 1
+                is_capa_ou_cta = (position == 1 or position == len(slides))
+                should_fix = (
+                    avatar_mode == "sim" or
+                    (avatar_mode in ("livre", "capa") and is_capa_ou_cta)
+                )
+                if not should_fix:
+                    _log(f"Slide {position}: nao precisa corrigir (mode={avatar_mode}, is_capa_ou_cta={is_capa_ou_cta})")
+                    continue
+
+                try:
+                    _log(f"Slide {position}: chamando corrigir_avatar...")
+                    result = await corrigir_avatar(img, brand_slug, gemini_api_key)
+                    images[i] = result
+                    _log(f"Slide {position}: OK (len={len(result)})")
+                except Exception as e:
+                    import traceback
+                    _log(f"Slide {position} FALHOU: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+
     # Salvar imagens no disco ao inves de base64 no banco
     from utils.pipeline_images import salvar_imagem
     imagens_result = []
