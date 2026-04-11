@@ -128,6 +128,27 @@
 
 	let menuAberto = $state('');
 	let brandTab = $state<Record<string, string>>({});
+	let regenerandoDna = $state<Record<string, boolean>>({});
+	let padraoExpandido = $state<Record<string, boolean>>({});
+
+	async function autoGerarDnaSeVazio(slug: string, mi: number) {
+		const dna = marcas[mi].dna;
+		const vazio = !dna || (!dna.estilo && !dna.cores && !dna.tipografia && !dna.elementos);
+		if (!vazio || regenerandoDna[slug]) return;
+		regenerandoDna = { ...regenerandoDna, [slug]: true };
+		try {
+			const res = await fetch(`${backendUrl}/api/brands/${slug}/dna/regenerate`, {
+				method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+			});
+			if (res.ok) {
+				const body = await res.json();
+				marcas[mi].dna = body.dna;
+				marcas = [...marcas];
+				showSucesso('DNA gerado automaticamente!');
+			}
+		} catch {}
+		regenerandoDna = { ...regenerandoDna, [slug]: false };
+	}
 	function getBrandTab(slug: string) { return brandTab[slug] || 'aparencia'; }
 	function setBrandTab(slug: string, tab: string) { brandTab = { ...brandTab, [slug]: tab }; }
 	let showClonarModal = $state(false);
@@ -677,7 +698,6 @@
 										<div class="flex border-b border-border-default bg-bg-elevated/50">
 											{#each [
 												{ id: 'aparencia', label: 'Aparencia', desc: 'Cores e fontes' },
-												{ id: 'estilo', label: 'Estilo dos Slides', desc: 'Como a IA desenha' },
 												{ id: 'voz', label: 'Voz da Marca', desc: 'Como a marca fala' },
 												{ id: 'imagens', label: 'Imagens', desc: 'Logo e referencias' },
 											] as tab}
@@ -698,15 +718,200 @@
 
 										<!-- ===== ABA: APARENCIA ===== -->
 										{#if currentTab === 'aparencia'}
+											{#snippet padraoPool(mi: number, pool: 'com_avatar' | 'sem_avatar')}
+												{@const pv = marcas[mi].padrao_visual?.[pool]}
+												{@const expKey = `${marcas[mi].slug}_${pool}`}
+												{@const aberto = padraoExpandido[expKey] || false}
+												<div class="mt-4 rounded-lg border border-purple/20 bg-purple/5">
+													<button type="button"
+														onclick={() => { padraoExpandido = { ...padraoExpandido, [expKey]: !aberto }; }}
+														class="w-full flex items-center justify-between px-3 py-2 cursor-pointer select-none text-left">
+														<span class="text-xs text-text-primary font-medium flex items-center gap-2">
+															<svg class="w-3.5 h-3.5 text-purple transition-transform {aberto ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+															Padrao visual deste pool
+															{#if !pv}<span class="text-[9px] text-text-muted font-normal">(regenere o DNA pra gerar)</span>{/if}
+														</span>
+														<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-purple/10 text-purple border border-purple/30 font-mono uppercase">auto</span>
+													</button>
+													{#if aberto && pv}
+														<div class="px-3 pb-3 pt-1 space-y-3">
+															<div>
+																<label class="block text-[10px] text-text-muted mb-1">Tipo de foto</label>
+																<input type="text" value={pv.tipo_foto || ''}
+																	oninput={(e) => { marcas[mi].padrao_visual[pool].tipo_foto = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																	placeholder="ex: fotorealista editorial feminina"
+																	class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+															</div>
+
+															<div>
+																<label class="block text-[10px] text-text-muted mb-1">Composicoes recorrentes</label>
+																{#each (pv.composicoes || []) as _comp, ci}
+																	<div class="flex gap-1 mb-1">
+																		<input type="text" value={pv.composicoes[ci]}
+																			oninput={(e) => { marcas[mi].padrao_visual[pool].composicoes[ci] = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																			placeholder="descreva uma composicao recorrente"
+																			class="flex-1 px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																		<button onclick={() => { marcas[mi].padrao_visual[pool].composicoes = marcas[mi].padrao_visual[pool].composicoes.filter((_: any, i: number) => i !== ci); marcas = [...marcas]; }} title="Remover"
+																			class="w-7 h-7 rounded border border-border-default text-text-muted hover:text-red hover:border-red/40 text-xs cursor-pointer">x</button>
+																	</div>
+																{/each}
+																{#if (pv.composicoes || []).length < 3}
+																	<button onclick={() => { if (!marcas[mi].padrao_visual[pool].composicoes) marcas[mi].padrao_visual[pool].composicoes = []; marcas[mi].padrao_visual[pool].composicoes = [...marcas[mi].padrao_visual[pool].composicoes, '']; marcas = [...marcas]; }}
+																		class="text-[10px] text-teal-6 border border-teal-6/30 px-2 py-1 rounded-full hover:bg-teal-6/10 cursor-pointer">+ adicionar</button>
+																{/if}
+															</div>
+
+															<div class="grid grid-cols-2 gap-2">
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Fundo/cenario</label>
+																	<input type="text" value={pv.fundo_cenario || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].fundo_cenario = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Iluminacao</label>
+																	<input type="text" value={pv.iluminacao || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].iluminacao = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Mood</label>
+																	<input type="text" value={pv.mood || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].mood = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Relacao pessoa/fundo</label>
+																	<input type="text" value={pv.relacao_pessoa_fundo || ''}
+																		oninput={(e) => { marcas[mi].padrao_visual[pool].relacao_pessoa_fundo = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																		class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+																</div>
+															</div>
+
+															<div>
+																<label class="block text-[10px] text-text-muted mb-1">Elementos overlay</label>
+																<input type="text" value={pv.elementos_overlay || ''}
+																	oninput={(e) => { marcas[mi].padrao_visual[pool].elementos_overlay = (e.target as HTMLInputElement).value; marcas = [...marcas]; }}
+																	class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-teal-6 outline-none" />
+															</div>
+
+															{#if (pv.paleta_dominante || []).length > 0}
+																<div>
+																	<label class="block text-[10px] text-text-muted mb-1">Paleta dominante</label>
+																	<div class="flex gap-1.5 flex-wrap">
+																		{#each pv.paleta_dominante as cor}
+																			<div class="flex items-center gap-1 px-1.5 py-1 rounded border border-border-default bg-bg-input">
+																				<span class="w-4 h-4 rounded border border-border-default" style="background: {cor}"></span>
+																				<span class="text-[10px] font-mono text-text-secondary">{cor}</span>
+																			</div>
+																		{/each}
+																	</div>
+																</div>
+															{/if}
+														</div>
+													{/if}
+												</div>
+											{/snippet}
+
 											<div class="space-y-6">
 
-												<!-- REFERENCIAS VISUAIS -->
+												<!-- DNA DA MARCA (4 linhas que definem a identidade) -->
+												<div class="bg-purple/5 rounded-xl p-5 border border-purple/20">
+													<div class="flex items-start justify-between gap-3 mb-1">
+														<p class="text-sm text-text-primary font-semibold">DNA da marca</p>
+														<button
+															onclick={async () => {
+																if (regenerandoDna[marca.slug]) return;
+																regenerandoDna = { ...regenerandoDna, [marca.slug]: true };
+																try {
+																	const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/dna/regenerate`, {
+																		method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+																	});
+																	if (res.ok) {
+																		const body = await res.json();
+																		marcas[mi].dna = body.dna;
+																		if (body.padrao_visual) marcas[mi].padrao_visual = body.padrao_visual;
+																		marcas = [...marcas];
+																		showSucesso('DNA regenerado!');
+																	} else {
+																		const err = await res.json().catch(() => ({}));
+																		erro = err.detail || 'Erro ao gerar DNA (precisa ter pelo menos 1 referencia)';
+																		setTimeout(() => erro = '', 5000);
+																	}
+																} catch {
+																	erro = 'Erro de rede ao gerar DNA';
+																	setTimeout(() => erro = '', 5000);
+																} finally {
+																	regenerandoDna = { ...regenerandoDna, [marca.slug]: false };
+																}
+															}}
+															disabled={regenerandoDna[marca.slug]}
+															class="text-[10px] text-purple border border-purple/30 px-2 py-0.5 rounded-full hover:bg-purple/10 disabled:opacity-50 disabled:cursor-wait cursor-pointer">
+															{regenerandoDna[marca.slug] ? 'Gerando...' : 'Regerar com IA'}
+														</button>
+													</div>
+													<p class="text-xs text-text-secondary mb-4">4 linhas que definem a identidade visual. Entram no prompt de geracao de imagem.</p>
+
+													<div class="grid grid-cols-2 gap-3">
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Estilo</label>
+															<input type="text"
+																value={marcas[mi].dna?.estilo || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.estilo = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="cute, clean, moderno"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Cores</label>
+															<input type="text"
+																value={marcas[mi].dna?.cores || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.cores = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="rosa pastel, azul claro, branco"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Tipografia</label>
+															<input type="text"
+																value={marcas[mi].dna?.tipografia || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.tipografia = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="bold arredondada"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div>
+															<label class="block text-[10px] text-text-muted mb-1">Elementos</label>
+															<input type="text"
+																value={marcas[mi].dna?.elementos || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '' };
+																	marcas[mi].dna.elementos = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="doodles leves"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+													</div>
+													<p class="text-[10px] text-text-muted mt-2">Campos auto-gerados analisando todas as referencias da marca. Edite livremente se quiser ajustar.</p>
+												</div>
+
+												<!-- REFERENCIAS VISUAIS - POOL COM AVATAR -->
 												<div class="bg-amber/5 rounded-xl p-5 border border-amber/20">
-													<p class="text-sm text-text-primary font-semibold mb-1">Referencias visuais</p>
-													<p class="text-xs text-text-secondary mb-4">Suba prints de posts que voce gostou. A IA copia o ESTILO (cores, fonte, doodles) mas cria composicao nova. Ate 5 imagens.</p>
+													<p class="text-sm text-text-primary font-semibold mb-1">Referencias com avatar</p>
+													<p class="text-xs text-text-secondary mb-4">Refs que mostram a pessoa. Usadas em slides com avatar (capa, CTA). Ate 5 imagens.</p>
 
 													<div class="flex gap-3 flex-wrap mb-3">
-														{#each marcas[mi]._assets.filter((a: any) => a.is_referencia) as asset}
+														{#each marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar') as asset}
 															<div class="relative group">
 																<img src={asset.preview} alt={asset.nome}
 																	class="w-20 h-20 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-sm" />
@@ -720,25 +925,26 @@
 																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
 															</div>
 														{/each}
-														{#if marcas[mi]._assets.filter((a: any) => a.is_referencia).length < 5}
+														{#if marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length < 5}
 															<label class="w-20 h-20 rounded-xl border-2 border-dashed border-amber/40 flex flex-col items-center justify-center text-amber/70 cursor-pointer hover:bg-amber/5 transition-all gap-0.5">
 																<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5</span>
+																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length}/5</span>
 																<input type="file" accept="image/*" onchange={async (e) => {
 																	const input = e.target as HTMLInputElement;
 																	const file = input.files?.[0];
 																	if (!file) return;
-																	const nome = 'ref_' + file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
+																	const nome = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
 																	const reader = new FileReader();
 																	reader.onload = async () => {
 																		try {
 																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
 																				method: 'POST', headers: { 'Content-Type': 'application/json' },
-																				body: JSON.stringify({ nome, imagem: reader.result })
+																				body: JSON.stringify({ nome, imagem: reader.result, pool: 'com_avatar' })
 																			});
 																			if (res.ok) {
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome, preview: reader.result as string, is_referencia: true }];
-																				showSucesso(`Referencia ${marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5 adicionada!`);
+																				const body = await res.json();
+																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'com_avatar' }]; autoGerarDnaSeVazio(marca.slug, mi);
+																				showSucesso('Referencia adicionada!');
 																			}
 																		} catch {}
 																	};
@@ -748,9 +954,62 @@
 															</label>
 														{/if}
 													</div>
-													{#if marcas[mi]._assets.filter((a: any) => a.is_referencia).length === 0}
-														<p class="text-[10px] text-text-muted">Sem referencias? A IA vai usar os campos de cores e estilo abaixo.</p>
+													{@render padraoPool(mi, 'com_avatar')}
+												</div>
+
+												<!-- REFERENCIAS VISUAIS - POOL SEM AVATAR -->
+												<div class="bg-amber/5 rounded-xl p-5 border border-amber/20">
+													<p class="text-sm text-text-primary font-semibold mb-1">Referencias sem avatar</p>
+													<p class="text-xs text-text-secondary mb-4">Refs puramente visuais, sem pessoa. Usadas em slides internos. Ate 5 imagens.</p>
+
+													<div class="flex gap-3 flex-wrap mb-3">
+														{#each marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar') as asset}
+															<div class="relative group">
+																<img src={asset.preview} alt={asset.nome}
+																	class="w-20 h-20 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-sm" />
+																<button onclick={async () => {
+																	try {
+																		await fetch(`${backendUrl}/api/brands/${marca.slug}/assets/${asset.nome}`, { method: 'DELETE' });
+																		marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== asset.nome);
+																		showSucesso('Referencia removida');
+																	} catch {}
+																}}
+																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
+															</div>
+														{/each}
+														{#if marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length < 5}
+															<label class="w-20 h-20 rounded-xl border-2 border-dashed border-amber/40 flex flex-col items-center justify-center text-amber/70 cursor-pointer hover:bg-amber/5 transition-all gap-0.5">
+																<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length}/5</span>
+																<input type="file" accept="image/*" onchange={async (e) => {
+																	const input = e.target as HTMLInputElement;
+																	const file = input.files?.[0];
+																	if (!file) return;
+																	const nome = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
+																	const reader = new FileReader();
+																	reader.onload = async () => {
+																		try {
+																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
+																				method: 'POST', headers: { 'Content-Type': 'application/json' },
+																				body: JSON.stringify({ nome, imagem: reader.result, pool: 'sem_avatar' })
+																			});
+																			if (res.ok) {
+																				const body = await res.json();
+																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'sem_avatar' }]; autoGerarDnaSeVazio(marca.slug, mi);
+																				showSucesso('Referencia adicionada!');
+																			}
+																		} catch {}
+																	};
+																	reader.readAsDataURL(file);
+																	input.value = '';
+																}} class="hidden" />
+															</label>
+														{/if}
+													</div>
+													{#if marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length === 0 && marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length === 0}
+														<p class="text-[10px] text-text-muted mt-2">Sem referencias? A IA vai usar os campos de cores e estilo abaixo.</p>
 													{/if}
+													{@render padraoPool(mi, 'sem_avatar')}
 												</div>
 
 												<div class="bg-steel-0/50 rounded-xl p-4 border border-steel-3/10">

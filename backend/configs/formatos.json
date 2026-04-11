@@ -18,29 +18,38 @@
       "estruturas": {
         "3": [
           {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
-          {"posicao": 2, "tipo": "code", "etapa": "PROVA"},
+          {"posicao": 2, "tipo": "content", "etapa": "REVELACAO"},
           {"posicao": 3, "tipo": "cta", "etapa": "CTA"}
+        ],
+        "4": [
+          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
+          {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
+          {"posicao": 3, "tipo": "content", "etapa": "REVELACAO"},
+          {"posicao": 4, "tipo": "cta", "etapa": "CTA"}
+        ],
+        "5": [
+          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
+          {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
+          {"posicao": 3, "tipo": "content", "etapa": "REVELACAO"},
+          {"posicao": 4, "tipo": "content", "etapa": "ESPELHO"},
+          {"posicao": 5, "tipo": "cta", "etapa": "CTA"}
+        ],
+        "6": [
+          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
+          {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
+          {"posicao": 3, "tipo": "content", "etapa": "REVELACAO"},
+          {"posicao": 4, "tipo": "content", "etapa": "PROVA"},
+          {"posicao": 5, "tipo": "content", "etapa": "ESPELHO"},
+          {"posicao": 6, "tipo": "cta", "etapa": "CTA"}
         ],
         "7": [
           {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
           {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
           {"posicao": 3, "tipo": "content", "etapa": "REVELACAO"},
-          {"posicao": 4, "tipo": "code", "etapa": "CODIGO"},
+          {"posicao": 4, "tipo": "content", "etapa": "PROVA"},
           {"posicao": 5, "tipo": "comparison", "etapa": "COMPARATIVO"},
           {"posicao": 6, "tipo": "content", "etapa": "ESPELHO"},
           {"posicao": 7, "tipo": "cta", "etapa": "CTA"}
-        ],
-        "10": [
-          {"posicao": 1, "tipo": "cover", "etapa": "HOOK"},
-          {"posicao": 2, "tipo": "content", "etapa": "CONTEXTO"},
-          {"posicao": 3, "tipo": "content", "etapa": "STAKES"},
-          {"posicao": 4, "tipo": "content", "etapa": "FLUXO"},
-          {"posicao": 5, "tipo": "content", "etapa": "ANATOMIA"},
-          {"posicao": 6, "tipo": "code", "etapa": "CODIGO"},
-          {"posicao": 7, "tipo": "comparison", "etapa": "COMPARATIVO"},
-          {"posicao": 8, "tipo": "content", "etapa": "LICOES"},
-          {"posicao": 9, "tipo": "content", "etapa": "ESPELHO"},
-          {"posicao": 10, "tipo": "cta", "etapa": "CTA"}
         ]
       },
       "tem_rodape": true,

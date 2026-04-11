@@ -37,11 +37,12 @@ def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
 
     if brand_ctx:
         user_prompt += (
-            f"\n=== CONTEXTO DA MARCA (OBRIGATORIO — substitui qualquer persona padrao) ===\n"
+            f"\n=== CONTEXTO DA MARCA (APENAS TOM E ESTILO — NAO E O TEMA!) ===\n"
             f"{brand_ctx}\n"
-            f"IMPORTANTE: Use EXATAMENTE o tom, linguagem e persona descritos acima. "
-            f"NAO use persona de outra marca. Use EXATAMENTE a persona descrita acima. "
-            f"Adapte TUDO para esta marca.\n"
+            f"IMPORTANTE: Use EXATAMENTE o tom, linguagem e persona descritos acima.\n"
+            f"MAS o ASSUNTO/TEMA do carrossel vem do BRIEFING acima — NAO mude o tema.\n"
+            f"A persona so define COMO falar (tom, girias, estilo). O QUE falar vem do briefing.\n"
+            f"NAO fale sobre hobbies, produtos ou interesses pessoais da persona.\n"
             f"=== FIM CONTEXTO DA MARCA ===\n"
         )
 
@@ -54,7 +55,15 @@ def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
         user_prompt += " Responda em JSON."
     else:
         n = max_slides or 7
-        user_prompt += f"Gere a copy completa com NO MAXIMO {n} slides. Responda em JSON."
+        user_prompt += (
+            f"\n=== REGRA ABSOLUTA DE QUANTIDADE ===\n"
+            f"Gere EXATAMENTE {n} slides. Nem mais, nem menos.\n"
+            f"IGNORE a estrutura de 9 slides do system prompt — ela e so referencia quando o usuario quer 9.\n"
+            f"Voce DEVE retornar um array 'slides' com EXATAMENTE {n} items.\n"
+            f"Adapte a narrativa pra caber em {n} slides: use apenas capa + conteudo + cta se necessario.\n"
+            f"=== FIM REGRA ABSOLUTA ===\n"
+            f"Responda em JSON."
+        )
     user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
     return user_prompt
 
@@ -101,6 +110,8 @@ async def executar(
     claude_api_key: str = "",
 ) -> dict:
     """Executa o Copywriter via Anthropic (Claude)."""
+    # Capturar max_slides ANTES do pop em _build_user_prompt
+    max_slides = briefing.get("_max_slides")
     system_prompt = _load_prompt(formato)
     user_prompt = _build_user_prompt(briefing, formato, feedback)
 
@@ -108,14 +119,32 @@ async def executar(
         claude_api_key = os.getenv("CLAUDE_API_KEY", "")
 
     # Tentar Claude primeiro, fallback pra OpenAI
+    result = None
     try:
-        return await _gerar_anthropic(system_prompt, user_prompt, claude_api_key)
+        result = await _gerar_anthropic(system_prompt, user_prompt, claude_api_key)
     except Exception as e:
         print(f"[copywriter] Claude falhou: {e}. Tentando OpenAI...")
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if not openai_key:
+            raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
+        result = await _gerar_openai(system_prompt, user_prompt, openai_key)
+        result["_fallback"] = True
 
-    openai_key = os.getenv("OPENAI_API_KEY", "")
-    if not openai_key:
-        raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
-    result = await _gerar_openai(system_prompt, user_prompt, openai_key)
-    result["_fallback"] = True
+    # Garantia pos-geracao: LLM as vezes ignora "exatamente N slides"
+    if max_slides and isinstance(result.get("slides"), list):
+        slides = result["slides"]
+        if len(slides) > max_slides:
+            print(f"[copywriter] LLM retornou {len(slides)} slides, truncando pra {max_slides}")
+            # Manter capa (primeiro) + CTA (ultimo) + conteudo do meio
+            if max_slides >= 2:
+                capa = slides[0]
+                cta = slides[-1]
+                meio = slides[1:-1][: max_slides - 2]
+                result["slides"] = [capa] + meio + [cta]
+            else:
+                result["slides"] = slides[:max_slides]
+            # Reindexar
+            for i, s in enumerate(result["slides"], start=1):
+                if isinstance(s, dict):
+                    s["indice"] = i
     return result

@@ -28,7 +28,15 @@ async def api_gerar_imagem(request: Request, req: GerarImagemRequest):
             brands = listar_brands()
             brand = brands[0]["slug"] if brands else ""
         from services.smart_image_service import gerar_imagens_smart
-        images = await gerar_imagens_smart(slides=slides_dicts, gemini_api_key=api_key, brand_slug=brand, formato=req.formato, skip_validation=req.skip_validation)
+        images = await gerar_imagens_smart(
+            slides=slides_dicts,
+            gemini_api_key=api_key,
+            brand_slug=brand,
+            formato=req.formato,
+            skip_validation=req.skip_validation,
+            avatar_mode=req.avatar_mode,
+            pipeline_id=req.pipeline_id,
+        )
         return {"images": images}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -64,6 +72,40 @@ async def api_ajustar_imagem(request: Request, data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/corrigir-avatar")
+@limiter.limit("10/minute")
+async def api_corrigir_avatar(request: Request, data: dict):
+    """Recebe imagem gerada + brand_slug, regenera com o avatar correto da marca.
+    Body: {imagem: base64, brand_slug: string, pipeline_id?: string, slide_index?: int}"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="GEMINI_API_KEY nao configurada")
+
+    imagem = data.get("imagem", "")
+    brand_slug = data.get("brand_slug", "")
+    pipeline_id = data.get("pipeline_id")
+    slide_index = data.get("slide_index")
+
+    if not imagem:
+        raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
+    if not brand_slug:
+        raise HTTPException(status_code=400, detail="Campo 'brand_slug' obrigatorio")
+
+    try:
+        from services.avatar_fixer import corrigir_avatar
+        result_b64 = await corrigir_avatar(imagem, brand_slug, api_key)
+
+        # Se veio pipeline_id + slide_index, salvar no disco
+        if pipeline_id and slide_index:
+            from utils.pipeline_images import salvar_imagem
+            path_rel = salvar_imagem(pipeline_id, int(slide_index), result_b64)
+            return {"image": result_b64, "image_path": path_rel}
+
+        return {"image": result_b64}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/gerar-imagem-slide", response_model=GerarImagemSlideResponse)
 @limiter.limit("5/minute")
 async def api_gerar_imagem_slide(request: Request, req: GerarImagemSlideRequest):
@@ -80,6 +122,9 @@ async def api_gerar_imagem_slide(request: Request, req: GerarImagemSlideRequest)
             design_system=req.design_system,
             reference_image=req.reference_image,
             formato=req.formato,
+            brand_slug=req.brand_slug,
+            avatar_mode=req.avatar_mode,
+            pipeline_id=req.pipeline_id,
         )
         return {"image": image}
     except Exception as e:
@@ -107,17 +152,14 @@ async def image_to_base64(data: dict):
                 b64 = base64.b64encode(Path(path).read_bytes()).decode()
                 return {"data_uri": f"data:image/png;base64,{b64}"}
 
-        # Brand foto: /api/brands/{slug}/foto/file
+        # Brand foto: /api/brands/{slug}/foto/file — le do Mongo
         m = re.search(r"/brands/([^/]+)/foto/file", url)
         if m:
             slug = m.group(1)
-            assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / slug
-            if assets_dir.exists():
-                for f in sorted(assets_dir.iterdir()):
-                    if f.stem.startswith("avatar") and f.suffix.lower() in (".jpg", ".jpeg", ".png"):
-                        b64 = base64.b64encode(f.read_bytes()).decode()
-                        mime = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
-                        return {"data_uri": f"data:{mime};base64,{b64}"}
+            from services.brand_service import buscar_foto_brand
+            result = buscar_foto_brand(slug)
+            if result.get("foto"):
+                return {"data_uri": result["foto"]}
 
         # Fallback: fetch via httpx (para outras URLs internas)
         import httpx

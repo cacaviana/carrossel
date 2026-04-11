@@ -105,6 +105,57 @@ async def servir_imagem_pipeline(pipeline_id: str, slide_index: int):
     return FileResponse(path, media_type="image/png")
 
 
+@router.get("/{pipeline_id}/imagens")
+async def listar_imagens_pipeline(pipeline_id: str):
+    """Lista imagens disponíveis no disco para o pipeline."""
+    from pathlib import Path
+    from utils.pipeline_images import IMAGES_DIR
+    pipeline_dir = IMAGES_DIR / pipeline_id
+    if not pipeline_dir.exists():
+        return {"imagens": []}
+    imagens = []
+    for f in sorted(pipeline_dir.glob("slide-*.png")):
+        idx = int(f.stem.replace("slide-", ""))
+        imagens.append({
+            "slide_index": idx,
+            "variacao": 1,
+            "image_path": f"pipeline-images/{pipeline_id}/{f.name}",
+            "image_url": f"/api/pipelines/{pipeline_id}/imagens/{idx}",
+        })
+    return {"imagens": imagens, "total_slides": len(imagens)}
+
+
+@router.post("/{pipeline_id}/regerar-imagens")
+async def regerar_imagens(pipeline_id: str):
+    """Reseta art_director + image_generator + brand_gate + content_critic
+    mantendo strategist + copywriter aprovados. Util pra testar prompts de imagem."""
+    from services.pipeline_db_service import buscar_pipeline, atualizar_etapa, atualizar_pipeline
+
+    pipeline = await buscar_pipeline(pipeline_id)
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Pipeline nao encontrado")
+
+    ETAPAS_A_RESETAR = ("art_director", "image_generator", "brand_gate", "content_critic")
+
+    for step in pipeline.get("etapas", []):
+        if step["agente"] in ETAPAS_A_RESETAR:
+            await atualizar_etapa(str(step["id"]), {
+                "status": "pendente",
+                "saida": None,
+                "entrada": None,
+                "erro_mensagem": None,
+                "started_at": None,
+                "finished_at": None,
+            })
+
+    await atualizar_pipeline(pipeline_id, {
+        "status": "aguardando_aprovacao",
+        "etapa_atual": "art_director",
+    })
+
+    return {"pipeline_id": pipeline_id, "resetadas": list(ETAPAS_A_RESETAR), "mensagem": "Execute o pipeline para regerar imagens"}
+
+
 @router.post("/{pipeline_id}/retomar")
 async def retomar_pipeline(pipeline_id: str):
     """Retoma um pipeline cancelado ou com erro."""

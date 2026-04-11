@@ -131,7 +131,11 @@
 					total_slides: $carrosselAtual.slides.length,
 					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
 					design_system: designSystemConteudo || undefined,
-					reference_image: coverImage || undefined
+					reference_image: coverImage || undefined,
+					brand_slug: $carrosselAtual.brand_slug,
+					avatar_mode: $carrosselAtual.avatar_mode || 'livre',
+					pipeline_id: $carrosselAtual.pipeline_id,
+					formato: $carrosselAtual.formato || 'carrossel'
 				})
 			});
 			if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
@@ -167,7 +171,11 @@
 				body: JSON.stringify({
 					slides: $carrosselAtual.slides,
 					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
-					design_system: designSystemConteudo || undefined
+					design_system: designSystemConteudo || undefined,
+					brand_slug: $carrosselAtual.brand_slug,
+					avatar_mode: $carrosselAtual.avatar_mode || 'livre',
+					pipeline_id: $carrosselAtual.pipeline_id,
+					formato: $carrosselAtual.formato || 'carrossel'
 				})
 			});
 

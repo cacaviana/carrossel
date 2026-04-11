@@ -18,9 +18,25 @@ async def gerar_imagem_slide(
     design_system: str | None = None,
     brand_slug: str | None = None,
     formato: str = "carrossel",
+    reference_image: str | None = None,
+    avatar_mode: str = "livre",
+    pipeline_id: str | None = None,
 ) -> str | None:
     position = slide_index + 1
-    model, payload = build_payload(slide, position, total_slides, foto_criador, design_system, brand_slug=brand_slug, formato=formato)
+
+    # Sortear refs fixas pra esse slide usar (mesmo quando chamado avulso,
+    # o pipeline_id garante que regeneracoes usem as mesmas refs)
+    refs_fixas = None
+    if brand_slug:
+        from factories.refs_selector import escolher_refs_fixas
+        seed = pipeline_id or f"single-{brand_slug}-{slide.get('type', 'x')}"
+        refs_fixas = escolher_refs_fixas(brand_slug, seed)
+
+    model, payload = build_payload(
+        slide, position, total_slides, foto_criador, design_system,
+        brand_slug=brand_slug, formato=formato,
+        avatar_mode=avatar_mode, refs_fixas=refs_fixas,
+    )
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         res = await client.post(

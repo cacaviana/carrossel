@@ -30,6 +30,8 @@ class GerarImagemRequest(BaseModel):
     formato: FormatoValido = "carrossel"
     instrucao_extra: str | None = None
     skip_validation: bool = False
+    avatar_mode: str = "livre"
+    pipeline_id: str | None = None
 
 
 class GerarImagemSlideRequest(BaseModel):
@@ -40,3 +42,6 @@ class GerarImagemSlideRequest(BaseModel):
     design_system: str | None = None
     reference_image: str | None = None
     formato: FormatoValido = "carrossel"
+    brand_slug: str | None = None
+    avatar_mode: str = "livre"
+    pipeline_id: str | None = None

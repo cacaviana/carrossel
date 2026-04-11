@@ -26,6 +26,13 @@ export interface CarrosselData {
 	slides: Slide[];
 	legenda_linkedin: string;
 	createdAt?: string;
+	// Contexto de geracao (Fase 4) — necessario pra regenerar slides
+	// individualmente mantendo consistencia de refs
+	brand_slug?: string;
+	avatar_mode?: 'sem' | 'capa' | 'livre' | 'sim';
+	max_slides?: number;
+	pipeline_id?: string;
+	formato?: string;
 }
 
 export const carrosselAtual = writable<CarrosselData | null>(null);

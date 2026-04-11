@@ -152,8 +152,12 @@
 				</div>
 
 				{#if briefing.temFunil}
-					<div class="mt-4 bg-bg-card rounded-xl border border-border-default p-5">
-						<p class="label-upper mb-3">Pecas do funil ({briefing.totalPecas})</p>
+					<div class="mt-4 bg-bg-card rounded-xl border border-border-default p-5 opacity-70">
+						<div class="flex items-center justify-between mb-3">
+							<p class="label-upper">Pecas do funil ({briefing.totalPecas})</p>
+							<span class="text-[10px] px-2 py-0.5 rounded-full bg-purple/8 text-purple-soft border border-purple/20 font-mono uppercase tracking-wider">preview</span>
+						</div>
+						<p class="text-xs text-text-muted mb-3">Disponivel em breve — o funil sera gerado automaticamente conectando carrossel, post e reels numa jornada unica.</p>
 						<div class="space-y-2">
 							{#each briefing.pecas_funil as peca}
 								<div class="flex items-center gap-2 p-3 rounded-lg bg-bg-elevated border border-border-default">

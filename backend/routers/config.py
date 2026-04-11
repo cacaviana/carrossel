@@ -235,27 +235,26 @@ async def buscar_foto_brand(slug: str):
 
 @router.get("/brands/{slug}/foto/file")
 async def servir_foto_brand(slug: str):
-    """Serve o arquivo da foto da marca direto do disco (JPG/PNG)."""
-    from pathlib import Path
-    fotos_dir = Path(__file__).parent.parent / "assets" / "fotos"
-    for ext in ("jpg", "png", "jpeg"):
-        path = fotos_dir / f"{slug}.{ext}"
-        if path.exists():
-            media = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
-            return FileResponse(path, media_type=media)
-    raise HTTPException(status_code=404, detail="Foto nao encontrada")
+    """Serve a foto da marca como bytes. Le do MongoDB."""
+    from fastapi.responses import Response
+    from services.brand_service import buscar_foto_brand_bytes
+    result = buscar_foto_brand_bytes(slug)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Foto nao encontrada")
+    data, mime = result
+    return Response(content=data, media_type=mime)
 
 
 @router.get("/brands/{slug}/assets/{nome}/file")
 async def servir_asset_brand(slug: str, nome: str):
-    """Serve arquivo de asset da marca direto do disco (JPG/PNG)."""
-    from pathlib import Path
-    assets_dir = Path(__file__).parent.parent / "assets" / "brand-assets" / slug
-    for f in assets_dir.glob(f"{nome}.*"):
-        if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
-            media = "image/jpeg" if f.suffix.lower() in (".jpg", ".jpeg") else "image/png"
-            return FileResponse(f, media_type=media)
-    raise HTTPException(status_code=404, detail=f"Asset '{nome}' nao encontrado")
+    """Serve um asset da marca como bytes. Le do MongoDB."""
+    from fastapi.responses import Response
+    from services.brand_service import buscar_asset_bytes
+    result = buscar_asset_bytes(slug, nome)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Asset '{nome}' nao encontrado")
+    data, mime = result
+    return Response(content=data, media_type=mime)
 
 
 @router.post("/editor/corrigir-texto")
@@ -320,13 +319,25 @@ async def listar_assets(slug: str):
 
 @router.post("/brands/{slug}/assets")
 async def upload_asset(slug: str, data: dict):
-    """Upload de asset da marca. Body: {nome, imagem: base64}."""
+    """Upload de asset da marca.
+
+    Body:
+        nome: str              — nome do asset (prefixo auto-aplicado se `pool` passado)
+        imagem: str            — base64 data URI
+        pool: str (opcional)   — 'com_avatar' | 'sem_avatar'. Se passado, prefixa
+                                 o nome com ref_ca_ ou ref_sa_ automaticamente.
+                                 Se omitido, salva com o nome como veio (compat
+                                 com upload de avatar/foto).
+    """
     nome = data.get("nome", "asset")
     imagem = data.get("imagem", "")
+    pool = data.get("pool")
     if not imagem:
         raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
     try:
-        return _upload_asset(slug, nome, imagem)
+        return _upload_asset(slug, nome, imagem, pool=pool)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar asset: {str(e)}")
 
@@ -349,6 +360,32 @@ async def definir_referencia(slug: str, data: dict):
     if result is None:
         raise HTTPException(status_code=404, detail="Marca ou asset nao encontrado")
     return result
+
+
+@router.post("/brands/{slug}/dna/regenerate")
+@limiter.limit("10/minute")
+async def regenerate_dna(request: Request, slug: str, data: dict | None = None):
+    """Gera o DNA da marca (4 linhas: estilo, cores, tipografia, elementos)
+    a partir de uma imagem de referencia.
+
+    Body (opcional):
+        imagem: base64 — se omitido, usa a primeira ref do brand
+                (pool com_avatar preferido, sem_avatar como fallback).
+
+    Returns:
+        {slug, dna: {estilo, cores, tipografia, elementos}}
+    """
+    from services.dna_generator import regenerar_dna
+
+    imagem_b64 = (data or {}).get("imagem") if data else None
+    try:
+        return await regenerar_dna(slug, imagem_b64)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar DNA: {str(e)}")
 
 
 @router.post("/descrever-referencia")

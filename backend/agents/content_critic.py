@@ -1,7 +1,9 @@
 import json
+import os
 from pathlib import Path
 
 import anthropic
+import openai
 
 from utils.json_parser import parse_llm_json
 
@@ -27,12 +29,33 @@ async def executar(
     user_prompt += "\nAvalie com score de 0 a 10 em cada dimensao. Responda em JSON."
     user_prompt += "\nResposta OBRIGATORIAMENTE em JSON valido. Sem comentarios, sem trailing commas."
 
-    client = anthropic.AsyncAnthropic(api_key=claude_api_key)
-    message = await client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2048,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    # Tentar Claude primeiro, fallback pra OpenAI
+    try:
+        client = anthropic.AsyncAnthropic(api_key=claude_api_key)
+        message = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        return parse_llm_json(message.content[0].text)
+    except Exception as e:
+        print(f"[content_critic] Claude falhou: {e}. Tentando OpenAI...")
 
-    return parse_llm_json(message.content[0].text)
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    if not openai_key:
+        raise RuntimeError("Claude sem creditos e OpenAI nao configurada")
+    oai_client = openai.AsyncOpenAI(api_key=openai_key)
+    response = await oai_client.chat.completions.create(
+        model="gpt-4o",
+        max_tokens=2048,
+        temperature=0.7,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+    result = parse_llm_json(response.choices[0].message.content or "")
+    result["_provider"] = "openai"
+    result["_fallback"] = True
+    return result
