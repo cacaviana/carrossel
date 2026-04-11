@@ -44,21 +44,36 @@ async def corrigir_avatar(
         av_raw = av.split(",")[1] if "," in av else av
         parts.append({"inline_data": {"mime_type": "image/jpeg", "data": av_raw}})
 
-    # Prompt super especifico: EDIT nao REGENERATE
+    # Prompt direto: identifica a pessoa primeiro, depois pede a troca
     num_refs = len(avatares_para_usar)
-    ref_label = f"photos 2 to {num_refs + 1}" if num_refs > 1 else "photo 2"
+
+    if num_refs >= 3:
+        person_intro = (
+            "IMPORTANT: Photos 2, 3, and 4 show the SAME woman from different angles. "
+            "This is the brand's real content creator. Study her face carefully across "
+            "all three photos to understand her identity — her face shape, eyes, nose, "
+            "mouth, hair, and skin tone."
+        )
+    elif num_refs == 2:
+        person_intro = (
+            "IMPORTANT: Photos 2 and 3 show the SAME woman from different angles. "
+            "Study her face carefully across both photos to understand her identity."
+        )
+    else:
+        person_intro = "IMPORTANT: Photo 2 shows the brand's real content creator."
 
     prompt = (
-        f"TASK: Edit the FIRST image. Do NOT regenerate it.\n\n"
-        f"The first image is a social media post I already created. "
-        f"I want to keep this EXACT image — same text, same fonts, same colors, "
-        f"same layout, same background, same decorations, same EVERYTHING.\n\n"
-        f"The {ref_label} show the person I want in the image (multiple angles of the same person).\n\n"
-        f"EDIT ONLY the face and hair of the person in the first image to match the person "
-        f"in the reference photos. Keep the SAME pose, same body position, same clothing, "
-        f"same framing. Only swap the face.\n\n"
-        f"Think of it as face-swapping in the same photo, not creating a new image. "
-        f"Every single pixel outside the face area must remain IDENTICAL to the first image.\n\n"
+        f"{person_intro}\n\n"
+        f"Photo 1 is a social media post where a DIFFERENT woman appears. "
+        f"I need you to regenerate photo 1 with the SAME woman from photos 2-{num_refs + 1} instead.\n\n"
+        f"Requirements:\n"
+        f"- The woman in the result MUST be the one from photos 2-{num_refs + 1}. Same face, "
+        f"same features, same identity. Not a different person.\n"
+        f"- Keep the EXACT same scene as photo 1: same pose, same framing, same outfit, "
+        f"same lighting, same background, same text, same decorations, same everything.\n"
+        f"- The woman should look natural in the scene, not pasted. Her face must blend "
+        f"with the scene's lighting and skin tone.\n"
+        f"- Think of it as: 'if SHE had posed for photo 1, what would it look like?'\n\n"
         f"No nudity, no violence."
     )
     parts.append({"text": prompt})
