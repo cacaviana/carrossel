@@ -43,12 +43,20 @@ def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str, formato: s
         if img.mode not in ("RGB", "RGBA"):
             img = img.convert("RGB")
 
-        # Se a imagem saiu menor que o formato, redimensiona pro tamanho exato
+        # Ajusta pro tamanho do formato sem distorcer (resize + crop central)
         from utils.dimensions import get_dims
         dims = get_dims(formato)
         target_w, target_h = dims["width"], dims["height"]
-        if img.width < target_w or img.height < target_h:
-            img = img.resize((target_w, target_h), Image.LANCZOS)
+        if img.width != target_w or img.height != target_h:
+            # Escala pra cobrir o target mantendo proporção
+            scale = max(target_w / img.width, target_h / img.height)
+            new_w = int(img.width * scale)
+            new_h = int(img.height * scale)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            # Crop central pro tamanho exato
+            left = (new_w - target_w) // 2
+            top = (new_h - target_h) // 2
+            img = img.crop((left, top, left + target_w, top + target_h))
 
         img.save(path, "PNG")
     except Exception as e:
