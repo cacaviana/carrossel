@@ -30,8 +30,8 @@ export class VisualRepository {
       // Se p e objeto
       return {
         slide_index: p.slide_index ?? p.slide ?? i + 1,
-        titulo: p.titulo ?? p.tipo_slide ?? `Slide ${(p.slide_index ?? p.slide ?? i) + 1}`,
-        prompt_imagem: p.prompt_imagem ?? p.prompt ?? '',
+        titulo: p.titulo ?? p.title ?? p.tipo_slide ?? `Slide ${(p.slide_index ?? p.slide ?? i) + 1}`,
+        prompt_imagem: p.prompt_imagem ?? p.prompt ?? p.description ?? '',
         illustration_description: p.illustration_description ?? '',
         modelo_sugerido: p.modelo_sugerido ??
           (p.slide_index === 1 || p.tipo_slide === 'capa' || p.tipo_slide === 'cta' || p.tipo_slide === 'codigo' ? 'pro' : 'flash'),
