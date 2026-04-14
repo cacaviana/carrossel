@@ -2,16 +2,8 @@
 
 import { UserDTO } from '$lib/dtos/UserDTO';
 import { API_BASE } from '$lib/api';
-import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-
-function authHeaders(): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getToken()}`
-  };
-}
 
 export class UserRepository {
   static async listar(): Promise<UserDTO[]> {
@@ -21,10 +13,7 @@ export class UserRepository {
       return usersMock.map(u => new UserDTO(u));
     }
 
-    const res = await fetch(`${API_BASE}/api/auth/users`, {
-      headers: authHeaders()
-    });
-    if (!res.ok) throw new Error('Erro ao listar usuarios');
+    const res = await fetch(`${API_BASE}/api/kanban/users`);
     return (await res.json()).map((u: any) => new UserDTO(u));
   }
 }

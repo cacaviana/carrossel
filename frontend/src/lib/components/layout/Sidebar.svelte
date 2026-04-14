@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getAuth } from '$lib/stores/auth.svelte';
 
 	interface NavItem {
 		href: string;
@@ -27,29 +26,16 @@
 		{ href: '#', label: 'Funil', icon: 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12', badge: 'Em breve', disabled: true },
 	];
 
-	const auth = $derived(getAuth());
-
-	const systemItems = $derived.by(() => {
-		const items: NavItem[] = [
-			{ href: '/agentes', label: 'Agentes', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-			{ href: '/configuracoes', label: 'Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
-		];
-		if (auth?.isAdmin) {
-			items.push({ href: '/historico?tab=usuarios', label: 'Usuarios', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' });
-		}
-		return items;
-	});
+	const systemItems: NavItem[] = [
+		{ href: '/agentes', label: 'Agentes', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+		{ href: '/configuracoes', label: 'Config', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+	];
 
 	function isActive(href: string): boolean {
 		if (href === '/') return page.url.pathname === '/' && !page.url.searchParams.has('formato');
 		if (href.startsWith('/?formato=')) {
 			const fmt = href.split('=')[1];
 			return page.url.pathname === '/' && page.url.searchParams.get('formato') === fmt;
-		}
-		if (href.includes('?tab=')) {
-			const [path, qs] = href.split('?');
-			const tabVal = new URLSearchParams(qs).get('tab');
-			return page.url.pathname === path && page.url.searchParams.get('tab') === tabVal;
 		}
 		return page.url.pathname.startsWith(href);
 	}

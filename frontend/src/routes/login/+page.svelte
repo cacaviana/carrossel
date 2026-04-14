@@ -20,7 +20,7 @@
 			const result = await AuthService.login(email, password);
 			if (result.success && result.data) {
 				setAuth(result.data);
-				goto('/historico');
+				goto('/kanban');
 			} else {
 				error = result.error ?? 'Email ou senha incorretos.';
 			}
