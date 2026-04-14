@@ -48,7 +48,7 @@ class AuthRepository:
         return list(db.kanban_users.find({
             "tenant_id": tenant_id,
             "deleted_at": None,
-        }).sort("created_at", 1))
+        }))
 
     @staticmethod
     def insert_user(doc: dict) -> dict:

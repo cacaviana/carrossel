@@ -8,14 +8,14 @@ TENANT_ID = settings.TENANT_ID
 router = APIRouter(tags=["Historico"])
 
 
-def _get_service():
-    """Tenta criar HistoricoService com SQL. Retorna None se SQL nao disponivel."""
+def _sql_available():
+    """Checa se MSSQL_URL esta configurado (nao testa conexao)."""
     try:
-        from data.connections.sql_connection import get_engine
-        get_engine()  # levanta RuntimeError se MSSQL_URL nao configurado
+        if not settings.MSSQL_URL:
+            return False
+        return True
     except Exception:
-        return None
-    return "sql_available"
+        return False
 
 
 @router.get("/historico")
@@ -35,7 +35,7 @@ async def listar_historico(
         filters["status"] = status
 
     # Tentar SQL primeiro
-    if _get_service():
+    if _sql_available():
         try:
             from data.connections.database import get_sql_session_context
             from data.repositories.sql.historico_repository import HistoricoRepository
@@ -57,7 +57,7 @@ async def listar_historico(
 
 @router.get("/historico/{item_id}")
 async def buscar_historico(item_id: str):
-    if _get_service():
+    if _sql_available():
         try:
             from data.connections.database import get_sql_session_context
             from data.repositories.sql.historico_repository import HistoricoRepository
@@ -78,7 +78,7 @@ async def buscar_historico(item_id: str):
 
 @router.delete("/historico/{item_id}")
 async def deletar_historico(item_id: str):
-    if _get_service():
+    if _sql_available():
         try:
             from data.connections.database import get_sql_session_context
             from data.repositories.sql.historico_repository import HistoricoRepository
