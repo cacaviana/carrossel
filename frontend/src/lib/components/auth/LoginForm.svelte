@@ -30,6 +30,7 @@
 		<label for="email" class="block text-xs font-medium text-text-secondary mb-1.5">Email</label>
 		<input
 			id="email"
+			data-testid="campo-email"
 			type="email"
 			bind:value={email}
 			placeholder="seu@email.com"
@@ -45,6 +46,7 @@
 		<div class="relative">
 			<input
 				id="password"
+				data-testid="campo-senha"
 				type={showPassword ? 'text' : 'password'}
 				bind:value={password}
 				placeholder="Sua senha"
@@ -85,12 +87,13 @@
 	</div>
 
 	{#if error}
-		<div class="p-3 rounded-lg bg-red/10 border border-red/20 text-sm text-red animate-fade-up">
+		<div data-testid="msg-erro" class="p-3 rounded-lg bg-red/10 border border-red/20 text-sm text-red animate-fade-up">
 			{error}
 		</div>
 	{/if}
 
 	<button
+		data-testid="btn-entrar"
 		type="submit"
 		disabled={!canSubmit}
 		class="w-full py-3 rounded-lg font-medium text-sm text-white transition-all cursor-pointer

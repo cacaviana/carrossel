@@ -607,7 +607,7 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
     imagens_result = []
     for i, img in enumerate(images):
         if img:
-            path_rel = salvar_imagem(context.get("_pipeline_id", "temp"), i + 1, img)
+            path_rel = salvar_imagem(context.get("_pipeline_id", "temp"), i + 1, img, formato=formato)
         else:
             path_rel = None
         imagens_result.append({
@@ -699,7 +699,7 @@ async def _exec_brand_gate(context, formato, brand_slug=None):
         # Salvar resultado no disco
         pipeline_id = context.get("_pipeline_id", "temp")
         slide_idx = img_item.get("slide_index", 1)
-        path_rel = salvar_imagem(pipeline_id, slide_idx, image_final)
+        path_rel = salvar_imagem(pipeline_id, slide_idx, image_final, formato=formato)
 
         resultados.append({
             "slide_index": slide_idx,

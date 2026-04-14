@@ -190,11 +190,8 @@ def _build_style_instruction(brand_slug: str) -> str:
 
 
 def select_model(slide: dict, position: int, total: int) -> str:
-    """Pro para capa, codigo e CTA. Flash para content."""
-    slide_type = slide.get("type", "content")
-    if position == 1 or position == total or slide_type == "code":
-        return "gemini-3-pro-image-preview"
-    return "gemini-2.5-flash-image"
+    """Pro em todos os slides — qualidade maxima sempre."""
+    return "gemini-3-pro-image-preview"
 
 
 def build_payload(

@@ -14,7 +14,7 @@ def _strip_data_uri(b64: str) -> str:
     return b64.split(",", 1)[1] if "," in b64 else b64
 
 
-def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str) -> str:
+def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str, formato: str = "carrossel") -> str:
     """Salva imagem base64 como PNG no disco.
 
     PNG mantém qualidade máxima pro pipeline. A exportação final (PDF/Drive)
@@ -43,16 +43,12 @@ def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str) -> str:
         if img.mode not in ("RGB", "RGBA"):
             img = img.convert("RGB")
 
-        # Se a imagem saiu muito pequena (< 800px largura), redimensiona pra 1080x1350
-        if img.width < 800:
-            target_ratio = 4 / 5
-            current_ratio = img.width / img.height
-            if abs(current_ratio - target_ratio) < 0.15:
-                img = img.resize((1080, 1350), Image.LANCZOS)
-            else:
-                scale = 1080 / img.width
-                new_h = int(img.height * scale)
-                img = img.resize((1080, new_h), Image.LANCZOS)
+        # Se a imagem saiu menor que o formato, redimensiona pro tamanho exato
+        from utils.dimensions import get_dims
+        dims = get_dims(formato)
+        target_w, target_h = dims["width"], dims["height"]
+        if img.width < target_w or img.height < target_h:
+            img = img.resize((target_w, target_h), Image.LANCZOS)
 
         img.save(path, "PNG")
     except Exception as e:
