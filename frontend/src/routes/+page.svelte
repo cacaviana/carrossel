@@ -5,6 +5,7 @@
 	import { API_BASE } from '$lib/api';
 	import { PipelineService } from '$lib/services/PipelineService';
 	import Banner from '$lib/components/ui/Banner.svelte';
+	import DeadlinePicker from '$lib/components/kanban/DeadlinePicker.svelte';
 	import type { FormatoConteudo } from '$lib/dtos/PipelineDTO';
 
 	let modoEntrada = $state<'texto_pronto' | 'ideia' | 'disciplina'>('ideia');
@@ -14,6 +15,7 @@
 	let temaCustom = $state('');
 	let criando = $state(false);
 	let erro = $state('');
+	let deadline = $state('');
 
 	// Marca
 	type Brand = { slug: string; nome: string; cor_principal: string; cor_fundo: string };
@@ -154,6 +156,7 @@
 				modo_entrada: modoEntrada,
 				brand_slug: brandSelecionada || undefined,
 				avatar_mode: avatarMode,
+				deadline: deadline || undefined,
 			};
 
 			if (modoEntrada === 'texto_pronto') {
@@ -497,6 +500,11 @@
 				</div>
 			{/if}
 		{/if}
+	</div>
+
+	<!-- Prazo de publicacao com calendario visual -->
+	<div class="mb-4">
+		<DeadlinePicker value={deadline} onchange={(d) => deadline = d} />
 	</div>
 
 	<!-- Erro -->
