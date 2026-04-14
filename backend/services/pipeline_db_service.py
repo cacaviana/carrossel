@@ -90,13 +90,17 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
                 slides_para_copy = []
                 for idx, s in enumerate(slides_texto_pronto or []):
                     tipo = "capa" if idx == 0 else ("cta" if idx == len(slides_texto_pronto or []) - 1 else "conteudo")
-                    slides_para_copy.append({
+                    tipo_layout = (s.get("tipo_layout") if isinstance(s, dict) else getattr(s, "tipo_layout", None)) or None
+                    entry = {
                         "indice": idx + 1,
                         "tipo": tipo,
                         "titulo": s.get("principal", "") if isinstance(s, dict) else s.principal,
                         "corpo": s.get("alternativo", "") if isinstance(s, dict) else s.alternativo,
                         "notas": "Texto fornecido pelo usuario — NAO reescrever",
-                    })
+                    }
+                    if tipo_layout:
+                        entry["tipo_layout"] = tipo_layout
+                    slides_para_copy.append(entry)
                 copy_json = json.dumps({
                     "headline": tema,
                     "narrativa": "Conteudo original do usuario — texto pronto",

@@ -56,10 +56,16 @@
 	});
 
 	// Texto pronto — slide a slide
-	type SlideTexto = { principal: string; alternativo: string };
+	type SlideTexto = { principal: string; alternativo: string; tipo_layout: string };
+	const LAYOUT_OPTIONS = [
+		{ value: 'texto', label: 'Texto' },
+		{ value: 'lista', label: 'Lista' },
+		{ value: 'comparativo', label: 'Comparativo' },
+		{ value: 'dados', label: 'Dados' },
+	];
 	const FORMATOS_SLIDE_UNICO = ['post_unico', 'thumbnail_youtube', 'capa_reels'];
 	const isSlideUnico = $derived(FORMATOS_SLIDE_UNICO.includes(formatoAtual));
-	let slidesTexto = $state<SlideTexto[]>(Array.from({ length: 3 }, () => ({ principal: '', alternativo: '' })));
+	let slidesTexto = $state<SlideTexto[]>(Array.from({ length: 3 }, () => ({ principal: '', alternativo: '', tipo_layout: 'texto' })));
 
 	// Quando muda pra formato de slide unico, ajustar pra 1 slide
 	$effect(() => {
@@ -75,7 +81,7 @@
 
 	function adicionarSlide() {
 		if (slidesTexto.length >= MAX_SLIDES) return;
-		slidesTexto = [...slidesTexto, { principal: '', alternativo: '' }];
+		slidesTexto = [...slidesTexto, { principal: '', alternativo: '', tipo_layout: 'texto' }];
 	}
 
 	function removerSlide(index: number) {
@@ -153,7 +159,7 @@
 			if (modoEntrada === 'texto_pronto') {
 				payload.slides_texto_pronto = slidesTexto
 					.filter(s => s.principal.trim().length > 0)
-					.map(s => ({ principal: s.principal, alternativo: s.alternativo }));
+					.map(s => ({ principal: s.principal, alternativo: s.alternativo, tipo_layout: s.tipo_layout }));
 			}
 
 			if (modoEntrada === 'ideia') {
@@ -357,6 +363,15 @@
 										class="ml-auto px-2 py-0.5 rounded-full text-xs text-red-400 hover:bg-red-50 transition-all cursor-pointer"
 									>remover</button>
 								{/if}
+								<select
+									bind:value={slide.tipo_layout}
+									disabled={criando}
+									class="ml-auto px-2 py-1 rounded-lg border border-border-default bg-bg-input text-text-secondary text-xs outline-none"
+								>
+									{#each LAYOUT_OPTIONS as opt}
+										<option value={opt.value}>{opt.label}</option>
+									{/each}
+								</select>
 							</div>
 							<textarea
 								bind:value={slide.principal}

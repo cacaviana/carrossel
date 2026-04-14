@@ -5,6 +5,7 @@ from typing import Optional
 class SlideTextoPronto(BaseModel):
     principal: str
     alternativo: str = ""
+    tipo_layout: Optional[str] = None
 
 
 class CriarPipelineRequest(BaseModel):
