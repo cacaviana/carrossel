@@ -28,6 +28,29 @@ from utils.dimensions import FORMATS
 FORMATOS_VALIDOS = list(FORMATS.keys())
 
 
+def inferir_tipo_layout(slide: dict) -> str:
+    """Infere tipo_layout a partir dos campos do slide.
+
+    Regra de negocio — pertence a Factory (nao ao Service).
+    """
+    import re
+
+    stype = slide.get("type", "content")
+    if stype in ("cover", "cta", "code"):
+        return "texto"
+    # Comparativo: tem left/right
+    if slide.get("left_label") or slide.get("left_items"):
+        return "comparativo"
+    # Dados: bullets com numeros/porcentagens dominando
+    bullets = slide.get("bullets", [])
+    if bullets:
+        nums = sum(1 for b in bullets if re.search(r'\d+[%xX]|\d{2,}', b))
+        if nums >= len(bullets) * 0.5:
+            return "dados"
+        return "lista"
+    return "texto"
+
+
 class PipelineFactory:
 
     @staticmethod

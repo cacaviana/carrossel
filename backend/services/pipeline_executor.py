@@ -440,27 +440,6 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None, avatar_
     )
 
 
-def _inferir_tipo_layout(slide: dict) -> str:
-    """Infere tipo_layout a partir dos campos do slide."""
-    stype = slide.get("type", "content")
-    if stype in ("cover", "cta"):
-        return "texto"
-    if stype == "code":
-        return "texto"
-    # Comparativo: tem left/right
-    if slide.get("left_label") or slide.get("left_items"):
-        return "comparativo"
-    # Dados: bullets com numeros/porcentagens dominando
-    bullets = slide.get("bullets", [])
-    if bullets:
-        import re
-        nums = sum(1 for b in bullets if re.search(r'\d+[%xX]|\d{2,}', b))
-        if nums >= len(bullets) * 0.5:
-            return "dados"
-        return "lista"
-    return "texto"
-
-
 async def _exec_image_generator(context, formato, gemini_api_key, step_id="", brand_slug=None, avatar_mode="livre"):
     from services.step_progress import atualizar as progress_update
 
@@ -506,7 +485,8 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         if s.get("tipo_layout"):
             slide["tipo_layout"] = s["tipo_layout"]
         elif "tipo_layout" not in slide:
-            slide["tipo_layout"] = _inferir_tipo_layout(slide)
+            from factories.pipeline_factory import inferir_tipo_layout
+            slide["tipo_layout"] = inferir_tipo_layout(slide)
 
         slides.append(slide)
 
