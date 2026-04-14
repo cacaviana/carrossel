@@ -14,14 +14,26 @@
 
 	const isHome = $derived(page.url.pathname === '/' && !page.url.searchParams.has('formato'));
 	const isLoginPage = $derived(page.url.pathname === '/login');
-	const isKanbanPage = $derived(page.url.pathname.startsWith('/kanban') || (page.url.pathname === '/historico' && (page.url.searchParams.get('tab') === 'kanban' || page.url.searchParams.get('tab') === 'calendario')));
+	const isConvitePage = $derived(page.url.pathname === '/convite');
+	const histTab = $derived(page.url.searchParams.get('tab'));
+	const isKanbanPage = $derived(page.url.pathname.startsWith('/kanban') || (page.url.pathname === '/historico' && (histTab === 'kanban' || histTab === 'calendario' || histTab === 'usuarios')));
+	const isProtectedPage = $derived(page.url.pathname === '/historico' || page.url.pathname.startsWith('/kanban'));
 	const auth = $derived(getAuth());
-	const showAuthHeader = $derived(isLoggedIn() && !isLoginPage);
+	const showAuthHeader = $derived(isLoggedIn() && !isLoginPage && !isConvitePage);
 
 	afterNavigate(async () => {
 		await tick();
 		window.scrollTo({ top: 0, behavior: 'instant' });
 		mainEl?.scrollTo({ top: 0, behavior: 'instant' });
+
+		// Auth guard: protected pages require login
+		if (isProtectedPage && !isLoggedIn()) {
+			goto('/login');
+		}
+		// If logged in and on login page, redirect to historico
+		if (isLoginPage && isLoggedIn()) {
+			goto('/historico');
+		}
 	});
 
 	function handleLogout() {
@@ -30,8 +42,8 @@
 	}
 </script>
 
-{#if isLoginPage}
-	<!-- Login page: no sidebar, no header -->
+{#if isLoginPage || isConvitePage}
+	<!-- Login/Convite page: no sidebar, no header -->
 	{@render children()}
 {:else}
 <div class="min-h-screen flex bg-bg-global">

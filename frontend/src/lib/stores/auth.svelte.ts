@@ -41,3 +41,7 @@ export function clearAuth(): void {
 export function isLoggedIn(): boolean {
   return currentAuth !== null && currentAuth.isValid();
 }
+
+export function getToken(): string {
+  return currentAuth?.token ?? '';
+}

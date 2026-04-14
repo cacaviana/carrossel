@@ -30,9 +30,16 @@
 	import CardDetailModal from '$lib/components/kanban/CardDetailModal.svelte';
 	import CardCreateModal from '$lib/components/kanban/CardCreateModal.svelte';
 	import { scoreCor } from '$lib/dtos/ScoreDTO';
+	import { AuthService } from '$lib/services/AuthService';
+	import { UserDTO } from '$lib/dtos/UserDTO';
+	import { CriarUsuarioDTO } from '$lib/dtos/CriarUsuarioDTO';
+	import { EditarUsuarioDTO } from '$lib/dtos/EditarUsuarioDTO';
+	import UserTable from '$lib/components/user/UserTable.svelte';
+	import UserFormModal from '$lib/components/user/UserFormModal.svelte';
+	import InviteModal from '$lib/components/user/InviteModal.svelte';
 
 	// === TABS ===
-	let activeTab = $state<'historico' | 'kanban' | 'calendario'>('historico');
+	let activeTab = $state<'historico' | 'kanban' | 'calendario' | 'usuarios'>('historico');
 
 	// === HISTORICO STATE ===
 	let historico = $state<HistoricoItemDTO[]>([]);
@@ -95,6 +102,80 @@
 	const selectedCard = $derived(
 		selectedCardId ? cards.find(c => c.id === selectedCardId) ?? null : null
 	);
+
+	// === USUARIOS STATE ===
+	let allUsers = $state<UserDTO[]>([]);
+	let loadingUsers = $state(false);
+	let erroUsers = $state('');
+	let showUserFormModal = $state(false);
+	let showInviteModal = $state(false);
+	let editingUser = $state<UserDTO | null>(null);
+	let successMsg = $state('');
+	let inviteUrl = $state('');
+
+	async function loadUsers() {
+		loadingUsers = true;
+		erroUsers = '';
+		try {
+			allUsers = await AuthService.listarUsuarios();
+		} catch {
+			erroUsers = 'Erro ao carregar usuarios.';
+		} finally {
+			loadingUsers = false;
+		}
+	}
+
+	function handleEditUser(user: UserDTO) {
+		editingUser = user;
+		showUserFormModal = true;
+	}
+
+	async function handleToggleStatus(user: UserDTO) {
+		try {
+			if (user.isActive) {
+				await AuthService.desativarUsuario(user.id);
+			} else {
+				await AuthService.reativarUsuario(user.id);
+			}
+			await loadUsers();
+			successMsg = user.isActive ? 'Usuario desativado.' : 'Usuario reativado.';
+			setTimeout(() => successMsg = '', 3000);
+		} catch (err: any) {
+			erroUsers = err.message ?? 'Erro ao alterar status.';
+		}
+	}
+
+	async function handleSaveUser(data: Record<string, any>) {
+		try {
+			if (data.user_id) {
+				const dto = new EditarUsuarioDTO(data);
+				await AuthService.editarUsuario(dto);
+				successMsg = 'Usuario atualizado.';
+			} else {
+				const dto = new CriarUsuarioDTO(data);
+				await AuthService.criarUsuario(dto);
+				successMsg = 'Usuario criado.';
+			}
+			showUserFormModal = false;
+			editingUser = null;
+			await loadUsers();
+			setTimeout(() => successMsg = '', 3000);
+		} catch (err: any) {
+			erroUsers = err.message ?? 'Erro ao salvar usuario.';
+		}
+	}
+
+	async function handleInvite(data: { email: string; name: string; role: string }) {
+		try {
+			const result = await AuthService.convidarUsuario(data);
+			inviteUrl = result.invite_url;
+			showInviteModal = false;
+			successMsg = 'Convite gerado com sucesso!';
+			setTimeout(() => { successMsg = ''; inviteUrl = ''; }, 10000);
+		} catch (err: any) {
+			erroUsers = err.message ?? 'Erro ao convidar usuario.';
+		}
+	}
 
 	let kanbanLoaded = false;
 
@@ -159,6 +240,9 @@
 		if (activeTab === 'kanban' || activeTab === 'calendario') {
 			loadKanban();
 		}
+		if (activeTab === 'usuarios') {
+			loadUsers();
+		}
 	});
 
 	onMount(async () => {
@@ -172,7 +256,7 @@
 
 		// Check tab from URL
 		const tab = page.url.searchParams.get('tab');
-		if (tab === 'kanban' || tab === 'calendario') activeTab = tab;
+		if (tab === 'kanban' || tab === 'calendario' || tab === 'usuarios') activeTab = tab;
 
 		const cardParam = page.url.searchParams.get('card');
 		if (cardParam) {
@@ -181,7 +265,7 @@
 		}
 	});
 
-	function setTab(tab: 'historico' | 'kanban' | 'calendario') {
+	function setTab(tab: 'historico' | 'kanban' | 'calendario' | 'usuarios') {
 		activeTab = tab;
 		const url = new URL(window.location.href);
 		if (tab === 'historico') url.searchParams.delete('tab');
@@ -222,6 +306,16 @@
 				>
 					Calendario
 				</button>
+				{#if auth?.isAdmin}
+					<button
+						data-testid="tab-usuarios"
+						onclick={() => setTab('usuarios')}
+						class="px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer
+							{activeTab === 'usuarios' ? 'bg-bg-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}"
+					>
+						Usuarios
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -407,6 +501,62 @@
 		{:else}
 			<KanbanCalendar {cards} onCardClick={handleCardClick} />
 		{/if}
+
+	<!-- ========== TAB: USUARIOS ========== -->
+	{:else if activeTab === 'usuarios'}
+		{#if successMsg}
+			<Banner type="success" dismissible ondismiss={() => successMsg = ''}>{successMsg}</Banner>
+			{#if inviteUrl}
+				<div class="mt-3 p-3 rounded-lg bg-purple/8 border border-purple/20">
+					<p class="text-xs text-text-secondary mb-1">Link de convite (copie e envie):</p>
+					<div class="flex items-center gap-2">
+						<code class="flex-1 text-xs text-purple font-mono break-all">{inviteUrl}</code>
+						<button
+							data-testid="btn-copiar-link"
+							onclick={() => navigator.clipboard.writeText(inviteUrl)}
+							class="px-3 py-1.5 rounded-lg text-xs font-medium text-purple bg-purple/10 hover:bg-purple/20 transition-all cursor-pointer"
+						>
+							Copiar
+						</button>
+					</div>
+				</div>
+			{/if}
+		{/if}
+
+		{#if erroUsers}
+			<div class="mt-3">
+				<Banner type="error" dismissible ondismiss={() => erroUsers = ''}>{erroUsers}</Banner>
+			</div>
+		{/if}
+
+		{#if loadingUsers}
+			<div class="text-center py-16">
+				<Spinner size="lg" />
+				<p class="text-text-secondary mt-3 text-sm">Carregando usuarios...</p>
+			</div>
+		{:else}
+			<div class="mt-4">
+				<UserTable
+					users={allUsers}
+					onEdit={handleEditUser}
+					onToggleStatus={handleToggleStatus}
+					onInvite={() => showInviteModal = true}
+				/>
+			</div>
+		{/if}
+
+		<UserFormModal
+			open={showUserFormModal}
+			user={editingUser}
+			onClose={() => { showUserFormModal = false; editingUser = null; }}
+			onSave={handleSaveUser}
+		/>
+
+		<InviteModal
+			open={showInviteModal}
+			onClose={() => showInviteModal = false}
+			onInvite={handleInvite}
+		/>
 	{/if}
 
 	<!-- Card detail modal (kanban + calendario) -->
