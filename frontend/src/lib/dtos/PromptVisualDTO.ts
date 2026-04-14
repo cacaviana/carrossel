@@ -14,8 +14,8 @@ export class PromptVisualDTO {
     this.pipeline_id = data.pipeline_id ?? '';
     this.prompts = (data.prompts ?? []).map((p: any, i: number) => ({
       slide_index: p.slide_index ?? i,
-      titulo: p.titulo ?? `Slide ${i + 1}`,
-      prompt_imagem: p.prompt_imagem ?? p.prompt ?? '',
+      titulo: p.titulo ?? p.title ?? `Slide ${i + 1}`,
+      prompt_imagem: p.prompt_imagem ?? p.prompt ?? p.description ?? '',
       illustration_description: p.illustration_description ?? '',
       modelo_sugerido: p.modelo_sugerido ?? 'flash'
     }));
