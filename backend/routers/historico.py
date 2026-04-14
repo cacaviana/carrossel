@@ -1,11 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 
-from dtos.historico.listar_historico.response import ListarHistoricoResponse
-from dtos.historico.buscar_historico.response import BuscarHistoricoResponse
-from services.historico_service import HistoricoService
 from services.db_service import listar_historico as listar_historico_legado, deletar_historico as deletar_historico_legado
-from data.connections.database import get_sql_session
-from data.repositories.sql.historico_repository import HistoricoRepository
 
 from config import settings
 TENANT_ID = settings.TENANT_ID
@@ -13,19 +8,23 @@ TENANT_ID = settings.TENANT_ID
 router = APIRouter(tags=["Historico"])
 
 
-def _get_service(session=Depends(get_sql_session)):
-    repo = HistoricoRepository(session)
-    return HistoricoService(repo)
+def _get_service():
+    """Tenta criar HistoricoService com SQL. Retorna None se SQL nao disponivel."""
+    try:
+        from data.connections.sql_connection import get_engine
+        get_engine()  # levanta RuntimeError se MSSQL_URL nao configurado
+    except Exception:
+        return None
+    return "sql_available"
 
 
-@router.get("/historico", response_model=ListarHistoricoResponse)
+@router.get("/historico")
 async def listar_historico(
     texto: str | None = None,
     formato: str | None = None,
     status: str | None = None,
     limit: int = 50,
     offset: int = 0,
-    service: HistoricoService = Depends(_get_service),
 ):
     filters = {}
     if texto:
@@ -34,42 +33,68 @@ async def listar_historico(
         filters["formato"] = formato
     if status:
         filters["status"] = status
-    try:
-        return await service.listar(tenant_id=TENANT_ID, filters=filters)
-    except Exception:
-        # Fallback para legado se SQLAlchemy nao estiver configurado
+
+    # Tentar SQL primeiro
+    if _get_service():
         try:
-            items = await listar_historico_legado(limit=limit)
-            return {"items": items, "total": len(items)}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            from data.connections.database import get_sql_session_context
+            from data.repositories.sql.historico_repository import HistoricoRepository
+            from services.historico_service import HistoricoService
+            async with get_sql_session_context() as session:
+                repo = HistoricoRepository(session)
+                service = HistoricoService(repo)
+                return await service.listar(tenant_id=TENANT_ID, filters=filters)
+        except Exception:
+            pass
+
+    # Fallback legado
+    try:
+        items = await listar_historico_legado(limit=limit)
+        return {"items": items, "total": len(items)}
+    except Exception:
+        return {"items": [], "total": 0}
 
 
-@router.get("/historico/{item_id}", response_model=BuscarHistoricoResponse)
-async def buscar_historico(
-    item_id: str,
-    service: HistoricoService = Depends(_get_service),
-):
-    result = await service.buscar(item_id, tenant_id=TENANT_ID)
-    if not result:
-        raise HTTPException(status_code=404, detail="Item nao encontrado")
-    return result
+@router.get("/historico/{item_id}")
+async def buscar_historico(item_id: str):
+    if _get_service():
+        try:
+            from data.connections.database import get_sql_session_context
+            from data.repositories.sql.historico_repository import HistoricoRepository
+            from services.historico_service import HistoricoService
+            async with get_sql_session_context() as session:
+                repo = HistoricoRepository(session)
+                service = HistoricoService(repo)
+                result = await service.buscar(item_id, tenant_id=TENANT_ID)
+                if not result:
+                    raise HTTPException(status_code=404, detail="Item nao encontrado")
+                return result
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+    raise HTTPException(status_code=404, detail="Item nao encontrado")
 
 
 @router.delete("/historico/{item_id}")
-async def deletar_historico(
-    item_id: str,
-    service: HistoricoService = Depends(_get_service),
-):
-    try:
-        ok = await service.deletar(item_id, tenant_id=TENANT_ID)
-        if not ok:
-            raise HTTPException(status_code=404, detail="Item nao encontrado")
-        return {"ok": True}
-    except Exception:
-        # Fallback para legado
+async def deletar_historico(item_id: str):
+    if _get_service():
         try:
-            await deletar_historico_legado(int(item_id))
-            return {"ok": True}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            from data.connections.database import get_sql_session_context
+            from data.repositories.sql.historico_repository import HistoricoRepository
+            from services.historico_service import HistoricoService
+            async with get_sql_session_context() as session:
+                repo = HistoricoRepository(session)
+                service = HistoricoService(repo)
+                ok = await service.deletar(item_id, tenant_id=TENANT_ID)
+                if ok:
+                    return {"ok": True}
+        except Exception:
+            pass
+
+    # Fallback legado
+    try:
+        await deletar_historico_legado(int(item_id))
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
