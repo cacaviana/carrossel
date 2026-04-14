@@ -69,7 +69,8 @@ export class AuthRepository {
     });
     if (!res.ok) throw new Error('Erro ao listar usuarios');
     const data = await res.json();
-    return data.map((u: any) => new UserDTO(u));
+    const items = Array.isArray(data) ? data : (data.usuarios ?? []);
+    return items.map((u: any) => new UserDTO(u));
   }
 
   static async criarUsuario(payload: Record<string, any>): Promise<UserDTO> {
