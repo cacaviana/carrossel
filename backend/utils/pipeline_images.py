@@ -9,6 +9,11 @@ from pathlib import Path
 IMAGES_DIR = Path(__file__).parent.parent / "assets" / "pipeline-images"
 
 
+def _strip_data_uri(b64: str) -> str:
+    """Remove prefixo data URI (data:image/...;base64,) se presente."""
+    return b64.split(",", 1)[1] if "," in b64 else b64
+
+
 def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str) -> str:
     """Salva imagem base64 como PNG real no disco.
 
@@ -20,11 +25,21 @@ def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str) -> str:
     pipeline_dir.mkdir(parents=True, exist_ok=True)
     filename = f"slide-{slide_index:02d}.png"
     path = pipeline_dir / filename
-    raw = image_b64.split(",")[1] if "," in image_b64 else image_b64
+    raw = _strip_data_uri(image_b64)
     img_bytes = base64.b64decode(raw)
+
+    # Validacao: rejeita bytes que nao comecam com magic number de imagem
+    _PNG_MAGIC = b"\x89PNG"
+    _JPEG_MAGIC = b"\xff\xd8\xff"
+    _WEBP_MAGIC = b"RIFF"
+    if not (img_bytes[:4] == _PNG_MAGIC or img_bytes[:3] == _JPEG_MAGIC or img_bytes[:4] == _WEBP_MAGIC):
+        print(f"[pipeline_images] WARN slide-{slide_index:02d}: bytes nao comecam com magic number valido (hex: {img_bytes[:16].hex()}). Possivel data URI nao removido.")
 
     try:
         from PIL import Image
+        img = Image.open(BytesIO(img_bytes))
+        img.verify()
+        # Re-abrir apos verify (verify invalida o objeto)
         img = Image.open(BytesIO(img_bytes))
         if img.mode not in ("RGB", "RGBA"):
             img = img.convert("RGB")
@@ -42,9 +57,18 @@ def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str) -> str:
 
         img.save(path, "PNG")
     except Exception as e:
-        # Fallback: escreve bytes crus pra nao perder a imagem do usuario
-        print(f"[pipeline_images] PIL falhou ({e}), salvando bytes crus")
-        path.write_bytes(img_bytes)
+        print(f"[pipeline_images] ERRO slide-{slide_index:02d}: imagem corrompida ({e}). Bytes descartados.")
+        return ""
+
+    # Pos-save: confirma que o PNG salvo eh valido
+    try:
+        from PIL import Image
+        img_check = Image.open(path)
+        img_check.verify()
+    except Exception as e:
+        print(f"[pipeline_images] ERRO slide-{slide_index:02d}: PNG salvo falhou verify ({e})")
+        path.unlink(missing_ok=True)
+        return ""
 
     return f"pipeline-images/{pipeline_id}/{filename}"
 

@@ -1,7 +1,8 @@
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from middleware.rate_limiter import limiter
 
 from dtos.config.request import SaveConfigRequest
@@ -45,6 +46,43 @@ from services.brand_analyzer_service import BrandAnalyzerService
 router = APIRouter(tags=["Configuracoes"])
 
 _config_service = ConfigService()
+
+_TEST_SLIDES_DIR = Path(__file__).resolve().parent.parent.parent / "test_slides"
+
+
+@router.get("/test-slides")
+async def test_slides_gallery():
+    """Galeria dos test_slides (dev only)."""
+    if not _TEST_SLIDES_DIR.is_dir():
+        raise HTTPException(status_code=404, detail="Pasta test_slides nao encontrada")
+    pngs = sorted(_TEST_SLIDES_DIR.glob("*.png"))
+    cards = ""
+    for p in pngs:
+        name = p.stem
+        cards += f'<div class="card"><img src="/api/test-slides/{p.name}"><p>{name}</p></div>\n'
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Test Slides</title>
+<style>
+body{{background:#111;color:#fff;font-family:sans-serif;text-align:center;padding:20px}}
+h1{{margin-bottom:30px}}
+.grid{{display:flex;flex-wrap:wrap;justify-content:center;gap:20px}}
+.card{{background:#222;border-radius:12px;padding:12px}}
+.card img{{width:270px;border-radius:8px}}
+.card p{{margin-top:8px;font-size:14px;color:#aaa}}
+</style></head><body>
+<h1>Test Slides — IT Valley</h1>
+<div class="grid">{cards}</div>
+</body></html>"""
+    return HTMLResponse(content=html)
+
+
+@router.get("/test-slides/{filename}")
+async def test_slides_file(filename: str):
+    """Serve arquivo individual de test_slides."""
+    path = _TEST_SLIDES_DIR / filename
+    if not path.exists() or not path.suffix in (".png", ".jpg", ".jpeg", ".webp"):
+        raise HTTPException(status_code=404, detail="Arquivo nao encontrado")
+    return FileResponse(path)
 
 
 # --- API Keys (existente) ---
@@ -328,14 +366,17 @@ async def upload_asset(slug: str, data: dict):
                                  o nome com ref_ca_ ou ref_sa_ automaticamente.
                                  Se omitido, salva com o nome como veio (compat
                                  com upload de avatar/foto).
+        layout_tag: str (opcional) — 'texto' | 'lista' | 'comparativo' | 'dados'.
+                                     Indica qual tipo de layout visual esta ref exemplifica.
     """
     nome = data.get("nome", "asset")
     imagem = data.get("imagem", "")
     pool = data.get("pool")
+    layout_tag = data.get("layout_tag")
     if not imagem:
         raise HTTPException(status_code=400, detail="Campo 'imagem' obrigatorio")
     try:
-        return _upload_asset(slug, nome, imagem, pool=pool)
+        return _upload_asset(slug, nome, imagem, pool=pool, layout_tag=layout_tag)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

@@ -1,9 +1,12 @@
-# reload: fix estilo ilustracao + dimensoes + avatar desenhado
+# reload: test-slides static mount
 import os
+
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -44,6 +47,12 @@ app.include_router(foto_overlay.router, prefix="/api")
 app.include_router(visual_preference.router, prefix="/api")
 app.include_router(design_system.router, prefix="/api")
 app.include_router(prompt_layer.router, prefix="/api")
+
+
+# Servir test_slides como arquivos estáticos (dev only)
+_test_slides = Path(__file__).resolve().parent.parent / "test_slides"
+if _test_slides.is_dir():
+    app.mount("/test-slides", StaticFiles(directory=str(_test_slides), html=True), name="test-slides")
 
 
 @app.get("/health")
