@@ -47,11 +47,11 @@
 
 		if (browser) await loadAuth();
 
-		if (isProtectedPage && authReady && !loggedIn) {
+		if (!isLoginPage && !isConvitePage && authReady && !loggedIn) {
 			goto('/login');
 		}
 		if (isLoginPage && authReady && loggedIn) {
-			goto('/historico');
+			goto('/');
 		}
 	});
 
