@@ -40,19 +40,22 @@
 
 	const showAuthHeader = $derived(authReady && loggedIn && !isLoginPage && !isConvitePage);
 
+	// Auth guard reativo — redireciona assim que authReady muda
+	$effect(() => {
+		if (!browser || !authReady) return;
+		if (!isLoginPage && !isConvitePage && !loggedIn) {
+			goto('/login');
+		}
+		if (isLoginPage && loggedIn) {
+			goto('/');
+		}
+	});
+
 	afterNavigate(async () => {
 		await tick();
 		window.scrollTo({ top: 0, behavior: 'instant' });
 		mainEl?.scrollTo({ top: 0, behavior: 'instant' });
-
 		if (browser) await loadAuth();
-
-		if (!isLoginPage && !isConvitePage && authReady && !loggedIn) {
-			goto('/login');
-		}
-		if (isLoginPage && authReady && loggedIn) {
-			goto('/');
-		}
 	});
 
 	async function handleLogout() {
@@ -67,6 +70,12 @@
 
 {#if isLoginPage || isConvitePage}
 	{@render children()}
+{:else if !authReady}
+	<div class="min-h-screen flex items-center justify-center bg-bg-global">
+		<div class="w-8 h-8 border-2 border-purple/30 border-t-purple rounded-full animate-spin"></div>
+	</div>
+{:else if !loggedIn}
+	<!-- guard vai redirecionar pro login -->
 {:else}
 <div class="min-h-screen flex bg-bg-global">
 	<!-- Sidebar desktop -->
