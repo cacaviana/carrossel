@@ -12,7 +12,7 @@ export class AuthDTO {
   readonly role: UserRole;
 
   constructor(data: Record<string, any>) {
-    this.token = data.token ?? '';
+    this.token = data.token ?? data.access_token ?? '';
     this.user_id = data.user_id ?? '';
     this.tenant_id = data.tenant_id ?? '';
     this.email = data.email ?? '';
