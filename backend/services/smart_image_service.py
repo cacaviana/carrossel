@@ -110,15 +110,42 @@ async def _gerar_slide_smart(
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
-    # Passo 1: Gemini gera imagem completa (otimista)
-    model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato, refs_fixas=refs_fixas)
-    res = await client.post(
-        API_URL.format(model=model),
-        json=payload,
-        headers={"x-goog-api-key": api_key},
-    )
-    res.raise_for_status()
-    img_completa = extract_image_from_response(res.json())
+    # Passo 1: Gemini gera imagem completa (otimista) — retry se ratio errado
+    from utils.dimensions import get_dims
+    dims = get_dims(formato)
+    target_ratio = dims["width"] / dims["height"]
+    MAX_RATIO_RETRIES = 2
+
+    img_completa = None
+    for attempt in range(1, MAX_RATIO_RETRIES + 2):
+        model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato, refs_fixas=refs_fixas)
+        res = await client.post(
+            API_URL.format(model=model),
+            json=payload,
+            headers={"x-goog-api-key": api_key},
+        )
+        res.raise_for_status()
+        img_completa = extract_image_from_response(res.json())
+
+        if not img_completa:
+            break
+
+        # Validar aspect ratio
+        try:
+            import base64
+            from io import BytesIO
+            from PIL import Image
+            raw = img_completa.split(",", 1)[1] if "," in img_completa else img_completa
+            img_check = Image.open(BytesIO(base64.b64decode(raw)))
+            img_ratio = img_check.width / img_check.height
+            if abs(img_ratio - target_ratio) < 0.1:
+                break  # ratio correto
+            print(f"  Slide {position}: ratio errado ({img_check.width}x{img_check.height} = {img_ratio:.2f}, esperado {target_ratio:.2f}) — tentativa {attempt}/{MAX_RATIO_RETRIES + 1}")
+        except Exception:
+            break  # se nao conseguir verificar, aceita
+
+        if attempt > MAX_RATIO_RETRIES:
+            print(f"  Slide {position}: aceitando imagem apos {MAX_RATIO_RETRIES + 1} tentativas")
 
     if not img_completa:
         return None
