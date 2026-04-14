@@ -14,12 +14,14 @@ Regras:
   mesma marca vao pegar refs diferentes — "mesma identidade, layout novo".
 - REF1 e REF2 podem ser a mesma imagem (fallback se pool tem so 1).
 - Se pool vazio, retorna None — quem chama lida com o fallback.
+- layout_tag: quando o slide tem tipo_layout, REF2 (composicao) prefere
+  refs tagueadas com o mesmo layout. REF1 (estilo) ignora a tag.
 """
 
 import random
 from typing import TypedDict
 
-from factories.imagem_factory import _load_references_by_pool
+from factories.imagem_factory import _load_references_by_pool, _load_ref_docs_by_pool, RefDoc
 
 
 class PoolRefs(TypedDict):
@@ -38,37 +40,51 @@ class RefsFixas(TypedDict):
     sem_avatar: PoolRefs
 
 
+class PoolRefDocs(TypedDict):
+    """Docs completos de refs de um pool — usado pra selecao por layout_tag."""
+    docs: list[RefDoc]
+    default_refs: PoolRefs
+
+
+class RefsFixasComDocs(TypedDict):
+    """Refs fixas + docs completos pra selecao por layout_tag por slide."""
+    com_avatar: PoolRefs
+    sem_avatar: PoolRefs
+    _docs_com: list[RefDoc]
+    _docs_sem: list[RefDoc]
+    _rng_seed: str
+
+
 def _escolher_par(pool: list[str], rng: random.Random) -> PoolRefs:
     """Escolhe 2 refs distintas (ou 1 duplicada se pool so tem 1)."""
     if not pool:
         return {"ref1_estilo": None, "ref2_composicao": None}
     if len(pool) == 1:
         return {"ref1_estilo": pool[0], "ref2_composicao": pool[0]}
-    # Amostra 2 distintas
     par = rng.sample(pool, 2)
     return {"ref1_estilo": par[0], "ref2_composicao": par[1]}
 
 
-def escolher_refs_fixas(brand_slug: str, pipeline_id: str) -> RefsFixas:
+def escolher_refs_fixas(brand_slug: str, pipeline_id: str) -> RefsFixasComDocs:
     """Sorteia REF1 (estilo) e REF2 (composicao) pra ambos os pools.
 
-    Args:
-        brand_slug: slug da marca
-        pipeline_id: ID unico do pipeline (usado como seed)
-
-    Returns:
-        RefsFixas com as duas refs pre-sorteadas pra cada pool.
-        Se um pool eh vazio, ref1_estilo e ref2_composicao sao None.
+    Retorna tambem os docs completos pra permitir selecao por layout_tag
+    por slide (REF2 pode mudar se houver ref tagueada).
     """
-    # Seed deterministica: o mesmo pipeline_id sempre pega as mesmas refs
     rng = random.Random(f"{brand_slug}:{pipeline_id}")
 
-    pool_com = _load_references_by_pool(brand_slug, "com_avatar")
-    pool_sem = _load_references_by_pool(brand_slug, "sem_avatar")
+    docs_com = _load_ref_docs_by_pool(brand_slug, "com_avatar")
+    docs_sem = _load_ref_docs_by_pool(brand_slug, "sem_avatar")
+
+    pool_com = [d.b64 for d in docs_com]
+    pool_sem = [d.b64 for d in docs_sem]
 
     return {
         "com_avatar": _escolher_par(pool_com, rng),
         "sem_avatar": _escolher_par(pool_sem, rng),
+        "_docs_com": docs_com,
+        "_docs_sem": docs_sem,
+        "_rng_seed": f"{brand_slug}:{pipeline_id}",
     }
 
 
@@ -95,15 +111,34 @@ def decidir_pool(avatar_mode: str, position: int, total: int) -> str:
     return "com_avatar" if is_capa_ou_cta else "sem_avatar"
 
 
+def _escolher_ref2_por_layout(docs: list[RefDoc], tipo_layout: str | None, rng_seed: str, position: int) -> str | None:
+    """Tenta encontrar uma ref tagueada com o layout_tag do slide pra usar como REF2.
+
+    Se nao encontrar ref tagueada, retorna None (caller usa a REF2 default).
+    """
+    if not tipo_layout or not docs:
+        return None
+
+    tagueadas = [d for d in docs if d.layout_tag == tipo_layout]
+    if not tagueadas:
+        return None
+
+    rng = random.Random(f"{rng_seed}:layout:{tipo_layout}:{position}")
+    return rng.choice(tagueadas).b64
+
+
 def get_refs_do_slide(
-    refs_fixas: RefsFixas,
+    refs_fixas: dict,
     avatar_mode: str,
     position: int,
     total: int,
+    tipo_layout: str | None = None,
 ) -> PoolRefs:
     """Retorna REF1/REF2 apropriadas pra esse slide.
 
-    Aplica fallback: se o pool escolhido tem None, tenta o outro pool.
+    Se o slide tem tipo_layout e existem refs tagueadas com esse layout,
+    REF2 (composicao) eh substituida pela ref tagueada. REF1 (estilo)
+    permanece fixa pra manter consistencia visual.
     """
     pool_nome = decidir_pool(avatar_mode, position, total)
     refs = refs_fixas[pool_nome]
@@ -113,6 +148,19 @@ def get_refs_do_slide(
         pool_alt = "com_avatar" if pool_nome == "sem_avatar" else "sem_avatar"
         refs_alt = refs_fixas[pool_alt]
         if refs_alt.get("ref1_estilo") is not None:
-            return refs_alt
+            refs = refs_alt
+            pool_nome = pool_alt
+
+    # Tentar substituir REF2 por ref tagueada com o layout do slide
+    if tipo_layout and refs.get("ref1_estilo"):
+        docs_key = "_docs_com" if pool_nome == "com_avatar" else "_docs_sem"
+        docs = refs_fixas.get(docs_key, [])
+        rng_seed = refs_fixas.get("_rng_seed", "")
+        ref2_layout = _escolher_ref2_por_layout(docs, tipo_layout, rng_seed, position)
+        if ref2_layout:
+            return {
+                "ref1_estilo": refs["ref1_estilo"],
+                "ref2_composicao": ref2_layout,
+            }
 
     return refs

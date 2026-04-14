@@ -84,6 +84,11 @@ def build_user_prompt(
     else:
         prompt += f"\n\nGere EXATAMENTE {total_slides} slides (formato de {total_slides} slides)."
 
+    prompt += (
+        "\n\nIMPORTANTE: Inclua o campo 'tipo_layout' em TODOS os slides. "
+        "Valores: 'texto' (paragrafo/headline), 'lista' (bullets), 'comparativo' (X vs Y), 'dados' (numeros em destaque)."
+    )
+
     prompt += "\n\nRetorne SOMENTE o JSON no formato especificado, sem texto antes ou depois."
 
     if tipo_carrossel in ("visual", "infografico"):

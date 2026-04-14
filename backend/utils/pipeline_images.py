@@ -15,11 +15,10 @@ def _strip_data_uri(b64: str) -> str:
 
 
 def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str) -> str:
-    """Salva imagem base64 como PNG real no disco.
+    """Salva imagem base64 como PNG no disco.
 
-    Gemini pode retornar JPEG mesmo quando pedimos PNG — por isso sempre
-    decodificamos via PIL e re-encodamos como PNG, garantindo que a extensao
-    `.png` corresponda aos bytes reais (magic bytes 89 50 4E 47).
+    PNG mantém qualidade máxima pro pipeline. A exportação final (PDF/Drive)
+    pode comprimir se necessário.
     """
     pipeline_dir = IMAGES_DIR / pipeline_id
     pipeline_dir.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,10 @@
 import { writable } from 'svelte/store';
 
+export type TipoLayout = 'texto' | 'lista' | 'comparativo' | 'dados';
+
 export interface Slide {
 	type: 'cover' | 'content' | 'code' | 'comparison' | 'cta' | 'infographic';
+	tipo_layout?: TipoLayout;
 	headline?: string;
 	subline?: string;
 	title?: string;

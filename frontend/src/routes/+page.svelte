@@ -364,6 +364,7 @@
 									>remover</button>
 								{/if}
 								<select
+									data-testid={`select-tipo-layout-${i}`}
 									bind:value={slide.tipo_layout}
 									disabled={criando}
 									class="ml-auto px-2 py-1 rounded-lg border border-border-default bg-bg-input text-text-secondary text-xs outline-none"

@@ -1,5 +1,12 @@
 <script lang="ts">
-	import type { Slide } from '$lib/stores/carrossel';
+	import type { Slide, TipoLayout } from '$lib/stores/carrossel';
+
+	const LAYOUT_OPTIONS: { value: TipoLayout; label: string }[] = [
+		{ value: 'texto', label: 'Texto' },
+		{ value: 'lista', label: 'Lista' },
+		{ value: 'comparativo', label: 'Comparativo' },
+		{ value: 'dados', label: 'Dados' },
+	];
 
 	interface Props {
 		slide: Slide;
@@ -19,6 +26,9 @@
 	<div class="flex items-center gap-3 mb-4">
 		<span class="w-7 h-7 rounded-full bg-steel-6 text-white text-xs font-bold flex items-center justify-center shrink-0">{index + 1}</span>
 		<span class="px-2.5 py-0.5 rounded-full text-xs bg-steel-0 text-steel-3 font-medium">{slide.type}</span>
+		{#if slide.tipo_layout}
+			<span class="px-2.5 py-0.5 rounded-full text-xs bg-teal-4/10 text-teal-4 font-medium">{slide.tipo_layout}</span>
+		{/if}
 		{#if slide.imageBase64}
 			<span class="text-xs text-green-600 font-medium">✓ imagem gerada</span>
 		{/if}
@@ -34,6 +44,18 @@
 	</div>
 
 	<div class="space-y-3">
+		<div>
+			<label class="block text-xs font-medium text-steel-4 mb-1">Tipo de layout</label>
+			<select
+				value={slide.tipo_layout || 'texto'}
+				onchange={(e) => onUpdate(index, 'tipo_layout', (e.target as HTMLSelectElement).value)}
+				class="w-full px-3 py-2 rounded-lg border border-teal-4/30 bg-white text-steel-6 text-sm focus:border-steel-3 outline-none"
+			>
+				{#each LAYOUT_OPTIONS as opt}
+					<option value={opt.value}>{opt.label}</option>
+				{/each}
+			</select>
+		</div>
 		{#if slide.headline !== undefined}
 			<div>
 				<label class="block text-xs font-medium text-steel-4 mb-1">Headline</label>

@@ -26,6 +26,9 @@ POOL_COM_AVATAR = "com_avatar"
 POOL_SEM_AVATAR = "sem_avatar"
 VALID_POOLS = {POOL_COM_AVATAR, POOL_SEM_AVATAR}
 
+# Layout tags — tipos de layout visual que uma ref exemplifica
+VALID_LAYOUT_TAGS = {"texto", "lista", "comparativo", "dados"}
+
 
 def detectar_pool(nome: str) -> str | None:
     """Detecta pool do asset a partir do prefixo do nome.
@@ -238,6 +241,7 @@ def listar_assets(slug: str) -> dict:
             "preview": doc.get("data_uri", ""),
             "is_referencia": doc.get("is_referencia", nome.startswith("ref_")),
             "pool": detectar_pool(nome),
+            "layout_tag": doc.get("layout_tag"),
         })
 
     return {"assets": items, "total": len(items)}
@@ -253,7 +257,7 @@ def definir_referencia(slug: str, nome_asset: str | None) -> dict | None:
     return {"slug": slug, "referencia_imagem": nome_asset}
 
 
-def upload_asset(slug: str, nome: str, imagem: str, pool: str | None = None) -> dict:
+def upload_asset(slug: str, nome: str, imagem: str, pool: str | None = None, layout_tag: str | None = None) -> dict:
     """Salva asset no MongoDB.
 
     Args:
@@ -263,9 +267,11 @@ def upload_asset(slug: str, nome: str, imagem: str, pool: str | None = None) -> 
         imagem: base64 data URI
         pool: 'com_avatar' | 'sem_avatar' | None. Se None, usa o `nome` como veio
               (compat com upload de avatar/foto que nao eh ref).
+        layout_tag: 'texto' | 'lista' | 'comparativo' | 'dados' | None.
+                    Indica qual tipo de layout visual esta ref exemplifica.
 
     Raises:
-        ValueError: se pool invalido
+        ValueError: se pool ou layout_tag invalido
         RuntimeError: se Mongo indisponivel
     """
     if pool is not None:
@@ -273,10 +279,12 @@ def upload_asset(slug: str, nome: str, imagem: str, pool: str | None = None) -> 
             raise ValueError(f"pool invalido: {pool}. Use 'com_avatar' ou 'sem_avatar'")
         nome = _aplicar_prefixo_pool(nome, pool)
 
+    if layout_tag is not None and layout_tag not in VALID_LAYOUT_TAGS:
+        raise ValueError(f"layout_tag invalido: {layout_tag}. Use: {', '.join(sorted(VALID_LAYOUT_TAGS))}")
+
     raw_b64 = imagem.split(",")[1] if "," in imagem else imagem
     raw_bytes = b64.b64decode(raw_b64)
 
-    # Comprimir pra caber no Cosmos DB (max 2MB por doc)
     comprimido, mime = _comprimir_imagem(raw_bytes)
     raw_b64 = b64.b64encode(comprimido).decode()
     data_uri = f"data:{mime};base64,{raw_b64}"
@@ -285,18 +293,22 @@ def upload_asset(slug: str, nome: str, imagem: str, pool: str | None = None) -> 
     if col is None:
         raise RuntimeError("MongoDB indisponivel — nao foi possivel salvar o asset")
 
+    doc_set = {
+        "slug": slug,
+        "nome": nome,
+        "data_uri": data_uri,
+        "is_referencia": nome.startswith("ref_"),
+    }
+    if layout_tag is not None:
+        doc_set["layout_tag"] = layout_tag
+
     col.update_one(
         {"slug": slug, "nome": nome},
-        {"$set": {
-            "slug": slug,
-            "nome": nome,
-            "data_uri": data_uri,
-            "is_referencia": nome.startswith("ref_"),
-        }},
+        {"$set": doc_set},
         upsert=True,
     )
 
-    return {"nome": nome, "arquivo": f"{nome}.jpg", "pool": detectar_pool(nome)}
+    return {"nome": nome, "arquivo": f"{nome}.jpg", "pool": detectar_pool(nome), "layout_tag": layout_tag}
 
 
 def deletar_asset(slug: str, nome: str) -> dict | None:

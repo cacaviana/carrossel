@@ -65,15 +65,29 @@ def _nome_match_pool(nome: str, pool: str) -> bool:
     return False
 
 
+class RefDoc:
+    """Ref com metadados (base64 + layout_tag)."""
+    __slots__ = ("b64", "layout_tag")
+
+    def __init__(self, b64: str, layout_tag: str | None):
+        self.b64 = b64
+        self.layout_tag = layout_tag
+
+
 def _load_references_by_pool(brand_slug: str, pool: str) -> list[str]:
     """Carrega refs de um pool especifico (com_avatar ou sem_avatar).
 
-    Args:
-        brand_slug: slug da marca
-        pool: 'com_avatar' | 'sem_avatar'
-
     Returns:
         Lista de base64 (ate 5 refs do pool). So le do MongoDB.
+    """
+    return [r.b64 for r in _load_ref_docs_by_pool(brand_slug, pool)]
+
+
+def _load_ref_docs_by_pool(brand_slug: str, pool: str) -> list[RefDoc]:
+    """Carrega refs com metadados de um pool especifico.
+
+    Returns:
+        Lista de RefDoc (ate 5 refs do pool). So le do MongoDB.
     """
     if pool not in ("com_avatar", "sem_avatar"):
         return []
@@ -85,7 +99,10 @@ def _load_references_by_pool(brand_slug: str, pool: str) -> list[str]:
             continue
         data_uri = doc.get("data_uri", "")
         if data_uri:
-            refs.append(_data_uri_to_raw(data_uri))
+            refs.append(RefDoc(
+                b64=_data_uri_to_raw(data_uri),
+                layout_tag=doc.get("layout_tag"),
+            ))
 
     return refs[:5]
 
@@ -215,7 +232,14 @@ def build_payload(
         from factories.refs_selector import escolher_refs_fixas
         refs_fixas = escolher_refs_fixas(brand_slug, f"fallback-{brand_slug}")
 
-    refs_slide = get_refs_do_slide(refs_fixas, avatar_mode, position, total) if refs_fixas else None
+    tipo_layout = slide.get("tipo_layout")
+    refs_slide = get_refs_do_slide(refs_fixas, avatar_mode, position, total, tipo_layout=tipo_layout) if refs_fixas else None
+    # Saber se REF2 foi trocada por uma ref tagueada com o layout certo
+    ref2_matches_layout = False
+    if tipo_layout and refs_fixas and refs_slide:
+        pool_nome = decidir_pool(avatar_mode, position, total)
+        default_ref2 = refs_fixas[pool_nome].get("ref2_composicao")
+        ref2_matches_layout = (refs_slide.get("ref2_composicao") != default_ref2)
     ref1_estilo = refs_slide["ref1_estilo"] if refs_slide else None
     ref2_composicao = refs_slide["ref2_composicao"] if refs_slide else None
     pool_atual = decidir_pool(avatar_mode, position, total) if brand_slug else "sem_avatar"
@@ -298,19 +322,33 @@ def build_payload(
                 p += f"- Image 2 = REFERENCIA 2 (LAYOUT): estrutura, composicao, posicao dos elementos\n"
             p += "\n"
 
-        # === REGRA DE HIERARQUIA OBRIGATORIA
-        p += (
-            "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
-            "1. Layout da REFERENCIA 2 manda na ESTRUTURA (divisao do espaco, alinhamento, proporcao, onde fica texto vs imagem)\n"
-        ) if tem_2_refs else (
-            "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
-            "1. Layout e composicao seguem a REFERENCIA (divisao, alinhamento, proporcao)\n"
-        )
-        p += (
-            "2. Estilo da REFERENCIA 1 manda na APARENCIA (cores, estetica, luz, textura)\n"
-            "3. Conteudo NOVO adapta aos dois — nao copia elementos literais de nenhuma\n"
-            "\n"
-        )
+        # === REGRA DE HIERARQUIA — muda conforme tem ref de layout ou nao
+        if tipo_layout and not ref2_matches_layout:
+            # SEM ref tagueada pro layout: refs sao SO pra estilo, layout vem do tipo_layout
+            p += (
+                "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
+                "1. TODAS as referencias anexadas servem APENAS para APARENCIA: cores, tipografia, iluminacao, textura, vibe, elementos decorativos\n"
+                "2. IGNORE o layout/composicao/estrutura das referencias — NAO copie como elas organizam cards, colunas, blocos ou posicao de texto\n"
+                "3. A COMPOSICAO deste slide segue EXCLUSIVAMENTE as instrucoes de [TIPO DE LAYOUT] abaixo\n"
+                "4. Conteudo NOVO — nao copia elementos literais de nenhuma referencia\n"
+                "\n"
+            )
+        elif tem_2_refs:
+            p += (
+                "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
+                "1. Layout da REFERENCIA 2 manda na ESTRUTURA (divisao do espaco, alinhamento, proporcao, onde fica texto vs imagem)\n"
+                "2. Estilo da REFERENCIA 1 manda na APARENCIA (cores, estetica, luz, textura)\n"
+                "3. Conteudo NOVO adapta aos dois — nao copia elementos literais de nenhuma\n"
+                "\n"
+            )
+        else:
+            p += (
+                "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
+                "1. Layout e composicao seguem a REFERENCIA (divisao, alinhamento, proporcao)\n"
+                "2. Estilo da REFERENCIA 1 manda na APARENCIA (cores, estetica, luz, textura)\n"
+                "3. Conteudo NOVO adapta aos dois — nao copia elementos literais de nenhuma\n"
+                "\n"
+            )
 
         # === ANTI-COPIA
         p += (
@@ -345,6 +383,57 @@ def build_payload(
             )
         else:
             p += "[SEM PESSOA] Este slide NAO deve ter pessoa nem rosto. Foco em objetos, cenario, texto e decoracoes.\n\n"
+
+        # === TIPO DE LAYOUT (guia a composicao visual do conteudo)
+        layout_instructions = {
+            "texto": (
+                "COMPOSICAO OBRIGATORIA — TEXTO SIMPLES:\n"
+                "- Headline grande e centralizada, ocupando ~40% do slide\n"
+                "- Paragrafo de apoio abaixo em fonte menor\n"
+                "- Composicao LIMPA: sem cards, sem colunas, sem baloes, sem setas\n"
+                "- Fundo com textura/gradiente sutil da marca, texto direto sobre ele\n"
+                "- Hierarquia: 1 texto grande + 1 texto pequeno, nada mais"
+            ),
+            "lista": (
+                "COMPOSICAO OBRIGATORIA — LISTA / BULLET POINTS:\n"
+                "- Titulo no topo (~20% do slide)\n"
+                "- Abaixo: 3 a 6 itens em COLUNA VERTICAL, alinhados a esquerda\n"
+                "- Cada item tem um marcador visual (bolinha, icone, numero) + texto ao lado\n"
+                "- PROIBIDO: baloes conectados por setas, cards flutuantes, layouts circulares\n"
+                "- Os itens devem parecer uma LISTA REAL — como bullet points de uma apresentacao\n"
+                "- Espacamento generoso e uniforme entre cada item\n"
+                "- Fundo limpo, sem distracao visual entre os itens"
+            ),
+            "comparativo": (
+                "COMPOSICAO OBRIGATORIA — COMPARATIVO (X vs Y):\n"
+                "- Titulo centralizado no topo\n"
+                "- DOIS BLOCOS lado a lado ocupando ~80% do slide\n"
+                "- Divisor visual claro no centro (linha, vs, ou espacamento)\n"
+                "- Bloco ESQUERDO: label + itens do lado A\n"
+                "- Bloco DIREITO: label + itens do lado B\n"
+                "- PROIBIDO: lista unica, bullets em coluna, layout vertical sem divisao\n"
+                "- Os dois lados devem ter CONTRASTE VISUAL (cor diferente, fundo diferente)\n"
+                "- O leitor deve entender INSTANTANEAMENTE que sao dois lados sendo comparados"
+            ),
+            "dados": (
+                "COMPOSICAO OBRIGATORIA — DADOS / NUMEROS EM DESTAQUE:\n"
+                "- Titulo no topo\n"
+                "- NUMEROS/METRICAS em tamanho 3x maior que texto normal\n"
+                "- Cada metrica em seu proprio card ou bloco destacado\n"
+                "- Layout: 2 a 4 stat cards em grid (2x2 ou 1x3)\n"
+                "- PROIBIDO: bullets simples, lista corrida, texto corrido sem destaque numerico\n"
+                "- Cada numero deve ter: valor grande + label pequeno abaixo ou ao lado\n"
+                "- Cores de destaque nos numeros (acento da marca)\n"
+                "- O leitor deve VER OS NUMEROS PRIMEIRO, texto depois"
+            ),
+        }
+        if tipo_layout and tipo_layout in layout_instructions:
+            force_label = "" if ref2_matches_layout else " — ESTA INSTRUCAO TEM PRIORIDADE SOBRE AS REFERENCIAS"
+            p += (
+                f"[TIPO DE LAYOUT — {tipo_layout.upper()}{force_label}]\n"
+                f"{layout_instructions[tipo_layout]}\n"
+                "\n"
+            )
 
         # === CENA (illustration_description do art_director)
         if illustration:
