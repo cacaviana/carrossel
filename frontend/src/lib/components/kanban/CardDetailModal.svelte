@@ -58,18 +58,16 @@
 							<span class="{priorityClasses[card.priority] ?? ''} text-[10px] px-2 py-0.5 rounded-full font-medium">
 								{card.priorityLabel}
 							</span>
-							{#if card.hasPipeline}
-								<button
-									onclick={() => { onClose(); goto(`/pipeline/${card!.pipeline_id}`); }}
-									class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-medium
-										bg-purple/10 text-purple hover:bg-purple/20 transition-all cursor-pointer"
-								>
-									<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-									</svg>
-									Abrir Pipeline
-								</button>
-							{/if}
+							<button
+								onclick={() => { onClose(); goto(card!.hasPipeline ? `/pipeline/${card!.pipeline_id}` : '/'); }}
+								class="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-medium
+									bg-purple/10 text-purple hover:bg-purple/20 transition-all cursor-pointer"
+							>
+								<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+								</svg>
+								{card.hasPipeline ? 'Abrir Pipeline' : 'Criar Pipeline'}
+							</button>
 						</div>
 					</div>
 					<button onclick={onClose} class="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-black/5 transition-all cursor-pointer ml-4">
