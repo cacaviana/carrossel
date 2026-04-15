@@ -2,8 +2,16 @@
 
 import { ActivityDTO } from '$lib/dtos/ActivityDTO';
 import { API_BASE } from '$lib/api';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class ActivityRepository {
   static async listarPorCard(cardId: string): Promise<ActivityDTO[]> {
@@ -16,7 +24,9 @@ export class ActivityRepository {
         .map(a => new ActivityDTO(a));
     }
 
-    const res = await fetch(`${API_BASE}/api/kanban/cards/${cardId}/activities`);
+    const res = await fetch(`${API_BASE}/api/kanban/cards/${cardId}/activities`, {
+      headers: authHeaders()
+    });
     return (await res.json()).map((a: any) => new ActivityDTO(a));
   }
 }

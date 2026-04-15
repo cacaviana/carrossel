@@ -2,8 +2,16 @@
 
 import { CardDTO } from '$lib/dtos/CardDTO';
 import { API_BASE } from '$lib/api';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 // Estado local para mock — permite adicionar e mover cards em memoria
 let mockCardsState: any[] | null = null;
@@ -24,7 +32,9 @@ export class CardRepository {
       return cards.map(c => new CardDTO(c));
     }
 
-    const res = await fetch(`${API_BASE}/api/kanban/cards`);
+    const res = await fetch(`${API_BASE}/api/kanban/cards`, {
+      headers: authHeaders()
+    });
     return (await res.json()).map((c: any) => new CardDTO(c));
   }
 
@@ -36,7 +46,9 @@ export class CardRepository {
       return found ? new CardDTO(found) : null;
     }
 
-    const res = await fetch(`${API_BASE}/api/kanban/cards/${id}`);
+    const res = await fetch(`${API_BASE}/api/kanban/cards/${id}`, {
+      headers: authHeaders()
+    });
     if (!res.ok) return null;
     return new CardDTO(await res.json());
   }
@@ -69,7 +81,7 @@ export class CardRepository {
 
     const res = await fetch(`${API_BASE}/api/kanban/cards`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload)
     });
     return new CardDTO(await res.json());
@@ -89,7 +101,7 @@ export class CardRepository {
 
     const res = await fetch(`${API_BASE}/api/kanban/cards/${cardId}/move`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ column_id: canceladoColumnId })
     });
     return new CardDTO(await res.json());

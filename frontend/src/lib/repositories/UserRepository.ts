@@ -25,6 +25,8 @@ export class UserRepository {
       headers: authHeaders()
     });
     if (!res.ok) throw new Error('Erro ao listar usuarios');
-    return (await res.json()).map((u: any) => new UserDTO(u));
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : data.usuarios ?? [];
+    return list.map((u: any) => new UserDTO(u));
   }
 }

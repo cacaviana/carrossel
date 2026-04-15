@@ -273,12 +273,20 @@ def setup_collections():
 
     for name, validator in COLLECTIONS.items():
         if name in existing:
-            # Atualiza validator se collection ja existe
-            db.command("collMod", name, validator=validator)
-            print(f"  [UPDATE] {name} — validator atualizado")
+            # Tenta atualizar validator (nao suportado em CosmosDB)
+            try:
+                db.command("collMod", name, validator=validator)
+                print(f"  [UPDATE] {name} — validator atualizado")
+            except Exception:
+                print(f"  [SKIP]   {name} — ja existe (validator nao suportado neste backend)")
         else:
-            db.create_collection(name, validator=validator)
-            print(f"  [CREATE] {name} — collection criada com validator")
+            try:
+                db.create_collection(name, validator=validator)
+                print(f"  [CREATE] {name} — collection criada com validator")
+            except Exception:
+                # CosmosDB: cria collection sem validator
+                db.create_collection(name)
+                print(f"  [CREATE] {name} — collection criada (sem validator, CosmosDB)")
 
     print(f"\n{len(COLLECTIONS)} collections configuradas no database 'content_factory'.")
 

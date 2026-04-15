@@ -2,8 +2,16 @@
 
 import { CommentDTO } from '$lib/dtos/CommentDTO';
 import { API_BASE } from '$lib/api';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 let mockCommentsState: any[] | null = null;
 
@@ -25,7 +33,9 @@ export class CommentRepository {
         .map(c => new CommentDTO(c));
     }
 
-    const res = await fetch(`${API_BASE}/api/kanban/cards/${cardId}/comments`);
+    const res = await fetch(`${API_BASE}/api/kanban/cards/${cardId}/comments`, {
+      headers: authHeaders()
+    });
     return (await res.json()).map((c: any) => new CommentDTO(c));
   }
 
@@ -51,7 +61,7 @@ export class CommentRepository {
 
     const res = await fetch(`${API_BASE}/api/kanban/cards/${cardId}/comments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ text })
     });
     return new CommentDTO(await res.json());
@@ -66,6 +76,9 @@ export class CommentRepository {
       return;
     }
 
-    await fetch(`${API_BASE}/api/kanban/comments/${commentId}`, { method: 'DELETE' });
+    await fetch(`${API_BASE}/api/kanban/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
   }
 }

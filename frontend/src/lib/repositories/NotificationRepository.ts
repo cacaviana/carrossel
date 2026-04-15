@@ -2,8 +2,16 @@
 
 import { NotificationDTO } from '$lib/dtos/NotificationDTO';
 import { API_BASE } from '$lib/api';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 let mockNotificationsState: any[] | null = null;
 
@@ -25,7 +33,9 @@ export class NotificationRepository {
         .map(n => new NotificationDTO(n));
     }
 
-    const res = await fetch(`${API_BASE}/api/kanban/notifications`);
+    const res = await fetch(`${API_BASE}/api/kanban/notifications`, {
+      headers: authHeaders()
+    });
     return (await res.json()).map((n: any) => new NotificationDTO(n));
   }
 
@@ -38,7 +48,10 @@ export class NotificationRepository {
       return;
     }
 
-    await fetch(`${API_BASE}/api/kanban/notifications/${id}/read`, { method: 'PATCH' });
+    await fetch(`${API_BASE}/api/kanban/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: authHeaders()
+    });
   }
 
   static async marcarTodasComoLidas(): Promise<void> {
@@ -49,6 +62,9 @@ export class NotificationRepository {
       return;
     }
 
-    await fetch(`${API_BASE}/api/kanban/notifications/read-all`, { method: 'PATCH' });
+    await fetch(`${API_BASE}/api/kanban/notifications/read-all`, {
+      method: 'PATCH',
+      headers: authHeaders()
+    });
   }
 }
