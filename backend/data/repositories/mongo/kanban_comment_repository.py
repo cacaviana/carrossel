@@ -19,13 +19,13 @@ class KanbanCommentRepository:
         db = get_mongo_db()
         if db is None:
             return []
-        return list(
-            db.kanban_comments.find({
-                "card_id": card_id,
-                "tenant_id": tenant_id,
-                "deleted_at": None,
-            }).sort("created_at", 1)
-        )
+        docs = list(db.kanban_comments.find({
+            "card_id": card_id,
+            "tenant_id": tenant_id,
+            "deleted_at": None,
+        }))
+        docs.sort(key=lambda d: d.get("created_at", ""))
+        return docs
 
     @staticmethod
     def buscar_por_id(comment_id: str, tenant_id: str) -> dict | None:

@@ -18,12 +18,12 @@ class KanbanNotificationRepository:
         db = get_mongo_db()
         if db is None:
             return []
-        return list(
-            db.kanban_notifications.find({
-                "user_id": user_id,
-                "tenant_id": tenant_id,
-            }).sort("created_at", -1).limit(limit)
-        )
+        docs = list(db.kanban_notifications.find({
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+        }))
+        docs.sort(key=lambda d: d.get("created_at", ""), reverse=True)
+        return docs[:limit]
 
     @staticmethod
     def contar_nao_lidas(user_id: str, tenant_id: str) -> int:

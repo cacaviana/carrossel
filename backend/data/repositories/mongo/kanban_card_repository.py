@@ -57,9 +57,10 @@ class KanbanCardRepository:
             query["assigned_user_ids"] = filters["assigned_user_id"]
         if filters.get("search"):
             query["title"] = {"$regex": re.escape(filters["search"]), "$options": "i"}
-        return list(
-            db.kanban_cards.find(query).sort([("order_in_column", 1), ("created_at", -1)])
-        )
+        docs = list(db.kanban_cards.find(query))
+        # Sort in-memory (CosmosDB requer index explicito pra sort)
+        docs.sort(key=lambda d: d.get("created_at", ""), reverse=True)
+        return docs
 
     @staticmethod
     def atualizar(card_id: str, tenant_id: str, fields: dict) -> dict | None:

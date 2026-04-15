@@ -17,9 +17,9 @@ class KanbanActivityRepository:
         db = get_mongo_db()
         if db is None:
             return []
-        return list(
-            db.kanban_activity_log.find({
-                "card_id": card_id,
-                "tenant_id": tenant_id,
-            }).sort("created_at", -1).skip(skip).limit(limit)
-        )
+        docs = list(db.kanban_activity_log.find({
+            "card_id": card_id,
+            "tenant_id": tenant_id,
+        }))
+        docs.sort(key=lambda d: d.get("created_at", ""), reverse=True)
+        return docs[skip:skip + limit]
