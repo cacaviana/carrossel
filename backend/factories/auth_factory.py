@@ -20,6 +20,21 @@ class AuthFactory:
     VALID_ROLES = {"admin", "copywriter", "designer", "reviewer", "viewer"}
 
     @staticmethod
+    def extract_login_credentials(dto) -> tuple[str, str]:
+        """Extrai email e senha do DTO de login."""
+        return dto.email, dto.password
+
+    @staticmethod
+    def extract_email(dto) -> str:
+        """Extrai email do DTO."""
+        return dto.email
+
+    @staticmethod
+    def extract_token_and_password(dto) -> tuple[str, str]:
+        """Extrai token e senha do DTO de aceitar convite."""
+        return dto.token, dto.password
+
+    @staticmethod
     def validate_login(email: str, password: str, user_doc: dict | None) -> dict:
         """Valida credenciais de login.
 
@@ -107,11 +122,16 @@ class AuthFactory:
                 detail="Convite ja utilizado",
             )
 
-        if invite_doc.get("expires_at") and invite_doc["expires_at"] < datetime.now(timezone.utc):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Convite expirado",
-            )
+        expires_at = invite_doc.get("expires_at")
+        if expires_at:
+            # Normaliza para timezone-aware (pymongo pode retornar naive)
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at < datetime.now(timezone.utc):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Convite expirado",
+                )
 
         return {
             "tenant_id": invite_doc["tenant_id"],

@@ -28,10 +28,11 @@ class AuthService:
     @staticmethod
     def login(dto):
         """Autentica usuario e retorna JWT."""
-        user_doc = AuthRepository.find_by_email(DEFAULT_TENANT_ID, dto.email)
+        email, password = AuthFactory.extract_login_credentials(dto)
+        user_doc = AuthRepository.find_by_email(DEFAULT_TENANT_ID, email)
 
         # Factory valida credenciais (regras de negocio)
-        validated = AuthFactory.validate_login(dto.email, dto.password, user_doc)
+        validated = AuthFactory.validate_login(email, password, user_doc)
 
         token = create_access_token({
             "user_id": str(validated["_id"]),
@@ -61,7 +62,8 @@ class AuthService:
     def criar_usuario(dto, current_user: CurrentUser):
         """Cria usuario diretamente (admin only)."""
         # Verifica email duplicado
-        if AuthRepository.email_exists(current_user.tenant_id, dto.email):
+        email = AuthFactory.extract_email(dto)
+        if AuthRepository.email_exists(current_user.tenant_id, email):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email ja cadastrado neste tenant",
@@ -82,7 +84,8 @@ class AuthService:
     def convidar_usuario(dto, current_user: CurrentUser, base_url: str):
         """Cria convite com token para novo usuario (admin only)."""
         # Verifica se email ja esta cadastrado
-        if AuthRepository.email_exists(current_user.tenant_id, dto.email):
+        email = AuthFactory.extract_email(dto)
+        if AuthRepository.email_exists(current_user.tenant_id, email):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email ja cadastrado neste tenant",
@@ -91,7 +94,7 @@ class AuthService:
         # Verifica se ja tem convite pendente
         pending = InviteRepository.find_pending_by_email(
             current_user.tenant_id,
-            dto.email,
+            email,
         )
         if pending:
             raise HTTPException(
@@ -109,7 +112,8 @@ class AuthService:
     @staticmethod
     def aceitar_convite(dto):
         """Aceita convite: cria usuario com a senha fornecida."""
-        invite_doc = InviteRepository.find_by_token(dto.token)
+        token, password = AuthFactory.extract_token_and_password(dto)
+        invite_doc = InviteRepository.find_by_token(token)
         if invite_doc is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -117,7 +121,7 @@ class AuthService:
             )
 
         # Factory valida convite e cria usuario
-        user_doc = AuthFactory.create_user_from_invite(invite_doc, dto.password)
+        user_doc = AuthFactory.create_user_from_invite(invite_doc, password)
 
         # Verifica se email ja foi cadastrado (race condition guard)
         if AuthRepository.email_exists(user_doc["tenant_id"], user_doc["email"]):
@@ -127,7 +131,7 @@ class AuthService:
             )
 
         saved = AuthRepository.insert_user(user_doc)
-        InviteRepository.mark_used(dto.token)
+        InviteRepository.mark_used(token)
         return AuthMapper.to_usuario_response(saved)
 
     @staticmethod
