@@ -399,7 +399,12 @@
 		{:else}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each historicoFiltrado as item}
-					<div class="bg-bg-card rounded-xl border border-border-default p-5 hover:-translate-y-1 hover:shadow-md hover:border-purple/30 transition-all">
+					<div
+						onclick={() => { if (item.isPipelineV3 && item.pipeline_id) goto(`/pipeline/${item.pipeline_id}`); }}
+						role={item.isPipelineV3 ? 'link' : undefined}
+						class="bg-bg-card rounded-xl border border-border-default p-5 hover:-translate-y-1 hover:shadow-md hover:border-purple/30 transition-all
+							{item.isPipelineV3 ? 'cursor-pointer' : ''}"
+					>
 						<div class="flex items-center gap-2 mb-3 flex-wrap">
 							<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple/8 text-purple border border-purple/20">{item.formato || 'carrossel'}</span>
 							<span class="px-2 py-0.5 rounded-full text-[10px] font-mono border {statusBadge(item.status)}">{item.status}</span>
