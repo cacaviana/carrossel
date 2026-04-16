@@ -10,10 +10,13 @@ class Settings(BaseSettings):
     GOOGLE_DRIVE_FOLDER_ID: str = ""
     TENANT_ID: str = "itvalley"
     MONGO_URL: str = ""
+    jwt_secret_key: str = ""
+    default_tenant_id: str = "itvalley"
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

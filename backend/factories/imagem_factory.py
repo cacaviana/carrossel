@@ -204,6 +204,7 @@ def build_payload(
     avatar_mode: str = "livre",
     formato: str = "carrossel",
     refs_fixas: dict | None = None,
+    background_b64: str | None = None,
 ) -> tuple[str, dict]:
     """Retorna (model, payload) prontos para envio a API Gemini.
 
@@ -242,6 +243,142 @@ def build_payload(
     pool_atual = decidir_pool(avatar_mode, position, total) if brand_slug else "sem_avatar"
 
     parts: list[dict] = []
+
+    # Modo upload: prompt dedicado
+    if background_b64:
+        from utils.dimensions import get_prompt_size_str, get_dims
+
+        # Detectar modo criativo pelo illustration_description
+        illustration = slide.get("illustration_description", "")
+        is_criativo = "creative visual elements" in illustration.lower() or "layers" in illustration.lower()
+
+        headline = slide.get("headline") or slide.get("title", "")
+        subline = slide.get("subline") or slide.get("caption", "")
+        bullets = slide.get("bullets", [])
+        body = "\n".join(f"- {b}" for b in bullets) if bullets else subline
+        size_str = get_prompt_size_str(formato)
+
+        if is_criativo:
+            # MODO CRIATIVO: reproduzir a imagem exata + texto + grafismos da brand
+            bg_raw = background_b64.split(",")[1] if "," in background_b64 else background_b64
+            parts.append({"inline_data": {"mime_type": "image/png", "data": bg_raw}})
+
+            # Grafismos vem da config da brand
+            brand_criativo = carregar_brand(brand_slug) if brand_slug else None
+            grafismos_instruction = ""
+            if brand_criativo:
+                visual_brand = brand_criativo.get("visual", {})
+                dna = brand_criativo.get("dna", {})
+                cores_brand = brand_criativo.get("cores", {})
+
+                partes_graf = []
+                if visual_brand.get("estilo_elemento"):
+                    est = visual_brand["estilo_elemento"]
+                    if isinstance(est, dict):
+                        partes_graf.append(f"Style: {est.get('tipo', '')}, {est.get('linhas', '')}")
+                    elif isinstance(est, str):
+                        partes_graf.append(f"Style: {est}")
+                if visual_brand.get("estilo_desenho"):
+                    partes_graf.append(f"Desenho: {visual_brand['estilo_desenho']}")
+                if dna.get("elementos"):
+                    partes_graf.append(f"Elementos: {dna['elementos']}")
+                if cores_brand:
+                    cores_hex = [v for k, v in cores_brand.items() if isinstance(v, str) and v.startswith("#")]
+                    if cores_hex:
+                        partes_graf.append(f"Cores da marca: {', '.join(cores_hex[:6])}")
+
+                if partes_graf:
+                    grafismos_instruction = "\n".join(partes_graf)
+
+            from utils.dimensions import get_dims as _get_dims_local
+            dims_local = _get_dims_local(formato)
+
+            p = (
+                f"Generate the output image at EXACTLY {dims_local['width']}x{dims_local['height']} pixels "
+                f"({size_str}). The aspect ratio MUST match — do not output square if target is portrait, "
+                f"do not crop or change dimensions.\n\n"
+            )
+
+            p += (
+                "[REGRA — REPRODUZIR + TEXTO + POUCOS GRAFISMOS]\n"
+                "1. REPRODUCE the attached image as faithfully as possible — same scene, same colors, same composition\n"
+                "2. OUTPUT must match the target dimensions above (not the dimensions of the attached image)\n"
+                "3. ADD the text below in large, bold, legible typography — well positioned\n"
+                "4. ADD 1-2 DISCRETE decorative graphic elements near the text or in empty corners — SUBTLE, NOT exaggerated\n"
+                "5. Graphics must be SMALL and MINIMAL — a delicate accent, not a design intervention\n"
+                "6. DO NOT fill the image with graphics, circuits, lines, or patterns everywhere\n"
+                "7. DO NOT cover the main subject with decorations\n"
+                "8. DO NOT add faixas, solid bars, banners, boxes, or heavy overlays\n"
+                "9. DO NOT add people or avatars\n"
+                "10. The original image scene must remain 95% visible and recognizable\n"
+                "\n"
+            )
+
+            if grafismos_instruction:
+                p += (
+                    "[ESTILO DOS GRAFISMOS — identidade da marca, aplicar com MODERACAO]\n"
+                    f"{grafismos_instruction}\n"
+                    "Use this style ONLY for the 1-2 small decorative accents. Do NOT fill the image with this style.\n"
+                    "\n"
+                )
+            else:
+                p += (
+                    "[GRAFISMOS]\n"
+                    "Add 1-2 subtle decorative elements (small lines or dots) near the text. Minimal.\n"
+                    "\n"
+                )
+
+        else:
+            # Outros templates de upload (não deveria chegar aqui, mas fallback seguro)
+            bg_raw = background_b64.split(",")[1] if "," in background_b64 else background_b64
+            parts.append({"inline_data": {"mime_type": "image/png", "data": bg_raw}})
+
+            p = f"Generate EXACTLY this image as a {size_str} social media post.\n\n"
+            p += (
+                "[REGRA — REPRODUZIR + TEXTO]\n"
+                "1. REPRODUCE the attached image faithfully\n"
+                "2. ADD ONLY the text below\n"
+                "3. DO NOT add any extra elements\n"
+                "\n"
+            )
+
+        p += (
+            "[TEXTO A EXIBIR — use EXATAMENTE estes textos, nada mais]\n"
+            f"HEADLINE: {headline}\n"
+        )
+        if body:
+            p += f"BODY: {body}\n"
+        p += (
+            "- Nao inventar texto extra\n"
+            "- Escrever corretamente em portugues\n"
+            "\n"
+        )
+
+        p += "No nudity, no violence."
+
+        parts.append({"text": p})
+
+        # Aspect ratio
+        dims = get_dims(formato)
+        ratio_map = {
+            "4:5": "4:5",
+            "1:1": "1:1",
+            "16:9": "16:9",
+            "9:16": "9:16",
+        }
+        gemini_ratio = ratio_map.get(dims.get("ratio", "4:5"), "4:5")
+
+        payload = {
+            "contents": [{"parts": parts}],
+            "generationConfig": {
+                "responseModalities": ["IMAGE", "TEXT"],
+                "temperature": 0.9,
+                "imageConfig": {
+                    "aspectRatio": gemini_ratio,
+                },
+            },
+        }
+        return model, payload
 
     if ref1_estilo:
         from utils.dimensions import get_prompt_size_str

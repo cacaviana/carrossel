@@ -34,6 +34,7 @@ async def gerar_imagens_smart(
     formato: str = "carrossel",
     skip_validation: bool = False,
     pipeline_id: str | None = None,
+    background_b64: str | None = None,
 ) -> list[str | None]:
     """Gera imagens com fallback inteligente pra texto errado.
 
@@ -71,6 +72,7 @@ async def gerar_imagens_smart(
                         formato=formato,
                         skip_validation=skip_validation,
                         refs_fixas=refs_fixas,
+                        background_b64=background_b64,
                     )
                 return (i, img)
             except Exception as e:
@@ -107,6 +109,7 @@ async def _gerar_slide_smart(
     formato: str = "carrossel",
     skip_validation: bool = False,
     refs_fixas: dict | None = None,
+    background_b64: str | None = None,
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
@@ -118,7 +121,7 @@ async def _gerar_slide_smart(
 
     img_completa = None
     for attempt in range(1, MAX_RATIO_RETRIES + 2):
-        model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato, refs_fixas=refs_fixas)
+        model, payload = build_payload(slide, position, total, brand_slug=brand_slug, avatar_mode=avatar_mode, formato=formato, refs_fixas=refs_fixas, background_b64=background_b64)
         res = await client.post(
             API_URL.format(model=model),
             json=payload,

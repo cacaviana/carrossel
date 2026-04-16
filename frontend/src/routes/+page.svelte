@@ -8,7 +8,7 @@
 	import DeadlinePicker from '$lib/components/kanban/DeadlinePicker.svelte';
 	import type { FormatoConteudo } from '$lib/dtos/PipelineDTO';
 
-	let modoEntrada = $state<'texto_pronto' | 'ideia' | 'disciplina'>('ideia');
+	let modoEntrada = $state<'texto_pronto' | 'ideia' | 'disciplina' | 'upload'>('ideia');
 	let textoLivre = $state('');
 	let disciplinaSelecionada = $state('');
 	let techSelecionada = $state('');
@@ -16,6 +16,24 @@
 	let criando = $state(false);
 	let erro = $state('');
 	let deadline = $state('');
+
+	// Upload mode
+	let uploadedBg = $state('');
+	let uploadedFile = $state('');
+	let templateLayout = $state('texto_centralizado');
+	let textoUpload = $state('');
+
+	function handleFileUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		if (!file.type.startsWith('image/')) { erro = 'Selecione uma imagem'; return; }
+		if (file.size > 10 * 1024 * 1024) { erro = 'Imagem muito grande (max 10MB)'; return; }
+		uploadedFile = file.name;
+		const reader = new FileReader();
+		reader.onload = () => { uploadedBg = reader.result as string; };
+		reader.readAsDataURL(file);
+	}
 
 	// Marca
 	type Brand = { slug: string; nome: string; cor_principal: string; cor_fundo: string };
@@ -56,6 +74,7 @@
 	$effect(() => {
 		if (formatoAtual === 'thumbnail_youtube' || formatoAtual === 'post_unico' || formatoAtual === 'capa_reels') avatarMode = 'sim';
 	});
+
 
 	// Texto pronto — slide a slide
 	type SlideTexto = { principal: string; alternativo: string; tipo_layout: string };
@@ -127,11 +146,13 @@
 	const techsDisponiveis = $derived(disciplinaAtual?.techs ?? []);
 
 	const podeCriar = $derived(
-		modoEntrada === 'disciplina'
-			? !!disciplinaSelecionada && !!techSelecionada
-			: modoEntrada === 'texto_pronto'
-				? slidesTexto.some(s => s.principal.trim().length > 0)
-				: textoLivre.trim().length >= 20
+		modoEntrada === 'upload'
+			? !!uploadedBg && textoUpload.trim().length > 0
+			: modoEntrada === 'disciplina'
+				? !!disciplinaSelecionada && !!techSelecionada
+				: modoEntrada === 'texto_pronto'
+					? slidesTexto.some(s => s.principal.trim().length > 0)
+					: textoLivre.trim().length >= 20
 	);
 
 	async function criarPipeline() {
@@ -139,11 +160,13 @@
 		erro = '';
 		criando = true;
 		try {
-			const tema = modoEntrada === 'disciplina'
-				? [disciplinaSelecionada, techSelecionada, temaCustom].filter(Boolean).join(' - ')
-				: modoEntrada === 'texto_pronto'
-					? (slidesTexto[0]?.principal || 'Texto pronto pelo usuario')
-					: textoLivre;
+			const tema = modoEntrada === 'upload'
+				? textoUpload
+				: modoEntrada === 'disciplina'
+					? [disciplinaSelecionada, techSelecionada, temaCustom].filter(Boolean).join(' - ')
+					: modoEntrada === 'texto_pronto'
+						? (slidesTexto[0]?.principal || 'Texto pronto pelo usuario')
+						: textoLivre;
 
 			const formatos: FormatoConteudo[] = isFunil
 				? ['carrossel', 'post_unico', 'thumbnail_youtube']
@@ -163,6 +186,11 @@
 				payload.slides_texto_pronto = slidesTexto
 					.filter(s => s.principal.trim().length > 0)
 					.map(s => ({ principal: s.principal, alternativo: s.alternativo, tipo_layout: s.tipo_layout }));
+			}
+
+			if (modoEntrada === 'upload') {
+				payload.background_base64 = uploadedBg;
+				payload.template_layout = templateLayout;
 			}
 
 			if (modoEntrada === 'ideia') {
@@ -345,6 +373,13 @@
 						? 'bg-purple text-bg-global'
 						: 'text-text-secondary border border-border-default hover:border-purple/40'}"
 			>Por disciplina</button>
+			<button
+				onclick={() => { modoEntrada = 'upload'; erro = ''; }}
+				class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
+					{modoEntrada === 'upload'
+						? 'bg-purple text-bg-global'
+						: 'text-text-secondary border border-border-default hover:border-purple/40'}"
+			>Upload</button>
 		</div>
 
 		{#if modoEntrada === 'texto_pronto'}
@@ -446,6 +481,70 @@
 						</div>
 					{/if}
 				</div>
+			</div>
+		{:else if modoEntrada === 'upload'}
+			<div class="bg-bg-card rounded-xl border border-border-default p-5">
+				<p class="text-sm text-text-secondary mb-4">Suba uma imagem de fundo, escolha o template e digite o texto.</p>
+
+				<!-- File upload -->
+				<div class="mb-4">
+					<label class="flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed border-border-default hover:border-purple/40 transition-all cursor-pointer bg-bg-global">
+						{#if uploadedBg}
+							<div class="flex items-center gap-3">
+								<img src={uploadedBg} alt="Preview" class="h-24 rounded-lg object-cover" />
+								<div class="text-left">
+									<p class="text-sm text-text-primary font-medium">{uploadedFile}</p>
+									<p class="text-xs text-text-muted">Clique para trocar</p>
+								</div>
+							</div>
+						{:else}
+							<svg class="w-8 h-8 text-text-muted mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+							<p class="text-sm text-text-muted">Clique para subir imagem de fundo</p>
+							<p class="text-xs text-text-muted mt-1">PNG, JPG ate 10MB</p>
+						{/if}
+						<input type="file" accept="image/*" onchange={handleFileUpload} class="hidden" disabled={criando} data-testid="input-upload-bg" />
+					</label>
+				</div>
+
+				<!-- Templates -->
+				{#if uploadedBg}
+					<p class="label-upper mb-2">Template</p>
+					<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+						{#each [
+							{ id: 'texto_centralizado', icon: 'Aa', label: 'Texto centralizado' },
+							{ id: 'texto_no_topo', icon: '\u2191Aa', label: 'Texto no topo' },
+							{ id: 'texto_embaixo', icon: 'Aa\u2193', label: 'Texto embaixo' },
+							{ id: 'criativo', icon: '\u2728', label: 'Criativo (IA)' },
+						] as tpl}
+							<button
+								onclick={() => templateLayout = tpl.id}
+								data-testid={`btn-template-${tpl.id}`}
+								class="flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all cursor-pointer
+									{templateLayout === tpl.id
+										? 'bg-bg-card border-purple shadow-sm'
+										: 'border-border-default hover:border-purple/40'}"
+							>
+								<span class="text-lg">{tpl.icon}</span>
+								<span class="text-[11px] text-text-secondary leading-tight">{tpl.label}</span>
+							</button>
+						{/each}
+					</div>
+
+					<!-- Texto -->
+					<label class="block text-xs text-text-muted mb-1.5">Texto da capa</label>
+					<textarea
+						bind:value={textoUpload}
+						placeholder="Digite o texto que aparecera na imagem..."
+						rows="3"
+						maxlength={500}
+						disabled={criando}
+						data-testid="campo-texto-upload"
+						class="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+							focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
+							placeholder:text-text-muted"
+					></textarea>
+					<p class="text-xs text-text-muted mt-1">{textoUpload.length}/500</p>
+				{/if}
 			</div>
 		{:else}
 			<!-- Disciplinas -->

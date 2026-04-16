@@ -30,6 +30,8 @@ class PipelineService:
             slides_texto_pronto=slides_pronto,
             brand_slug=dto.brand_slug,
             avatar_mode=dto.avatar_mode or "livre",
+            background_base64=dto.background_base64,
+            template_layout=dto.template_layout,
         )
         return result
 

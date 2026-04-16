@@ -499,6 +499,36 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         if 0 <= idx < len(slides) and scene:
             slides[idx]["illustration_description"] = scene
 
+    # Modo upload: carregar background do disco
+    upload_background_b64 = None
+    upload_template = ""
+    if art_output.get("modo_upload"):
+        bg_path = art_output.get("background_path")
+        if bg_path:
+            from utils.pipeline_images import carregar_imagem_b64
+            upload_background_b64 = carregar_imagem_b64(bg_path)
+            if not upload_background_b64:
+                print(f"[upload] WARN: background nao encontrado em {bg_path}")
+
+        upload_template = art_output.get("template_layout", "")
+        headline = slides[0].get("headline") or slides[0].get("title", "") or context.get("_tema", "")
+        print(f"[upload] template={upload_template} headline='{headline[:50]}' bg={'OK' if upload_background_b64 else 'VAZIO'}")
+
+        # Pillow direto pra templates sem avatar (sem Gemini)
+        if upload_background_b64:
+            from services.upload_text_overlay import render_upload
+            rendered = render_upload(upload_background_b64, headline, upload_template, formato)
+            if rendered:
+                print(f"[upload] Pillow render OK — template={upload_template}")
+                from utils.pipeline_images import salvar_imagem
+                path_rel = salvar_imagem(context.get("_pipeline_id", "temp"), 1, rendered, formato=formato)
+                return {
+                    "imagens": [{"slide_index": 1, "variacao": 1, "image_path": path_rel, "modelo": "pillow"}],
+                    "total_slides": 1,
+                }
+            else:
+                print(f"[upload] Pillow nao renderizou (template={upload_template}), caindo pro Gemini")
+
     # Se avatar_mode pede pessoa mas slide nao tem illustration_description,
     # injetar cena com pessoa pra que o PromptComposer use o path de illustration
     if avatar_mode in ("sim", "capa"):
@@ -551,6 +581,7 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
         avatar_mode=avatar_mode,
         formato=formato,
         pipeline_id=context.get("_pipeline_id"),
+        background_b64=upload_background_b64,
     )
 
     # PASS 2: Correcao automatica de avatar nos slides com pessoa.

@@ -22,6 +22,8 @@ class CriarPipelineRequest(BaseModel):
     brand_slug: Optional[str] = None
     avatar_mode: Optional[str] = "livre"  # capa, livre, sem, sim
     max_slides: Optional[int] = None  # maximo de slides para ideia livre
+    background_base64: Optional[str] = None  # imagem de fundo (base64) — modo upload
+    template_layout: Optional[str] = None  # template escolhido — modo upload
 
     @field_validator("tema")
     @classmethod
@@ -36,6 +38,28 @@ class CriarPipelineRequest(BaseModel):
         - modo 'texto_pronto' aceita ate 7 slides
         - outros modos: sem restricao explicita
         """
+        # Validacao modo upload: exige background e template
+        if self.modo_entrada == "upload":
+            if not self.background_base64:
+                raise ValueError(
+                    "Modo 'upload' requer 'background_base64' (imagem de fundo em base64)"
+                )
+            if not self.template_layout:
+                raise ValueError(
+                    "Modo 'upload' requer 'template_layout' (template de layout escolhido)"
+                )
+            valid_templates = (
+                "texto_centralizado",
+                "texto_no_topo",
+                "texto_embaixo",
+                "criativo",
+            )
+            if self.template_layout not in valid_templates:
+                raise ValueError(
+                    f"template_layout invalido: '{self.template_layout}'. "
+                    f"Valores aceitos: {', '.join(valid_templates)}"
+                )
+
         if self.max_slides is None:
             return self
         if self.modo_entrada == "ideia":

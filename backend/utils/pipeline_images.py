@@ -43,15 +43,27 @@ def salvar_imagem(pipeline_id: str, slide_index: int, image_b64: str, formato: s
         if img.mode not in ("RGB", "RGBA"):
             img = img.convert("RGB")
 
-        # Se a imagem veio pequena demais, escala mantendo proporcao (sem distorcer)
+        # Forcar dimensoes do formato: resize + crop central se aspect ratio nao bate
         from utils.dimensions import get_dims
         dims = get_dims(formato)
         target_w, target_h = dims["width"], dims["height"]
-        if img.width < target_w or img.height < target_h:
+
+        src_ratio = img.width / img.height
+        target_ratio = target_w / target_h
+        # Tolera pequena diferenca (ate 2%) pra evitar crop desnecessario
+        if abs(src_ratio - target_ratio) > 0.02:
+            # Aspect ratio diferente — resize pra preencher + crop central
             scale = max(target_w / img.width, target_h / img.height)
             new_w = int(img.width * scale)
             new_h = int(img.height * scale)
             img = img.resize((new_w, new_h), Image.LANCZOS)
+            # Crop central pra chegar nas dimensoes exatas
+            left = (new_w - target_w) // 2
+            top = (new_h - target_h) // 2
+            img = img.crop((left, top, left + target_w, top + target_h))
+        elif img.width != target_w or img.height != target_h:
+            # Mesma proporcao mas tamanho diferente — so resize
+            img = img.resize((target_w, target_h), Image.LANCZOS)
 
         img.save(path, "PNG")
     except Exception as e:

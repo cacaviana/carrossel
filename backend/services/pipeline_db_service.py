@@ -19,8 +19,15 @@ ETAPAS_PIPELINE = [
 
 FORMATOS_SLIDE_UNICO = ("post_unico", "thumbnail_youtube", "capa_reels")
 
+UPLOAD_TEMPLATES = {
+    "texto_centralizado": "Text centered on the image, large and impactful. Clean composition with the background image visible.",
+    "texto_no_topo": "Text at the TOP of the image in large bold font. The rest of the background image is fully visible below.",
+    "texto_embaixo": "Text at the BOTTOM of the image in large bold font. The rest of the background image is fully visible above.",
+    "criativo": "USE the uploaded background image as the BASE LAYER. Add creative visual elements ON TOP. The background must remain visible and recognizable. Think of it as a designer adding layers on top of a frame.",
+}
 
-async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_entrada="ideia", slides_texto_pronto=None, brand_slug=None, avatar_mode="livre"):
+
+async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_entrada="ideia", slides_texto_pronto=None, brand_slug=None, avatar_mode="livre", background_base64=None, template_layout=None):
     if not settings.MSSQL_URL:
         return None
     async with get_sql_session_context() as session:
@@ -28,7 +35,13 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
         now = datetime.now(timezone.utc)
 
         is_texto_pronto = modo_entrada == "texto_pronto"
-        etapa_inicial = "art_director" if is_texto_pronto else "strategist"
+        is_upload = modo_entrada == "upload"
+        if is_upload:
+            etapa_inicial = "image_generator"
+        elif is_texto_pronto:
+            etapa_inicial = "art_director"
+        else:
+            etapa_inicial = "strategist"
 
         await session.execute(
             text("""INSERT INTO carrossel.pipeline
@@ -51,7 +64,74 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
         for agente, ordem in ETAPAS_PIPELINE:
             step_id = str(uuid.uuid4())
 
-            if is_texto_pronto and agente == "strategist":
+            if is_upload and agente in ("strategist", "copywriter", "art_director"):
+                # Upload: auto-aprovar strategist, copywriter e art_director
+                if agente == "strategist":
+                    saida_json_upload = json.dumps({
+                        "briefing": {
+                            "tema_principal": tema,
+                            "angulo": "Imagem de fundo fornecida pelo usuario — composicao visual direta",
+                            "publico_alvo": "Desenvolvedores e profissionais de tecnologia",
+                            "objetivo": "Engajar com visual impactante",
+                            "tom": "Visual, direto ao ponto",
+                            "palavras_chave": [],
+                            "referencias": [],
+                        },
+                        "funil": [{
+                            "titulo": tema[:80],
+                            "etapa_funil": "meio",
+                            "formato": formato,
+                            "resumo": "Upload de imagem de fundo com template de layout",
+                        }],
+                    }, ensure_ascii=False)
+                elif agente == "copywriter":
+                    saida_json_upload = json.dumps({
+                        "headline": tema,
+                        "narrativa": "Conteudo visual — upload de fundo pelo usuario",
+                        "cta": "",
+                        "slides": [{
+                            "indice": 1,
+                            "tipo": "conteudo",
+                            "titulo": tema,
+                            "corpo": "",
+                            "notas": "Texto fornecido pelo usuario — modo upload",
+                        }],
+                        "legenda_linkedin": "",
+                        "hashtags": [],
+                    }, ensure_ascii=False)
+                else:
+                    # art_director: salvar background no disco e montar output com template
+                    from utils.pipeline_images import salvar_imagem
+                    bg_path = salvar_imagem(pipeline_id, 0, background_base64, formato=formato)
+                    template_instruction = UPLOAD_TEMPLATES.get(template_layout, UPLOAD_TEMPLATES["texto_centralizado"])
+                    saida_json_upload = json.dumps({
+                        "prompts": [{
+                            "slide_index": 1,
+                            "illustration_description": template_instruction,
+                        }],
+                        "background_path": bg_path,
+                        "template_layout": template_layout,
+                        "modo_upload": True,
+                    }, ensure_ascii=False)
+
+                await session.execute(
+                    text("""INSERT INTO carrossel.pipeline_step
+                    (id, pipeline_id, agente, ordem, status, entrada, saida, created_at, started_at, finished_at)
+                    VALUES (:id, :pipeline_id, :agente, :ordem, :status, :entrada, :saida, :created_at, :started_at, :finished_at)"""),
+                    {
+                        "id": step_id,
+                        "pipeline_id": pipeline_id,
+                        "agente": agente,
+                        "ordem": ordem,
+                        "status": "aprovado",
+                        "entrada": json.dumps({"modo_upload": True}, ensure_ascii=False),
+                        "saida": saida_json_upload,
+                        "created_at": now,
+                        "started_at": now,
+                        "finished_at": now,
+                    },
+                )
+            elif is_texto_pronto and agente == "strategist":
                 briefing_json = json.dumps({
                     "briefing": {
                         "tema_principal": tema,
