@@ -47,7 +47,7 @@ export class HistoricoItemDTO {
   }
 
   isValid(): boolean {
-    return this.id > 0 && this.titulo.length > 0;
+    return (this.id > 0 || this.pipeline_id.length > 0) && this.titulo.length > 0;
   }
 
   toPayload(): Record<string, any> {
