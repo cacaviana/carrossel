@@ -95,62 +95,53 @@ async def _gerar_criativo_flash_plus_pillow(
     posicao: str = "topo",
     banner_descricao: str | None = None,
 ) -> str | None:
-    """Criativo: Gemini Flash recebe a foto e adiciona UM banner rico.
-    Pillow adiciona o texto em cima.
+    """Criativo: Gemini Flash gera SO o banner em fundo preto.
+    Pillow faz chroma key (compositar_criativo) e cola sobre a foto original.
+    Pillow renderiza o texto em cima.
+
+    Fluxo garante preservacao 100% da foto: Gemini so cria o elemento criativo,
+    o compositing e feito localmente.
 
     posicao: "topo" ou "baixo" — onde colocar o banner
     banner_descricao: descricao do estilo do banner (vem do brand.dna.banner).
                       Se None, usa DEFAULT_BANNER_DESCRICAO.
     """
-    bg_raw = background_b64.split(",", 1)[1] if "," in background_b64 else background_b64
-
     pos_label = "BOTTOM" if posicao == "baixo" else "TOP"
     pos_range = "bottom 20-25%" if posicao == "baixo" else "top 20-25%"
-    pos_neighbor = "below the person" if posicao == "baixo" else "above the person's head"
     descricao = banner_descricao or DEFAULT_BANNER_DESCRICAO
 
+    # Prompt pede SO o banner em fundo preto — nao envia a foto, evita regeneracao
     prompt = (
-        "[PRIMARY TASK - RICH EDITORIAL BANNER OVER PRESERVED PHOTO]\n"
+        "[GENERATE ONLY A DECORATIVE BANNER — NOTHING ELSE]\n"
         "\n"
-        "Use the provided image as the base and preserve it EXACTLY.\n"
-        "\n"
-        "---\n"
-        "\n"
-        "PRESERVE (CRITICAL - DO NOT VIOLATE):\n"
-        "- The person's face, expression, pose, body, clothing, hands — keep 100% identical to the original\n"
-        "- The background setting — keep identical\n"
-        "- Do NOT re-render or re-synthesize any facial feature\n"
-        "- Do NOT zoom, do NOT crop\n"
+        "Generate an image containing ONLY a decorative editorial banner on a PURE BLACK background (#000000).\n"
+        "The black background MUST be absolutely solid pure black — no texture, no gradient, no noise.\n"
+        "The banner itself is the only non-black element.\n"
         "\n"
         "---\n"
         "\n"
-        f"ADD ONE BANNER at the {pos_label} of the image ({pos_neighbor}, not covering the body or face):\n"
-        "\n"
-        "BANNER SPEC (from brand identity):\n"
+        "BANNER SPEC:\n"
         f"- Color base: {cor_hero}\n"
         f"- Style: {descricao}\n"
-        f"- Position: {pos_range} of the image\n"
+        f"- Position: {pos_range} of the image (the rest of the image is pure black)\n"
         "- Shape: wide horizontal or slightly diagonal band\n"
+        "- Can have decorative elements (curves, dots, neon lights, sparkles) within the banner area\n"
         "\n"
         "---\n"
         "\n"
         "STRICTLY FORBIDDEN:\n"
-        "- NO flat solid opaque color block\n"
-        "- NO UI-like rectangle (rounded corners, shadows, button style)\n"
-        "- NO glassmorphism / blur\n"
-        "- The banner must NOT cover the person's face or body\n"
-        "- Do NOT add text, letters, words, numbers\n"
+        "- NO people, faces, bodies, hands\n"
+        "- NO objects (laptops, monitors, furniture)\n"
+        "- NO scenery (rooms, offices, data centers)\n"
+        "- NO text, letters, words, numbers\n"
+        "- NO any non-black element outside the banner area\n"
         "\n"
-        "GOAL:\n"
-        f"The original photo with a rich, translucent editorial banner at the {pos_label}."
+        f"OUTPUT: Pure black image with only a decorative banner at the {pos_label}."
     )
 
     payload = {
         "contents": [{
-            "parts": [
-                {"inline_data": {"mime_type": "image/png", "data": bg_raw}},
-                {"text": prompt},
-            ],
+            "parts": [{"text": prompt}],
         }],
         "generationConfig": {
             "responseModalities": ["IMAGE", "TEXT"],
@@ -166,12 +157,14 @@ async def _gerar_criativo_flash_plus_pillow(
         timeout=180.0,
     )
     res.raise_for_status()
-    img_com_banner = extract_image_from_response(res.json())
-    if not img_com_banner:
+    banner_only_b64 = extract_image_from_response(res.json())
+    if not banner_only_b64:
         return None
 
-    from services.upload_text_overlay import render_texto_sobre_banner
+    # Composita banner sobre a foto ORIGINAL preservada (chroma key do preto)
+    from services.upload_text_overlay import compositar_criativo, render_texto_sobre_banner
     from utils.dimensions import get_dims
+    img_com_banner = compositar_criativo(background_b64, banner_only_b64, formato=formato)
     dims = get_dims(formato)
     final_b64 = render_texto_sobre_banner(img_com_banner, headline, dims, posicao=posicao)
     return f"data:image/png;base64,{final_b64}"
