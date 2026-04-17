@@ -400,7 +400,7 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each historicoFiltrado as item}
 					<div
-						onclick={() => { if (item.isPipelineV3 && item.pipeline_id) goto(`/pipeline/${item.pipeline_id}`); }}
+						onclick={() => { if (item.isPipelineV3 && item.pipeline_id) window.open(`/pipeline/${item.pipeline_id}`, '_blank', 'noopener'); }}
 						role={item.isPipelineV3 ? 'link' : undefined}
 						class="bg-bg-card rounded-xl border border-border-default p-5 hover:-translate-y-1 hover:shadow-md hover:border-purple/30 transition-all
 							{item.isPipelineV3 ? 'cursor-pointer' : ''}"
@@ -431,7 +431,7 @@
 									class="text-xs text-purple hover:text-purple-soft no-underline cursor-pointer">Drive</a>
 							{/if}
 							{#if item.isPipelineV3}
-								<a href="/pipeline/{item.pipeline_id}" class="text-xs text-purple hover:text-purple-soft no-underline cursor-pointer">Reabrir</a>
+								<a href="/pipeline/{item.pipeline_id}" target="_blank" rel="noopener" class="text-xs text-purple hover:text-purple-soft no-underline cursor-pointer">Reabrir</a>
 							{/if}
 							<button onclick={() => { itemToRemove = item; showRemoveModal = true; }}
 								class="text-xs text-text-muted hover:text-red transition-colors cursor-pointer ml-auto">Remover</button>

@@ -265,7 +265,7 @@ async def _gerar_slide_smart(
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
-    # Modo criativo upload: usar OpenAI gpt-image-1 (Gemini nao faz banner)
+    # Modo criativo upload: Gemini Flash (nano banana) faz foto+banner, Pillow poe texto
     illustration = slide.get("illustration_description", "")
     is_criativo_upload = bool(background_b64) and (
         "creative visual elements" in illustration.lower() or "layers" in illustration.lower()
