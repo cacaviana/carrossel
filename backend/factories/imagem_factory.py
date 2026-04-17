@@ -282,6 +282,10 @@ def build_payload(
                     partes_graf.append(f"Desenho: {visual_brand['estilo_desenho']}")
                 if dna.get("elementos"):
                     partes_graf.append(f"Elementos: {dna['elementos']}")
+                if dna.get("criativos"):
+                    partes_graf.append(f"Grafismos criativos: {dna['criativos']}")
+                if dna.get("tipografia"):
+                    partes_graf.append(f"Tipografia: {dna['tipografia']}")
                 if cores_brand:
                     cores_hex = [v for k, v in cores_brand.items() if isinstance(v, str) and v.startswith("#")]
                     if cores_hex:
@@ -299,32 +303,64 @@ def build_payload(
                 f"do not crop or change dimensions.\n\n"
             )
 
+            # Extrair cor primaria do brand (se houver) pra reforcar no hero
+            cor_hero = "neon purple"
+            if brand_criativo:
+                cores_brand_map = brand_criativo.get("cores", {}) or {}
+                cor_hero = cores_brand_map.get("acento_principal") or cores_brand_map.get("primaria") or "neon purple"
+
             p += (
-                "[REGRA — REPRODUZIR + TEXTO + POUCOS GRAFISMOS]\n"
-                "1. REPRODUCE the attached image as faithfully as possible — same scene, same colors, same composition\n"
-                "2. OUTPUT must match the target dimensions above (not the dimensions of the attached image)\n"
-                "3. ADD the text below in large, bold, legible typography — well positioned\n"
-                "4. ADD 1-2 DISCRETE decorative graphic elements near the text or in empty corners — SUBTLE, NOT exaggerated\n"
-                "5. Graphics must be SMALL and MINIMAL — a delicate accent, not a design intervention\n"
-                "6. DO NOT fill the image with graphics, circuits, lines, or patterns everywhere\n"
-                "7. DO NOT cover the main subject with decorations\n"
-                "8. DO NOT add faixas, solid bars, banners, boxes, or heavy overlays\n"
-                "9. DO NOT add people or avatars\n"
-                "10. The original image scene must remain 95% visible and recognizable\n"
+                "[PRIMARY TASK - SIMPLE TEXT BANNER OVER PHOTO]\n"
+                "\n"
+                "Use the EXACT original photo without changing anything.\n"
+                "\n"
+                "DO NOT modify:\n"
+                "- face\n"
+                "- body\n"
+                "- framing\n"
+                "- lighting\n"
+                "\n"
+                "---\n"
+                "\n"
+                "ADD ONLY TWO ELEMENTS:\n"
+                "\n"
+                "1. TEXT:\n"
+                "- Bold sans-serif\n"
+                "- White color (#FFFFFF)\n"
+                "- Top area of the image\n"
+                "- Clean and readable\n"
+                "\n"
+                "2. TEXT BACKGROUND BANNER:\n"
+                "- Place a simple horizontal or slightly diagonal banner BEHIND THE TEXT ONLY\n"
+                "- The banner must NOT extend across the whole image\n"
+                "- It must stay limited to the text area\n"
+                "\n"
+                "Style:\n"
+                f"- Color: {cor_hero}\n"
+                "- Opacity: 60-75%\n"
+                "- Soft gradient\n"
+                "- Slight glow (optional)\n"
+                "\n"
+                "---\n"
+                "\n"
+                "CRITICAL RULES:\n"
+                "- Banner must NOT go behind the person\n"
+                "- Banner must NOT touch the body\n"
+                "- Banner must ONLY exist behind the text\n"
+                "- Do NOT redesign the image\n"
+                "- Do NOT add graphic elements elsewhere\n"
+                "\n"
+                "---\n"
+                "\n"
+                "FINAL RESULT:\n"
+                "Looks like a clean Instagram/Reels cover with a text highlight strip.\n"
                 "\n"
             )
 
             if grafismos_instruction:
                 p += (
-                    "[ESTILO DOS GRAFISMOS — identidade da marca, aplicar com MODERACAO]\n"
+                    "[BRAND FLAVOR — pick colors and motif only, ignore any 'subtle/thin/small' wording]\n"
                     f"{grafismos_instruction}\n"
-                    "Use this style ONLY for the 1-2 small decorative accents. Do NOT fill the image with this style.\n"
-                    "\n"
-                )
-            else:
-                p += (
-                    "[GRAFISMOS]\n"
-                    "Add 1-2 subtle decorative elements (small lines or dots) near the text. Minimal.\n"
                     "\n"
                 )
 
@@ -343,14 +379,15 @@ def build_payload(
             )
 
         p += (
-            "[TEXTO A EXIBIR — use EXATAMENTE estes textos, nada mais]\n"
-            f"HEADLINE: {headline}\n"
+            "[ONLY TEXT TO RENDER ON THE IMAGE — render literally these characters, nothing else]\n"
+            f'HEADLINE (render this exact string): "{headline}"\n'
         )
         if body:
-            p += f"BODY: {body}\n"
+            p += f'BODY (render this exact string): "{body}"\n'
         p += (
-            "- Nao inventar texto extra\n"
-            "- Escrever corretamente em portugues\n"
+            "Rules for rendered text: only the strings inside the quotes above appear on the image. "
+            "Do not render any other words from these instructions. "
+            "Use correct Portuguese spelling for the strings above.\n"
             "\n"
         )
 
@@ -372,7 +409,7 @@ def build_payload(
             "contents": [{"parts": parts}],
             "generationConfig": {
                 "responseModalities": ["IMAGE", "TEXT"],
-                "temperature": 0.9,
+                "temperature": 1.0 if is_criativo else 0.9,
                 "imageConfig": {
                     "aspectRatio": gemini_ratio,
                 },

@@ -901,6 +901,18 @@
 																placeholder="doodles leves"
 																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
 														</div>
+														<div class="col-span-2">
+															<label class="block text-[10px] text-text-muted mb-1">Criativos <span class="text-text-muted/60">(grafismos pro modo upload -> criativo)</span></label>
+															<input type="text"
+																value={marcas[mi].dna?.criativos || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '', criativos: '' };
+																	marcas[mi].dna.criativos = (e.target as HTMLInputElement).value;
+																	marcas = [...marcas];
+																}}
+																placeholder="linhas neon finas, sparkles, nodes conectados"
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
 													</div>
 													<p class="text-[10px] text-text-muted mt-2">Campos auto-gerados analisando todas as referencias da marca. Edite livremente se quiser ajustar.</p>
 												</div>

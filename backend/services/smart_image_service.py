@@ -24,6 +24,58 @@ from utils.constants import GEMINI_API_URL as API_URL
 
 MAX_CONCURRENT_SLIDES = 3  # Gemini rate limit safe
 
+OPENAI_IMAGE_EDITS_URL = "https://api.openai.com/v1/images/edits"
+
+
+def _openai_size_for_format(formato: str) -> str:
+    from utils.dimensions import get_dims
+    dims = get_dims(formato)
+    ratio = dims["width"] / dims["height"]
+    if ratio < 0.85:
+        return "1024x1536"
+    if ratio > 1.15:
+        return "1536x1024"
+    return "1024x1024"
+
+
+async def _gerar_criativo_openai(
+    client: httpx.AsyncClient,
+    prompt: str,
+    background_b64: str,
+    openai_key: str,
+    formato: str,
+) -> str | None:
+    """Gera imagem via OpenAI gpt-image-1 (edits) para modo criativo upload.
+
+    Gemini 3 Pro eh conservador demais com fotos uploaded e nao compoe banners
+    grandes por cima. gpt-image-1 respeita a composicao editorial.
+    """
+    import base64
+    raw = background_b64.split(",", 1)[1] if "," in background_b64 else background_b64
+    image_bytes = base64.b64decode(raw)
+
+    files = {"image": ("photo.png", image_bytes, "image/png")}
+    data = {
+        "model": "gpt-image-1",
+        "prompt": prompt[:32000],
+        "n": "1",
+        "size": _openai_size_for_format(formato),
+        "quality": "high",
+    }
+    headers = {"Authorization": f"Bearer {openai_key}"}
+
+    res = await client.post(
+        OPENAI_IMAGE_EDITS_URL,
+        files=files,
+        data=data,
+        headers=headers,
+        timeout=180.0,
+    )
+    res.raise_for_status()
+    result = res.json()
+    b64 = result["data"][0]["b64_json"]
+    return f"data:image/png;base64,{b64}"
+
 
 async def gerar_imagens_smart(
     slides: list[dict],
@@ -112,6 +164,41 @@ async def _gerar_slide_smart(
     background_b64: str | None = None,
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
+
+    # Modo criativo upload: usar OpenAI gpt-image-1 (Gemini nao faz banner)
+    illustration = slide.get("illustration_description", "")
+    is_criativo_upload = bool(background_b64) and (
+        "creative visual elements" in illustration.lower() or "layers" in illustration.lower()
+    )
+    if is_criativo_upload:
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if openai_key:
+            try:
+                _, payload_tmp = build_payload(
+                    slide, position, total,
+                    brand_slug=brand_slug, avatar_mode=avatar_mode,
+                    formato=formato, refs_fixas=refs_fixas,
+                    background_b64=background_b64,
+                )
+                prompt_text = ""
+                for part in payload_tmp["contents"][0]["parts"]:
+                    if "text" in part:
+                        prompt_text = part["text"]
+                        break
+
+                img = await _gerar_criativo_openai(
+                    client, prompt_text, background_b64, openai_key, formato,
+                )
+                if img:
+                    if foto_criador:
+                        is_cta = slide.get("type") == "cta"
+                        img = overlay_foto(img, foto_criador, is_cta=is_cta, posicao=position, total=total)
+                    print(f"  Slide {position}: criativo via OpenAI gpt-image-1")
+                    return img
+            except Exception as e:
+                print(f"  Slide {position}: OpenAI criativo falhou ({e}), fallback Gemini")
+        else:
+            print(f"  Slide {position}: OPENAI_API_KEY faltando, usando Gemini")
 
     # Passo 1: Gemini gera imagem completa (otimista) — retry se ratio errado
     from utils.dimensions import get_dims

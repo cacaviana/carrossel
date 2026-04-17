@@ -178,10 +178,11 @@
   "referencia_content": "reference_content.png",
   "_loaded": true,
   "dna": {
-    "estilo": "tech profissional moderno informativo",
-    "cores": "roxo escuro, azul, branco, verde água",
+    "estilo": "tech editorial bold com identidade neon futurista",
+    "cores": "roxo neon #A78BFA, azul profundo, branco, verde água #34D399",
     "tipografia": "sans-serif bold limpa",
-    "elementos": "linhas de grid, servidores, esferas"
+    "elementos": "formas geometricas grandes, arcos amplos, ondas, wireframes 3D oversized",
+    "criativos": "grafismo HERO diagonal grande e bold cruzando o frame: arcos generosos, faixas largas, ondas, ribbons, wedges geometricos ou motifs oversized (globo, circuito, espiral) em roxo neon #A78BFA com glow azul. Editorial poster style — NAO linha fina discreta, NAO circuito sutil de fundo, mas sim UM elemento visual grande com 50-75% opacidade que domina a composicao junto com o texto"
   },
   "padrao_visual": {
     "com_avatar": {
