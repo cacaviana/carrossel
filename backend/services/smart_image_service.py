@@ -24,157 +24,57 @@ from utils.constants import GEMINI_API_URL as API_URL
 
 MAX_CONCURRENT_SLIDES = 3  # Gemini rate limit safe
 
-NANO_BANANA_MODEL = "gemini-2.5-flash-image"
-
-# Face safe zone (em %) — box central que sempre fica preto no overlay
-FACE_BOX_TOP = 0.22
-FACE_BOX_BOTTOM = 0.62
-FACE_BOX_LEFT = 0.18
-FACE_BOX_RIGHT = 0.82
-FACE_FEATHER_PX = 40
+OPENAI_IMAGE_EDITS_URL = "https://api.openai.com/v1/images/edits"
 
 
-def _mascarar_face_zone(banner_b64: str, dims: dict) -> str:
-    """Pinta preto (com feather suave) na caixa central do banner.
-
-    Garante que na hora do chroma-key a area do rosto fique transparente,
-    mostrando a foto original por baixo. Feather evita borda dura retangular.
-    """
-    import base64
-    import io
-    from PIL import Image, ImageDraw, ImageFilter
-
-    raw = banner_b64.split(",", 1)[1] if "," in banner_b64 else banner_b64
-    img = Image.open(io.BytesIO(base64.b64decode(raw))).convert("RGB")
-    w_target, h_target = dims["width"], dims["height"]
-    img = img.resize((w_target, h_target), Image.LANCZOS)
-
-    # Mascara branca onde queremos pintar preto (dentro do box)
-    mask = Image.new("L", img.size, 0)
-    draw = ImageDraw.Draw(mask)
-    x0 = int(w_target * FACE_BOX_LEFT)
-    y0 = int(h_target * FACE_BOX_TOP)
-    x1 = int(w_target * FACE_BOX_RIGHT)
-    y1 = int(h_target * FACE_BOX_BOTTOM)
-    draw.rectangle([x0, y0, x1, y1], fill=255)
-    mask = mask.filter(ImageFilter.GaussianBlur(radius=FACE_FEATHER_PX))
-
-    preto = Image.new("RGB", img.size, (0, 0, 0))
-    img = Image.composite(preto, img, mask)
-
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
-    return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
-
-
-def _gemini_aspect_for_format(formato: str) -> str:
+def _openai_size_for_format(formato: str) -> str:
     from utils.dimensions import get_dims
     dims = get_dims(formato)
-    ratio = dims["ratio"]
-    if ratio in ("9:16", "4:5", "1:1", "16:9"):
-        return ratio
-    return "4:5"
+    ratio = dims["width"] / dims["height"]
+    if ratio < 0.85:
+        return "1024x1536"
+    if ratio > 1.15:
+        return "1536x1024"
+    return "1024x1024"
 
 
-DEFAULT_BANNER_DESCRICAO = (
-    "A rich editorial translucent banner (55-70% opacity) with soft gradient fills, "
-    "subtle decorative motifs, flowing curves, glowing dots and particles, and light rays. "
-    "Layered cinematic depth, magazine-style editorial vibe — multiple translucent elements "
-    "stacked. Keep motifs GENERIC (no specific themed shapes) — the brand should define its "
-    "own banner style via dna.banner."
-)
-
-
-async def _gerar_criativo_flash_plus_pillow(
+async def _gerar_criativo_openai(
     client: httpx.AsyncClient,
-    headline: str,
+    prompt: str,
     background_b64: str,
-    gemini_key: str,
+    openai_key: str,
     formato: str,
-    cor_hero: str,
-    posicao: str = "topo",
-    banner_descricao: str | None = None,
 ) -> str | None:
-    """Criativo: Gemini Flash recebe a foto e adiciona UM banner rico.
-    Pillow adiciona o texto em cima.
+    """Gera imagem via OpenAI gpt-image-1 (edits) para modo criativo upload.
 
-    posicao: "topo" ou "baixo" — onde colocar o banner
-    banner_descricao: descricao do estilo do banner (vem do brand.dna.banner).
-                      Se None, usa DEFAULT_BANNER_DESCRICAO.
+    Gemini 3 Pro eh conservador demais com fotos uploaded e nao compoe banners
+    grandes por cima. gpt-image-1 respeita a composicao editorial.
     """
-    bg_raw = background_b64.split(",", 1)[1] if "," in background_b64 else background_b64
+    import base64
+    raw = background_b64.split(",", 1)[1] if "," in background_b64 else background_b64
+    image_bytes = base64.b64decode(raw)
 
-    pos_label = "BOTTOM" if posicao == "baixo" else "TOP"
-    pos_range = "bottom 20-25%" if posicao == "baixo" else "top 20-25%"
-    pos_neighbor = "below the person" if posicao == "baixo" else "above the person's head"
-    descricao = banner_descricao or DEFAULT_BANNER_DESCRICAO
-
-    prompt = (
-        "[PRIMARY TASK - RICH EDITORIAL BANNER OVER PRESERVED PHOTO]\n"
-        "\n"
-        "Use the provided image as the base and preserve it EXACTLY.\n"
-        "\n"
-        "---\n"
-        "\n"
-        "PRESERVE (CRITICAL - DO NOT VIOLATE):\n"
-        "- The person's face, expression, pose, body, clothing, hands — keep 100% identical to the original\n"
-        "- The background setting — keep identical\n"
-        "- Do NOT re-render or re-synthesize any facial feature\n"
-        "- Do NOT zoom, do NOT crop\n"
-        "\n"
-        "---\n"
-        "\n"
-        f"ADD ONE BANNER at the {pos_label} of the image ({pos_neighbor}, not covering the body or face):\n"
-        "\n"
-        "BANNER SPEC (from brand identity):\n"
-        f"- Color base: {cor_hero}\n"
-        f"- Style: {descricao}\n"
-        f"- Position: {pos_range} of the image\n"
-        "- Shape: wide horizontal or slightly diagonal band\n"
-        "\n"
-        "---\n"
-        "\n"
-        "STRICTLY FORBIDDEN:\n"
-        "- NO flat solid opaque color block\n"
-        "- NO UI-like rectangle (rounded corners, shadows, button style)\n"
-        "- NO glassmorphism / blur\n"
-        "- The banner must NOT cover the person's face or body\n"
-        "- Do NOT add text, letters, words, numbers\n"
-        "\n"
-        "GOAL:\n"
-        f"The original photo with a rich, translucent editorial banner at the {pos_label}."
-    )
-
-    payload = {
-        "contents": [{
-            "parts": [
-                {"inline_data": {"mime_type": "image/png", "data": bg_raw}},
-                {"text": prompt},
-            ],
-        }],
-        "generationConfig": {
-            "responseModalities": ["IMAGE", "TEXT"],
-            "temperature": 0.6,
-            "imageConfig": {"aspectRatio": _gemini_aspect_for_format(formato)},
-        },
+    files = {"image": ("photo.png", image_bytes, "image/png")}
+    data = {
+        "model": "gpt-image-1",
+        "prompt": prompt[:32000],
+        "n": "1",
+        "size": _openai_size_for_format(formato),
+        "quality": "high",
     }
+    headers = {"Authorization": f"Bearer {openai_key}"}
 
     res = await client.post(
-        API_URL.format(model=NANO_BANANA_MODEL),
-        json=payload,
-        headers={"x-goog-api-key": gemini_key},
+        OPENAI_IMAGE_EDITS_URL,
+        files=files,
+        data=data,
+        headers=headers,
         timeout=180.0,
     )
     res.raise_for_status()
-    img_com_banner = extract_image_from_response(res.json())
-    if not img_com_banner:
-        return None
-
-    from services.upload_text_overlay import render_texto_sobre_banner
-    from utils.dimensions import get_dims
-    dims = get_dims(formato)
-    final_b64 = render_texto_sobre_banner(img_com_banner, headline, dims, posicao=posicao)
-    return f"data:image/png;base64,{final_b64}"
+    result = res.json()
+    b64 = result["data"][0]["b64_json"]
+    return f"data:image/png;base64,{b64}"
 
 
 async def gerar_imagens_smart(
@@ -265,37 +165,40 @@ async def _gerar_slide_smart(
 ) -> str | None:
     """Gera 1 slide com validacao e fallback."""
 
-    # Modo criativo upload: Gemini Flash (nano banana) faz foto+banner, Pillow poe texto
+    # Modo criativo upload: usar OpenAI gpt-image-1 (Gemini nao faz banner)
     illustration = slide.get("illustration_description", "")
     is_criativo_upload = bool(background_b64) and (
         "creative visual elements" in illustration.lower() or "layers" in illustration.lower()
     )
     if is_criativo_upload:
-        try:
-            headline = slide.get("headline") or slide.get("title", "") or ""
-            cor_hero = "#A78BFA"
-            banner_descricao = None
-            if brand:
-                cores_map = brand.get("cores", {}) or {}
-                cor_hero = cores_map.get("acento_principal") or cores_map.get("primaria") or "#A78BFA"
-                dna = brand.get("dna", {}) or {}
-                banner_descricao = dna.get("banner") or None
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if openai_key:
+            try:
+                _, payload_tmp = build_payload(
+                    slide, position, total,
+                    brand_slug=brand_slug, avatar_mode=avatar_mode,
+                    formato=formato, refs_fixas=refs_fixas,
+                    background_b64=background_b64,
+                )
+                prompt_text = ""
+                for part in payload_tmp["contents"][0]["parts"]:
+                    if "text" in part:
+                        prompt_text = part["text"]
+                        break
 
-            # Posicao: detectar no illustration_description ("BOTTOM area" -> baixo)
-            posicao_banner = "baixo" if "bottom area" in illustration.lower() else "topo"
-
-            img = await _gerar_criativo_flash_plus_pillow(
-                client, headline, background_b64, api_key, formato, cor_hero,
-                posicao=posicao_banner, banner_descricao=banner_descricao,
-            )
-            if img:
-                if foto_criador:
-                    is_cta = slide.get("type") == "cta"
-                    img = overlay_foto(img, foto_criador, is_cta=is_cta, posicao=position, total=total)
-                print(f"  Slide {position}: criativo {posicao_banner} via Flash+Pillow")
-                return img
-        except Exception as e:
-            print(f"  Slide {position}: Flash+Pillow falhou ({e}), fallback Gemini Pro")
+                img = await _gerar_criativo_openai(
+                    client, prompt_text, background_b64, openai_key, formato,
+                )
+                if img:
+                    if foto_criador:
+                        is_cta = slide.get("type") == "cta"
+                        img = overlay_foto(img, foto_criador, is_cta=is_cta, posicao=position, total=total)
+                    print(f"  Slide {position}: criativo via OpenAI gpt-image-1")
+                    return img
+            except Exception as e:
+                print(f"  Slide {position}: OpenAI criativo falhou ({e}), fallback Gemini")
+        else:
+            print(f"  Slide {position}: OPENAI_API_KEY faltando, usando Gemini")
 
     # Passo 1: Gemini gera imagem completa (otimista) — retry se ratio errado
     from utils.dimensions import get_dims
