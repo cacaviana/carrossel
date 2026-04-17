@@ -23,7 +23,10 @@ UPLOAD_TEMPLATES = {
     "texto_centralizado": "Text centered on the image, large and impactful. Clean composition with the background image visible.",
     "texto_no_topo": "Text at the TOP of the image in large bold font. The rest of the background image is fully visible below.",
     "texto_embaixo": "Text at the BOTTOM of the image in large bold font. The rest of the background image is fully visible above.",
-    "criativo": "USE the uploaded background image as the BASE LAYER. Add creative visual elements ON TOP. The background must remain visible and recognizable. Think of it as a designer adding layers on top of a frame.",
+    "criativo_topo": "USE the uploaded background image as the BASE LAYER. Add creative visual elements and layers ON TOP of the TOP area. The background must remain visible and recognizable.",
+    "criativo_embaixo": "USE the uploaded background image as the BASE LAYER. Add creative visual elements and layers ON TOP of the BOTTOM area. The background must remain visible and recognizable.",
+    # Alias de compatibilidade
+    "criativo": "USE the uploaded background image as the BASE LAYER. Add creative visual elements and layers ON TOP of the TOP area. The background must remain visible and recognizable.",
 }
 
 

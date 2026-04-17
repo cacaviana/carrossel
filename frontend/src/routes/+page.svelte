@@ -514,7 +514,8 @@
 							{ id: 'texto_centralizado', icon: 'Aa', label: 'Texto centralizado' },
 							{ id: 'texto_no_topo', icon: '\u2191Aa', label: 'Texto no topo' },
 							{ id: 'texto_embaixo', icon: 'Aa\u2193', label: 'Texto embaixo' },
-							{ id: 'criativo', icon: '\u2728', label: 'Criativo (IA)' },
+							{ id: 'criativo_topo', icon: '\u2728\u2191', label: 'Criativo topo' },
+							{ id: 'criativo_embaixo', icon: '\u2728\u2193', label: 'Criativo embaixo' },
 						] as tpl}
 							<button
 								onclick={() => templateLayout = tpl.id}

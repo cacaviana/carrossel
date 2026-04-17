@@ -906,12 +906,26 @@
 															<input type="text"
 																value={marcas[mi].dna?.criativos || ''}
 																oninput={(e) => {
-																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '', criativos: '' };
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '', criativos: '', banner: '' };
 																	marcas[mi].dna.criativos = (e.target as HTMLInputElement).value;
 																	marcas = [...marcas];
 																}}
 																placeholder="linhas neon finas, sparkles, nodes conectados"
 																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none" />
+														</div>
+														<div class="col-span-2">
+															<label class="block text-[10px] text-text-muted mb-1">Banner <span class="text-text-muted/60">(estilo do banner nos templates Criativo topo/embaixo)</span></label>
+															<textarea
+																value={marcas[mi].dna?.banner || ''}
+																oninput={(e) => {
+																	if (!marcas[mi].dna) marcas[mi].dna = { estilo: '', cores: '', tipografia: '', elementos: '', criativos: '', banner: '' };
+																	marcas[mi].dna.banner = (e.target as HTMLTextAreaElement).value;
+																	marcas = [...marcas];
+																}}
+																rows="3"
+																placeholder="translucent banner com globo wireframe, light trails, particulas, gradient..."
+																class="w-full px-2 py-1.5 rounded border border-border-default bg-bg-input text-text-primary text-xs focus:border-purple outline-none resize-none"
+															></textarea>
 														</div>
 													</div>
 													<p class="text-[10px] text-text-muted mt-2">Campos auto-gerados analisando todas as referencias da marca. Edite livremente se quiser ajustar.</p>

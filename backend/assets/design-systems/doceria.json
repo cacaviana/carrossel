@@ -78,5 +78,33 @@
       "Seu pedido ta ficando uma delicia"
     ]
   },
-  "referencia_imagem": null
+  "referencia_imagem": null,
+  "_loaded": true,
+  "dna": {
+    "estilo": "cute, playful, sweet, cartoonish",
+    "cores": "rosa pastel, azul claro, branco, marrom",
+    "tipografia": "bold, arredondada, fofa, sans-serif",
+    "elementos": "doces variados, corações, estrelas, bolhas",
+    "banner": "banner como um liquido derramado rosa com granulados coloridos"
+  },
+  "padrao_visual": {
+    "com_avatar": {
+      "tipo_foto": "fundo digital abstrato com gradientes suaves",
+      "composicoes": [
+        "personagens cartoon em primeiro plano interagindo com doces e elementos decorativos."
+      ],
+      "fundo_cenario": "gradiente suave de cores pastel com formas orgânicas e bolhas.",
+      "iluminacao": "clara e uniforme, sem sombras realistas, com brilho suave.",
+      "mood": "alegre, infantil, festivo, doce e divertido.",
+      "elementos_overlay": "ilustrações de personagens fofos e doces, texto em destaque com emojis, elementos gráficos como corações e estrelas.",
+      "paleta_dominante": [
+        "#F06292",
+        "#A7E0E0",
+        "#FFFFFF",
+        "#FFD1DC",
+        "#8B4513"
+      ],
+      "relacao_pessoa_fundo": "personagens cartoon dominam o primeiro plano, com fundo abstrato e decorativo."
+    }
+  }
 }

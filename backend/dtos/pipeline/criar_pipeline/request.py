@@ -52,7 +52,9 @@ class CriarPipelineRequest(BaseModel):
                 "texto_centralizado",
                 "texto_no_topo",
                 "texto_embaixo",
-                "criativo",
+                "criativo_topo",
+                "criativo_embaixo",
+                "criativo",  # alias de compatibilidade (= criativo_topo)
             )
             if self.template_layout not in valid_templates:
                 raise ValueError(

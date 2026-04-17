@@ -171,6 +171,30 @@ def render_texto_embaixo(bg_b64: str, headline: str, dims: dict) -> str:
     return _render_texto_posicao(bg_b64, headline, dims, "baixo")
 
 
+def render_texto_sobre_banner(bg_b64: str, headline: str, dims: dict, posicao: str = "topo") -> str:
+    """Desenha texto SEM adicionar gradiente proprio.
+
+    Usado quando o fundo (bg_b64) ja tem o banner desenhado pelo Gemini —
+    so precisamos colocar o texto em cima.
+
+    posicao: "topo" (nonos 1-3) ou "baixo" (nonos 6-8)
+    """
+    bg = _decode_b64(bg_b64).resize((dims["width"], dims["height"]), Image.LANCZOS)
+    w, h = bg.size
+    nono = h // 9
+
+    draw = ImageDraw.Draw(bg)
+    font_size = max(44, w // 11)
+    font = _load_font(FONT_TITLE, font_size)
+
+    if posicao == "baixo":
+        _wrap_and_draw(draw, headline, font, w, nono * 6, nono * 8, shadow_offset=3)
+    else:
+        _wrap_and_draw(draw, headline, font, w, nono * 1, nono * 3, shadow_offset=3)
+
+    return _encode_b64(bg.convert("RGB"))
+
+
 TEMPLATE_RENDERERS = {
     "texto_centralizado": render_texto_centralizado,
     "texto_no_topo": render_texto_no_topo,

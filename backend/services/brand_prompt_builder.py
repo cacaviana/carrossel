@@ -33,9 +33,18 @@ def carregar_brand(slug: str) -> dict | None:
     if not mongo_brand and not disk_brand:
         return None
 
-    # Mesclar: disco como base, Mongo sobrescreve (exceto campos pesados que so vivem no disco)
+    # Mesclar: disco como base, Mongo sobrescreve (deep merge em dicts nested como "dna",
+    # "cores", "visual" — evita que um Mongo com dna incompleto apague campos do disco)
     if disk_brand and mongo_brand:
-        disk_brand.update({k: v for k, v in mongo_brand.items() if k != "_id"})
+        for k, v in mongo_brand.items():
+            if k == "_id":
+                continue
+            if isinstance(v, dict) and isinstance(disk_brand.get(k), dict):
+                merged = dict(disk_brand[k])
+                merged.update(v)
+                disk_brand[k] = merged
+            else:
+                disk_brand[k] = v
         return disk_brand
 
     return mongo_brand or disk_brand
