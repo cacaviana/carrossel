@@ -5,7 +5,15 @@
 	import { getDims } from '$lib/utils/dimensions';
 	import { imgToBase64 } from '$lib/utils/imgToBase64';
 	import { API_BASE } from '$lib/api';
+	import { getToken } from '$lib/stores/auth.svelte';
 	import SlideDotsNav from '$lib/components/ui/SlideDotsNav.svelte';
+
+	function authHeaders(): Record<string, string> {
+		return {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${getToken()}`
+		};
+	}
 
 	let slides = $state<string[]>([]);
 	let textos = $state<{ titulo: string; corpo: string }[]>([]);
@@ -144,7 +152,9 @@
 						if (!url || url.startsWith('data:')) return url;
 						try {
 							// HEAD pode dar 405 em algumas rotas; GET garante resposta real
-							const r = await fetch(url);
+							// URLs internas da API exigem Bearer token (fix C1)
+							const isApiUrl = url.startsWith(API_BASE) || url.startsWith('/api/');
+							const r = await fetch(url, isApiUrl ? { headers: authHeaders() } : undefined);
 							return r.ok ? url : '';
 						} catch { return ''; }
 					}));
