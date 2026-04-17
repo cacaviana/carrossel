@@ -589,8 +589,12 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
     # Pass 2 pega essa imagem + 3 fotos do avatar real e troca APENAS o rosto
     # mantendo pose/cena/iluminacao. Resolve o problema de Gemini alucinar a
     # face no pass unico (ex: Carlos virando outra pessoa).
-    print(f"[pass2] iniciando — brand={brand_slug} avatar_mode={avatar_mode} total_imgs={len(images)}")
-    if brand_slug and avatar_mode != "sem":
+    # EXCECAO: modo upload ja usa a foto real do criador (background_b64),
+    # nao precisa e nao deve rodar pass2 (pass2 regeneraria a imagem).
+    print(f"[pass2] iniciando — brand={brand_slug} avatar_mode={avatar_mode} total_imgs={len(images)} modo_upload={bool(upload_background_b64)}")
+    if upload_background_b64:
+        print(f"[pass2] skipped — modo upload ja preserva a foto original")
+    elif brand_slug and avatar_mode != "sem":
         from factories.imagem_factory import _load_avatars
         avatars_count = len(_load_avatars(brand_slug))
         brand_has_avatar = avatars_count > 0
