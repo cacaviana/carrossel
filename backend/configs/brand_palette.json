@@ -7,6 +7,9 @@
     "texto_secundario": "#94A3B8"
   },
   "fonte": "Outfit",
-  "elementos_obrigatorios": ["foto_carlos_redonda", "logo_itvalley"],
+  "elementos_obrigatorios": [
+    "lines",
+    "dots"
+  ],
   "estilo": "dark_mode_premium"
 }

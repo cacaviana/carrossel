@@ -356,22 +356,12 @@
 			const imgB64 = await imgToBase64(currentImage);
 			const imgRaw = imgB64.startsWith('data:') ? imgB64.split(',')[1] : imgB64;
 			const pipelineId = page.url.searchParams.get('pipeline') || '';
-			const res = await fetch(`${API_BASE}/api/corrigir-avatar`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					imagem: imgRaw,
-					brand_slug: brandSlug,
-					pipeline_id: pipelineId || undefined,
-					slide_index: currentSlide + 1,
-				}),
-				signal: AbortSignal.timeout(120_000),
+			const data = await EditorService.corrigirAvatar({
+				imagem: imgRaw,
+				brand_slug: brandSlug,
+				pipeline_id: pipelineId || undefined,
+				slide_index: currentSlide + 1,
 			});
-			if (!res.ok) {
-				const err = await res.json().catch(() => ({}));
-				throw new Error(err.detail || 'Erro ao corrigir avatar');
-			}
-			const data = await res.json();
 			if (data.image) {
 				const newImg = data.image.startsWith('data:') ? data.image : `data:image/png;base64,${data.image}`;
 				slides[currentSlide] = newImg;

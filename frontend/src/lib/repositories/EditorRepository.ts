@@ -1,7 +1,15 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class EditorRepository {
   static async carregarCopywriter(pipelineId: string): Promise<any> {
@@ -9,7 +17,7 @@ export class EditorRepository {
       await new Promise(r => setTimeout(r, 300));
       return { slides: [] };
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar copywriter');
     return res.json();
   }
@@ -19,7 +27,7 @@ export class EditorRepository {
       await new Promise(r => setTimeout(r, 200));
       return { tema: 'Mock Pipeline', formato: 'carrossel' };
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar pipeline');
     return res.json();
   }
@@ -30,7 +38,7 @@ export class EditorRepository {
       return { saida: { imagens: [] } };
     }
     // Tentar etapa image_generator primeiro
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/image_generator`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/image_generator`, { headers: authHeaders() });
     if (res.ok) {
       const data = await res.json();
       const saida = data.saida ?? data;
@@ -40,7 +48,7 @@ export class EditorRepository {
       }
     }
     // Fallback: listar imagens direto do disco
-    const diskRes = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/imagens`);
+    const diskRes = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/imagens`, { headers: authHeaders() });
     if (!diskRes.ok) throw new Error('Erro ao carregar imagens');
     return { saida: await diskRes.json() };
   }
@@ -50,7 +58,7 @@ export class EditorRepository {
       await new Promise(r => setTimeout(r, 200));
       return { cores: { acento_principal: '#3578B0' } };
     }
-    const res = await fetch(`${API_BASE}/api/brands/${slug}`);
+    const res = await fetch(`${API_BASE}/api/brands/${slug}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar marca');
     return res.json();
   }
@@ -60,7 +68,7 @@ export class EditorRepository {
       await new Promise(r => setTimeout(r, 200));
       return '';
     }
-    const res = await fetch(`${API_BASE}/api/brands/${slug}/foto`);
+    const res = await fetch(`${API_BASE}/api/brands/${slug}/foto`, { headers: authHeaders() });
     if (!res.ok) return '';
     const data = await res.json();
     if (!data.foto) return '';
@@ -74,7 +82,7 @@ export class EditorRepository {
       await new Promise(r => setTimeout(r, 400));
       return [];
     }
-    const res = await fetch(`${API_BASE}/api/editor/slides/${brand}`);
+    const res = await fetch(`${API_BASE}/api/editor/slides/${brand}`, { headers: authHeaders() });
     if (!res.ok) return [];
     const data = await res.json();
     return (data.imagens || []).map((i: any) =>
@@ -86,7 +94,7 @@ export class EditorRepository {
     if (USE_MOCK) return;
     await fetch(`${API_BASE}/api/brands/${slug}/foto`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ foto }),
     });
   }
@@ -105,7 +113,7 @@ export class EditorRepository {
     setTimeout(() => controller.abort(), 120_000);
     const res = await fetch(`${API_BASE}/api/gerar-imagem`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
@@ -127,11 +135,36 @@ export class EditorRepository {
     setTimeout(() => controller.abort(), 120_000);
     const res = await fetch(`${API_BASE}/api/editor/corrigir-texto`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
     if (!res.ok) throw new Error('Erro ao corrigir texto');
+    return res.json();
+  }
+
+  static async corrigirAvatar(payload: {
+    imagem: string;
+    brand_slug: string;
+    pipeline_id?: string;
+    slide_index?: number;
+  }): Promise<{ image?: string; tentativas?: number; aviso?: string; detail?: string }> {
+    if (USE_MOCK) {
+      await new Promise(r => setTimeout(r, 1000));
+      return { image: payload.imagem, tentativas: 1 };
+    }
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 120_000);
+    const res = await fetch(`${API_BASE}/api/corrigir-avatar`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail ?? 'Erro ao corrigir avatar');
+    }
     return res.json();
   }
 
@@ -148,7 +181,7 @@ export class EditorRepository {
     setTimeout(() => controller.abort(), 120_000);
     const res = await fetch(`${API_BASE}/api/editor/ajustar-imagem`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
@@ -168,7 +201,7 @@ export class EditorRepository {
     }
     const res = await fetch(`${API_BASE}/api/google-drive/carrossel`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         ...payload,
         disciplina: null,

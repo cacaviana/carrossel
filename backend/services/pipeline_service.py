@@ -109,7 +109,17 @@ class PipelineService:
         return await executar_proxima_etapa(pipeline_id)
 
     @staticmethod
-    async def aprovar_etapa(pipeline_id: str, agente: str, saida_editada: str | None) -> dict:
+    async def aprovar_etapa(
+        pipeline_id: str,
+        agente: str,
+        saida_editada: str | None = None,
+        dados_editados: object | None = None,
+    ) -> dict:
+        """Aprova etapa. Aceita `saida_editada` (string) ou `dados_editados` (dict/lista).
+
+        Se `dados_editados` for passado, ele tem prioridade e e serializado em JSON.
+        Se for None, cai no comportamento legado de `saida_editada`.
+        """
         step = await buscar_etapa_por_agente(pipeline_id, agente)
         if not step:
             return None
@@ -127,7 +137,13 @@ class PipelineService:
             "approved_at": now,
         }
 
-        if saida_editada is not None:
+        # INT-02 fix: dados_editados (frontend novo) tem prioridade sobre saida_editada (legado)
+        if dados_editados is not None:
+            if isinstance(dados_editados, str):
+                updates["saida"] = dados_editados
+            else:
+                updates["saida"] = _json.dumps(dados_editados, ensure_ascii=False)
+        elif saida_editada is not None:
             updates["saida"] = saida_editada
 
         await atualizar_etapa(step_id, updates)

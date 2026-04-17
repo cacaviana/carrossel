@@ -21,4 +21,8 @@ export class VisualService {
   static async rejeitar(pipelineId: string, feedback: string): Promise<void> {
     return VisualRepository.rejeitar(pipelineId, feedback);
   }
+
+  static async buscarStatus(pipelineId: string): Promise<{ status: string } | null> {
+    return VisualRepository.buscarStatus(pipelineId);
+  }
 }

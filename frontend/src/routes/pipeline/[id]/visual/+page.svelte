@@ -2,9 +2,9 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { API_BASE } from '$lib/api';
 	import { VisualService } from '$lib/services/VisualService';
 	import { PipelineService } from '$lib/services/PipelineService';
+	import { BrandService } from '$lib/services/BrandService';
 	import { PromptVisualDTO } from '$lib/dtos/PromptVisualDTO';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
@@ -25,8 +25,6 @@
 
 	onMount(async () => {
 		try {
-			const API = API_BASE;
-
 			// Carregar pipeline pra pegar brand_slug
 			const pipeline = await PipelineService.buscar(pipelineId);
 			const brandSlug = pipeline.brand_slug;
@@ -42,8 +40,8 @@
 			// Carregar brand palette da marca do pipeline (ou fallback)
 			if (brandSlug) {
 				try {
-					const res = await fetch(`${API}/api/brands/${brandSlug}`);
-					if (res.ok) brandPalette = await res.json();
+					const brand = await BrandService.buscar(brandSlug);
+					brandPalette = brand.raw;
 				} catch {}
 			}
 			if (!brandPalette) {
@@ -77,11 +75,8 @@
 			while (tentativas < 30) {
 				await new Promise(r => setTimeout(r, 3000));
 				try {
-					const res = await fetch(`${API}/api/pipelines/${pipelineId}/etapas/art_director`);
-					if (res.ok) {
-						const data = await res.json();
-						if (data.status === 'aguardando_aprovacao') break;
-					}
+					const status = await VisualService.buscarStatus(pipelineId);
+					if (status?.status === 'aguardando_aprovacao') break;
 				} catch {}
 				tentativas++;
 			}

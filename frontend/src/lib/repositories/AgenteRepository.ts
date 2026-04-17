@@ -1,8 +1,16 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { AgenteDTO } from '$lib/dtos/AgenteDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class AgenteRepository {
   static async listar(): Promise<AgenteDTO[]> {
@@ -11,7 +19,7 @@ export class AgenteRepository {
       await new Promise(r => setTimeout(r, 300));
       return [...agentesMock, ...skillsMock].map((a: any) => new AgenteDTO(a));
     }
-    const res = await fetch(`${API_BASE}/api/agentes`);
+    const res = await fetch(`${API_BASE}/api/agentes`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar agentes');
     const data = await res.json();
     const items = Array.isArray(data)
@@ -48,7 +56,7 @@ export class AgenteRepository {
       if (!found) throw new Error('Agente nao encontrado');
       return new AgenteDTO(found);
     }
-    const res = await fetch(`${API_BASE}/api/agentes/${slug}`);
+    const res = await fetch(`${API_BASE}/api/agentes/${slug}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Agente nao encontrado');
     return new AgenteDTO(await res.json());
   }

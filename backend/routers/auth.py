@@ -64,9 +64,9 @@ async def convidar_usuario(
     return AuthService.convidar_usuario(dto, current_user, base_url)
 
 
-@router.post("/users/invite/accept", response_model=UsuarioResponse, status_code=201)
+@router.post("/users/invite/accept", response_model=LoginResponse, status_code=201)
 async def aceitar_convite(dto: AceitarConviteRequest):
-    """Aceita convite e cria usuario com senha. Endpoint publico."""
+    """Aceita convite, cria usuario com senha e ja retorna JWT (auto-login). Endpoint publico."""
     return AuthService.aceitar_convite(dto)
 
 

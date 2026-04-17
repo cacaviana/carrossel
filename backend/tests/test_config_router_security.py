@@ -19,6 +19,9 @@ from routers.config import router
 def client():
     app = FastAPI()
     app.include_router(router, prefix="/api")
+    # JWT e obrigatorio em prod — tests instalam override para simular usuario autenticado
+    from tests.conftest import install_auth_override_on_app
+    install_auth_override_on_app(app)
     return TestClient(app)
 
 

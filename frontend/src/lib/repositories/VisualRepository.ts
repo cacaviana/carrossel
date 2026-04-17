@@ -1,8 +1,16 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { PromptVisualDTO } from '$lib/dtos/PromptVisualDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class VisualRepository {
   static async buscar(pipelineId: string): Promise<PromptVisualDTO> {
@@ -11,7 +19,7 @@ export class VisualRepository {
       await new Promise(r => setTimeout(r, 400));
       return new PromptVisualDTO({ ...promptVisualMock, pipeline_id: pipelineId });
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/art_director`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/art_director`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar prompts visuais');
     const data = await res.json();
     const saida = data.saida ?? {};
@@ -46,7 +54,7 @@ export class VisualRepository {
       await new Promise(r => setTimeout(r, 200));
       return preferenciasVisuaisMock;
     }
-    const res = await fetch(`${API_BASE}/api/visual-preferences/`);
+    const res = await fetch(`${API_BASE}/api/visual-preferences/`, { headers: authHeaders() });
     if (!res.ok) return [];
     return res.json();
   }
@@ -57,7 +65,7 @@ export class VisualRepository {
       await new Promise(r => setTimeout(r, 150));
       return brandPaletteMock;
     }
-    const res = await fetch(`${API_BASE}/api/config/brand-palette`);
+    const res = await fetch(`${API_BASE}/api/config/brand-palette`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar brand palette');
     return res.json();
   }
@@ -69,7 +77,7 @@ export class VisualRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/art_director/aprovar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ dados_editados: { prompts }, etapa: 'art_director' })
     });
     if (!res.ok) {
@@ -85,9 +93,20 @@ export class VisualRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/art_director/rejeitar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feedback })
+      headers: authHeaders(),
+      body: JSON.stringify({ motivo: feedback })
     });
     if (!res.ok) throw new Error('Erro ao rejeitar prompts visuais');
+  }
+
+  /** Status simples da etapa art_director (usado em polling pos-rejeitar). */
+  static async buscarStatus(pipelineId: string): Promise<{ status: string } | null> {
+    if (USE_MOCK) {
+      return { status: 'aguardando_aprovacao' };
+    }
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/art_director`, { headers: authHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { status: data?.status ?? '' };
   }
 }

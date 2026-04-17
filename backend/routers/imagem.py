@@ -1,9 +1,10 @@
 import os
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from dtos.imagem.gerar_imagem.request import GerarImagemRequest, GerarImagemSlideRequest
 from dtos.imagem.gerar_imagem.response import GerarImagemResponse, GerarImagemSlideResponse
+from middleware.auth import CurrentUser, get_current_user
 from services.imagem_service import gerar_imagens, gerar_imagem_slide
 from middleware.rate_limiter import limiter
 
@@ -12,7 +13,11 @@ router = APIRouter()
 
 @router.post("/gerar-imagem", response_model=GerarImagemResponse)
 @limiter.limit("5/minute")
-async def api_gerar_imagem(request: Request, req: GerarImagemRequest):
+async def api_gerar_imagem(
+    request: Request,
+    req: GerarImagemRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=400, detail="GEMINI_API_KEY não configurada. Acesse /configuracoes.")
@@ -44,7 +49,11 @@ async def api_gerar_imagem(request: Request, req: GerarImagemRequest):
 
 @router.post("/ajustar-imagem")
 @limiter.limit("10/minute")
-async def api_ajustar_imagem(request: Request, data: dict):
+async def api_ajustar_imagem(
+    request: Request,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe imagem existente + feedback e aplica ajuste minimo.
     Body: {imagem: base64, feedback: string, brand_slug?: string}"""
     api_key = os.getenv("GEMINI_API_KEY")
@@ -74,7 +83,11 @@ async def api_ajustar_imagem(request: Request, data: dict):
 
 @router.post("/corrigir-avatar")
 @limiter.limit("10/minute")
-async def api_corrigir_avatar(request: Request, data: dict):
+async def api_corrigir_avatar(
+    request: Request,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe imagem gerada + brand_slug, regenera com o avatar correto da marca.
     Body: {imagem: base64, brand_slug: string, pipeline_id?: string, slide_index?: int}"""
     api_key = os.getenv("GEMINI_API_KEY")
@@ -108,7 +121,11 @@ async def api_corrigir_avatar(request: Request, data: dict):
 
 @router.post("/gerar-imagem-slide", response_model=GerarImagemSlideResponse)
 @limiter.limit("5/minute")
-async def api_gerar_imagem_slide(request: Request, req: GerarImagemSlideRequest):
+async def api_gerar_imagem_slide(
+    request: Request,
+    req: GerarImagemSlideRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=400, detail="GEMINI_API_KEY não configurada. Acesse /configuracoes.")
@@ -132,7 +149,10 @@ async def api_gerar_imagem_slide(request: Request, req: GerarImagemSlideRequest)
 
 
 @router.post("/image-to-base64")
-async def image_to_base64(data: dict):
+async def image_to_base64(
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Converte URL interna de imagem pra data URI base64 (leitura direta do disco)."""
     import base64, re
     from pathlib import Path

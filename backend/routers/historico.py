@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
+from middleware.auth import CurrentUser, get_current_user
 from services.db_service import listar_historico as listar_historico_legado, deletar_historico as deletar_historico_legado
 
 from config import settings
-TENANT_ID = settings.TENANT_ID
 
 router = APIRouter(tags=["Historico"])
 
@@ -25,7 +25,9 @@ async def listar_historico(
     status: str | None = None,
     limit: int = 50,
     offset: int = 0,
+    current_user: CurrentUser = Depends(get_current_user),
 ):
+    tenant_id = current_user.tenant_id
     filters = {}
     if texto:
         filters["texto"] = texto
@@ -43,7 +45,7 @@ async def listar_historico(
             async with get_sql_session_context() as session:
                 repo = HistoricoRepository(session)
                 service = HistoricoService(repo)
-                return await service.listar(tenant_id=TENANT_ID, filters=filters)
+                return await service.listar(tenant_id=tenant_id, filters=filters)
         except Exception:
             pass
 
@@ -56,7 +58,11 @@ async def listar_historico(
 
 
 @router.get("/historico/{item_id}")
-async def buscar_historico(item_id: str):
+async def buscar_historico(
+    item_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    tenant_id = current_user.tenant_id
     if _sql_available():
         try:
             from data.connections.database import get_sql_session_context
@@ -65,7 +71,7 @@ async def buscar_historico(item_id: str):
             async with get_sql_session_context() as session:
                 repo = HistoricoRepository(session)
                 service = HistoricoService(repo)
-                result = await service.buscar(item_id, tenant_id=TENANT_ID)
+                result = await service.buscar(item_id, tenant_id=tenant_id)
                 if not result:
                     raise HTTPException(status_code=404, detail="Item nao encontrado")
                 return result
@@ -77,7 +83,11 @@ async def buscar_historico(item_id: str):
 
 
 @router.delete("/historico/{item_id}")
-async def deletar_historico(item_id: str):
+async def deletar_historico(
+    item_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    tenant_id = current_user.tenant_id
     if _sql_available():
         try:
             from data.connections.database import get_sql_session_context
@@ -86,7 +96,7 @@ async def deletar_historico(item_id: str):
             async with get_sql_session_context() as session:
                 repo = HistoricoRepository(session)
                 service = HistoricoService(repo)
-                ok = await service.deletar(item_id, tenant_id=TENANT_ID)
+                ok = await service.deletar(item_id, tenant_id=tenant_id)
                 if ok:
                     return {"ok": True}
         except Exception:

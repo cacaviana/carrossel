@@ -14,7 +14,19 @@ export class CopyService {
     return CopyRepository.aprovar(pipelineId, payload);
   }
 
+  static async aprovarCopywriter(pipelineId: string, payload: Record<string, any>): Promise<void> {
+    return CopyRepository.aprovarCopywriter(pipelineId, payload);
+  }
+
   static async rejeitar(pipelineId: string, feedback?: string): Promise<void> {
     return CopyRepository.rejeitar(pipelineId, feedback);
+  }
+
+  static async rejeitarCopywriter(pipelineId: string, feedback?: string): Promise<void> {
+    return CopyRepository.rejeitarCopywriter(pipelineId, feedback);
+  }
+
+  static async buscarStatusCopywriter(pipelineId: string): Promise<{ status: string } | null> {
+    return CopyRepository.buscarStatusCopywriter(pipelineId);
   }
 }

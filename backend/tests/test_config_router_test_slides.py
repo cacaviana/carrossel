@@ -25,6 +25,9 @@ def app():
     from routers.config import router
     app = FastAPI()
     app.include_router(router, prefix="/api")
+    # JWT obrigatorio em prod — installs dependency override para os testes
+    from tests.conftest import install_auth_override_on_app
+    install_auth_override_on_app(app)
     return app
 
 

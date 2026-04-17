@@ -419,7 +419,7 @@
 						<div class="flex items-center justify-between mt-3">
 							<span class="text-xs text-text-muted font-mono">
 								{item.total_slides} slide{item.total_slides !== 1 ? 's' : ''}
-								{#if item.criado_em} — {item.dataFormatada}{/if}
+								{#if item.created_at} — {item.dataFormatada}{/if}
 							</span>
 							{#if item.temScore && item.final_score !== null}
 								<span class="text-lg font-bold font-mono {scoreCor(item.final_score)}">{item.final_score.toFixed(1)}</span>

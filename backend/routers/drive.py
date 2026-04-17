@@ -1,9 +1,10 @@
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from dtos.drive.salvar_drive.request import UploadDriveRequest, SaveCarrosselDriveRequest
 from dtos.drive.salvar_drive.response import UploadDriveResponse, SaveCarrosselDriveResponse, PastaResponse
+from middleware.auth import CurrentUser, get_current_user
 from services.drive_service import upload_to_drive, list_folders, save_carrossel, list_files_in_folder, download_file_content
 from services.db_service import salvar_historico
 
@@ -31,7 +32,9 @@ def _get_folder_id() -> str:
 
 
 @router.get("/drive/pastas", response_model=list[PastaResponse])
-async def api_listar_pastas():
+async def api_listar_pastas(
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     try:
         pastas = await list_folders(credentials_json)
@@ -41,7 +44,9 @@ async def api_listar_pastas():
 
 
 @router.get("/drive/design-systems")
-async def api_listar_design_systems():
+async def api_listar_design_systems(
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     folder_id = os.getenv("DESIGN_SYSTEMS_FOLDER_ID")
     if not folder_id:
@@ -54,7 +59,10 @@ async def api_listar_design_systems():
 
 
 @router.get("/drive/design-systems/{file_id}")
-async def api_get_design_system(file_id: str):
+async def api_get_design_system(
+    file_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     try:
         result = await download_file_content(credentials_json, file_id)
@@ -64,7 +72,10 @@ async def api_get_design_system(file_id: str):
 
 
 @router.post("/drive/design-systems")
-async def api_upload_design_system(req: UploadDriveRequest):
+async def api_upload_design_system(
+    req: UploadDriveRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     folder_id = os.getenv("DESIGN_SYSTEMS_FOLDER_ID")
     if not folder_id:
@@ -83,7 +94,10 @@ async def api_upload_design_system(req: UploadDriveRequest):
 
 
 @router.delete("/drive/design-systems/{file_id}")
-async def api_delete_design_system(file_id: str):
+async def api_delete_design_system(
+    file_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     try:
         from services.drive_service import delete_file
@@ -94,7 +108,10 @@ async def api_delete_design_system(file_id: str):
 
 
 @router.post("/google-drive/carrossel", response_model=SaveCarrosselDriveResponse)
-async def api_salvar_carrossel(req: SaveCarrosselDriveRequest):
+async def api_salvar_carrossel(
+    req: SaveCarrosselDriveRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     folder_id = _get_folder_id()
     try:
@@ -126,7 +143,10 @@ async def api_salvar_carrossel(req: SaveCarrosselDriveRequest):
 
 
 @router.post("/google-drive", response_model=UploadDriveResponse)
-async def api_upload_drive(req: UploadDriveRequest):
+async def api_upload_drive(
+    req: UploadDriveRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     credentials_json = _get_credentials()
     try:
         result = await upload_to_drive(

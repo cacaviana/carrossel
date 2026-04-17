@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { API_BASE } from '$lib/api';
 	import { PipelineService } from '$lib/services/PipelineService';
 	import { PipelineDTO } from '$lib/dtos/PipelineDTO';
 	import { PipelineStepDTO } from '$lib/dtos/PipelineStepDTO';
@@ -126,32 +125,26 @@
 		});
 		if (etapaAutoAprovar) {
 			try {
-				const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/${etapaAutoAprovar.agente}/aprovar`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({})
-				});
-				if (res.ok) {
-					// Executar proxima etapa
-					PipelineService.executar(pipelineId).catch(() => {});
-					// Marcar localmente como aprovado + proxima como executando
-					steps = steps.map(st => {
-						if (st.agente === etapaAutoAprovar.agente) {
-							return new PipelineStepDTO({ ...st.toPayload(), status: 'aprovado' });
-						}
-						return st;
-					});
-					// Marcar proxima como executando
-					const nextPending = steps.find(st => st.status === 'pendente');
-					if (nextPending) {
-						steps = steps.map(st =>
-							st.agente === nextPending.agente
-								? new PipelineStepDTO({ ...st.toPayload(), status: 'em_execucao' })
-								: st
-						);
+				await PipelineService.aprovarEtapa(pipelineId, etapaAutoAprovar.agente);
+				// Executar proxima etapa
+				PipelineService.executar(pipelineId).catch(() => {});
+				// Marcar localmente como aprovado + proxima como executando
+				steps = steps.map(st => {
+					if (st.agente === etapaAutoAprovar.agente) {
+						return new PipelineStepDTO({ ...st.toPayload(), status: 'aprovado' });
 					}
-					if (!pollingInterval) iniciarPolling();
+					return st;
+				});
+				// Marcar proxima como executando
+				const nextPending = steps.find(st => st.status === 'pendente');
+				if (nextPending) {
+					steps = steps.map(st =>
+						st.agente === nextPending.agente
+							? new PipelineStepDTO({ ...st.toPayload(), status: 'em_execucao' })
+							: st
+					);
 				}
+				if (!pollingInterval) iniciarPolling();
 			} catch { /* ignora */ }
 		}
 	}

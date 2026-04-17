@@ -9,7 +9,7 @@ export class HistoricoItemDTO {
   readonly total_slides: number;
   readonly final_score: number | null;
   readonly google_drive_link: string;
-  readonly criado_em: string;
+  readonly created_at: string;
 
   constructor(data: Record<string, any>) {
     this.id = data.id ?? 0;
@@ -22,7 +22,8 @@ export class HistoricoItemDTO {
     this.total_slides = data.total_slides ?? 0;
     this.final_score = data.final_score ?? null;
     this.google_drive_link = data.google_drive_link ?? '';
-    this.criado_em = data.criado_em ?? '';
+    // Backend padrao: created_at. Mantem compat com mocks antigos via criado_em.
+    this.created_at = data.created_at ?? data.criado_em ?? '';
   }
 
   get temScore(): boolean {
@@ -38,11 +39,11 @@ export class HistoricoItemDTO {
   }
 
   get dataFormatada(): string {
-    if (!this.criado_em) return '';
+    if (!this.created_at) return '';
     try {
-      return new Date(this.criado_em).toLocaleDateString('pt-BR');
+      return new Date(this.created_at).toLocaleDateString('pt-BR');
     } catch {
-      return this.criado_em;
+      return this.created_at;
     }
   }
 

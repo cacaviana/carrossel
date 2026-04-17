@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import type { Slide } from '$lib/stores/carrossel';
 	import SlideDotsNav from '$lib/components/ui/SlideDotsNav.svelte';
+	import { CarrosselService } from '$lib/services/CarrosselService';
 
 	let legendaCopiada = $state(false);
 	let erro = $state('');
@@ -22,23 +23,17 @@
 	let carregandoDS = $state(false);
 
 	onMount(async () => {
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/drive/design-systems`);
-			if (res.ok) designSystems = await res.json();
+			designSystems = await CarrosselService.listarDesignSystems();
 		} catch {}
 	});
 
 	async function selecionarDesignSystem(id: string) {
 		if (!id) { designSystemSelecionado = ''; designSystemConteudo = ''; return; }
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
 		carregandoDS = true;
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/drive/design-systems/${id}`);
-			if (res.ok) {
-				const data = await res.json();
+			const data = await CarrosselService.buscarDesignSystem(id);
+			if (data) {
 				designSystemSelecionado = id;
 				designSystemConteudo = data.content;
 			}
@@ -122,24 +117,18 @@
 			// Usa a imagem da capa como referencia visual (se existir e nao for a propria capa)
 			const coverImage = index > 0 ? $carrosselAtual.slides[0]?.imageBase64 : undefined;
 
-			const res = await fetch(`${currentConfig.backendUrl}/api/gerar-imagem-slide`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					slide: $carrosselAtual.slides[index],
-					slide_index: index,
-					total_slides: $carrosselAtual.slides.length,
-					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
-					design_system: designSystemConteudo || undefined,
-					reference_image: coverImage || undefined,
-					brand_slug: $carrosselAtual.brand_slug,
-					avatar_mode: $carrosselAtual.avatar_mode || 'livre',
-					pipeline_id: $carrosselAtual.pipeline_id,
-					formato: $carrosselAtual.formato || 'carrossel'
-				})
+			const data = await CarrosselService.gerarImagemSlide({
+				slide: $carrosselAtual.slides[index],
+				slide_index: index,
+				total_slides: $carrosselAtual.slides.length,
+				foto_criador: currentConfig?.fotoCriadorBase64 || undefined,
+				design_system: designSystemConteudo || undefined,
+				reference_image: coverImage || undefined,
+				brand_slug: $carrosselAtual.brand_slug,
+				avatar_mode: $carrosselAtual.avatar_mode || 'livre',
+				pipeline_id: $carrosselAtual.pipeline_id,
+				formato: $carrosselAtual.formato || 'carrossel'
 			});
-			if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
-			const data = await res.json();
 			if (data.image) {
 				carrosselAtual.update((c) => {
 					if (!c) return c;
@@ -165,26 +154,16 @@
 		modoEdicao = false;
 
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/gerar-imagem`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					slides: $carrosselAtual.slides,
-					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
-					design_system: designSystemConteudo || undefined,
-					brand_slug: $carrosselAtual.brand_slug,
-					avatar_mode: $carrosselAtual.avatar_mode || 'livre',
-					pipeline_id: $carrosselAtual.pipeline_id,
-					formato: $carrosselAtual.formato || 'carrossel'
-				})
+			const data = await CarrosselService.gerarImagens({
+				slides: $carrosselAtual.slides,
+				foto_criador: currentConfig?.fotoCriadorBase64 || undefined,
+				design_system: designSystemConteudo || undefined,
+				brand_slug: $carrosselAtual.brand_slug,
+				avatar_mode: $carrosselAtual.avatar_mode || 'livre',
+				pipeline_id: $carrosselAtual.pipeline_id,
+				formato: $carrosselAtual.formato || 'carrossel'
 			});
 
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.detail || 'Erro ao gerar imagens');
-			}
-
-			const data = await res.json();
 			carrosselAtual.update((c) => {
 				if (!c) return c;
 				return { ...c, slides: c.slides.map((s, i) => ({ ...s, imageBase64: data.images[i] || undefined })) };
@@ -207,15 +186,8 @@
 		if (!fotoCriador || images.length === 0) return images;
 
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/aplicar-foto-batch`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ slides: images, foto_criador: fotoCriador })
-			});
-			if (res.ok) {
-				const data = await res.json();
-				return data.images;
-			}
+			const data = await CarrosselService.aplicarFotoBatch({ slides: images, foto_criador: fotoCriador });
+			return data.images;
 		} catch {}
 		// Fallback: retorna sem overlay
 		return images;
@@ -240,8 +212,6 @@
 
 	async function salvarNoDrive() {
 		if (!$carrosselAtual) return;
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
 
 		const imagesWithData = $carrosselAtual.slides.filter((s) => s.imageBase64);
 		if (imagesWithData.length === 0) { erro = 'Gere as imagens primeiro.'; return; }
@@ -261,22 +231,15 @@
 			const pdfBase64 = pdf.output('datauristring').split(',')[1];
 			const images = finalImages.map((img) => img || null);
 
-			const res = await fetch(`${currentConfig.backendUrl}/api/google-drive/carrossel`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-						title: $carrosselAtual.title || 'carrossel',
-						pdf_base64: pdfBase64,
-						images_base64: images,
-						disciplina: $carrosselAtual.disciplina || null,
-						tecnologia_principal: $carrosselAtual.tecnologia_principal || null,
-						tipo_carrossel: $carrosselAtual.slides[0]?.type === 'infographic' ? 'infografico' : 'texto',
-						legenda_linkedin: $carrosselAtual.legenda_linkedin || null
-					})
+			const data = await CarrosselService.salvarDrive({
+				title: $carrosselAtual.title || 'carrossel',
+				pdf_base64: pdfBase64,
+				images_base64: images,
+				disciplina: $carrosselAtual.disciplina || null,
+				tecnologia_principal: $carrosselAtual.tecnologia_principal || null,
+				tipo_carrossel: $carrosselAtual.slides[0]?.type === 'infographic' ? 'infografico' : 'texto',
+				legenda_linkedin: $carrosselAtual.legenda_linkedin || null
 			});
-
-			if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Erro ao salvar no Drive'); }
-			const data = await res.json();
 			driveSalvo = data.web_view_link;
 		} catch (e) {
 			erro = e instanceof Error ? e.message : 'Erro ao salvar no Drive';

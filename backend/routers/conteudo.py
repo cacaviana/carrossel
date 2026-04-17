@@ -1,9 +1,10 @@
 import os
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from dtos.conteudo.gerar_conteudo.request import GerarConteudoRequest
 from dtos.conteudo.gerar_conteudo.response import GerarConteudoResponse
+from middleware.auth import CurrentUser, get_current_user
 from services.conteudo_service import gerar_conteudo
 from services.conteudo_openai_service import gerar_conteudo_openai
 from services.conteudo_cli_service import gerar_conteudo_cli
@@ -14,7 +15,11 @@ router = APIRouter()
 
 @router.post("/gerar-conteudo", response_model=GerarConteudoResponse)
 @limiter.limit("5/minute")
-async def api_gerar_conteudo(request: Request, req: GerarConteudoRequest):
+async def api_gerar_conteudo(
+    request: Request,
+    req: GerarConteudoRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     claude_key = os.getenv("CLAUDE_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
     if not claude_key and not openai_key:
@@ -48,7 +53,11 @@ async def api_gerar_conteudo(request: Request, req: GerarConteudoRequest):
 
 @router.post("/gerar-conteudo-cli", response_model=GerarConteudoResponse)
 @limiter.limit("5/minute")
-async def api_gerar_conteudo_cli(request: Request, req: GerarConteudoRequest):
+async def api_gerar_conteudo_cli(
+    request: Request,
+    req: GerarConteudoRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     try:
         total = 1 if req.tipo_carrossel == "infografico" else req.total_slides
         result = await gerar_conteudo_cli(

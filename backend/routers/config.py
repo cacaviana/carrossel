@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
+from middleware.auth import CurrentUser, get_current_user
 from middleware.rate_limiter import limiter
 
 from dtos.config.request import SaveConfigRequest
@@ -51,7 +52,9 @@ _TEST_SLIDES_DIR = Path(__file__).resolve().parent.parent.parent / "test_slides"
 
 
 @router.get("/test-slides")
-async def test_slides_gallery():
+async def test_slides_gallery(
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Galeria dos test_slides (dev only)."""
     if not _TEST_SLIDES_DIR.is_dir():
         raise HTTPException(status_code=404, detail="Pasta test_slides nao encontrada")
@@ -77,7 +80,10 @@ h1{{margin-bottom:30px}}
 
 
 @router.get("/test-slides/{filename}")
-async def test_slides_file(filename: str):
+async def test_slides_file(
+    filename: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Serve arquivo individual de test_slides."""
     path = _TEST_SLIDES_DIR / filename
     if not path.exists() or not path.suffix in (".png", ".jpg", ".jpeg", ".webp"):
@@ -89,7 +95,11 @@ async def test_slides_file(filename: str):
 
 @router.post("/config")
 @limiter.limit("10/minute")
-async def salvar_config(request: Request, req: SaveConfigRequest) -> dict:
+async def salvar_config(
+    request: Request,
+    req: SaveConfigRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
     env = read_env()
     update_key(env, "CLAUDE_API_KEY", req.claude_api_key)
     update_key(env, "OPENAI_API_KEY", req.openai_api_key)
@@ -101,7 +111,9 @@ async def salvar_config(request: Request, req: SaveConfigRequest) -> dict:
 
 
 @router.get("/config", response_model=ConfigStatusResponse)
-async def status_config() -> ConfigStatusResponse:
+async def status_config(
+    current_user: CurrentUser = Depends(get_current_user),
+) -> ConfigStatusResponse:
     return ConfigStatusResponse(
         claude_api_key_set=bool(os.getenv("CLAUDE_API_KEY")),
         openai_api_key_set=bool(os.getenv("OPENAI_API_KEY")),
@@ -114,61 +126,87 @@ async def status_config() -> ConfigStatusResponse:
 # --- Brand Palette (novo) ---
 
 @router.get("/config/brand-palette", response_model=BuscarBrandPaletteResponse)
-async def buscar_brand_palette():
-    return await _config_service.buscar_brand_palette()
+async def buscar_brand_palette(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.buscar_brand_palette(tenant_id=current_user.tenant_id)
 
 
 @router.put("/config/brand-palette", response_model=SalvarBrandPaletteResponse)
-async def salvar_brand_palette(dto: SalvarBrandPaletteRequest):
-    return await _config_service.salvar_brand_palette(dto)
+async def salvar_brand_palette(
+    dto: SalvarBrandPaletteRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.salvar_brand_palette(dto, tenant_id=current_user.tenant_id)
 
 
 # --- Creator Registry (novo) ---
 
 @router.get("/config/creator-registry", response_model=BuscarCreatorRegistryResponse)
-async def buscar_creator_registry():
-    return await _config_service.buscar_creator_registry()
+async def buscar_creator_registry(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.buscar_creator_registry(tenant_id=current_user.tenant_id)
 
 
 @router.put("/config/creator-registry", response_model=SalvarCreatorRegistryResponse)
-async def salvar_creator_registry(dto: SalvarCreatorRegistryRequest):
-    return await _config_service.salvar_creator_registry(dto)
+async def salvar_creator_registry(
+    dto: SalvarCreatorRegistryRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.salvar_creator_registry(dto, tenant_id=current_user.tenant_id)
 
 
 # --- Platform Rules (novo) ---
 
 @router.get("/config/platform-rules", response_model=BuscarPlatformRulesResponse)
-async def buscar_platform_rules():
-    return await _config_service.buscar_platform_rules()
+async def buscar_platform_rules(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.buscar_platform_rules(tenant_id=current_user.tenant_id)
 
 
 @router.put("/config/platform-rules", response_model=SalvarPlatformRulesResponse)
-async def salvar_platform_rules(dto: SalvarPlatformRulesRequest):
-    return await _config_service.salvar_platform_rules(dto)
+async def salvar_platform_rules(
+    dto: SalvarPlatformRulesRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.salvar_platform_rules(dto, tenant_id=current_user.tenant_id)
 
 
 # --- Plataformas (unificado: rules + brand palette por plataforma) ---
 
 @router.get("/config/plataformas", response_model=BuscarPlataformasResponse)
-async def buscar_plataformas():
-    return await _config_service.buscar_plataformas()
+async def buscar_plataformas(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.buscar_plataformas(tenant_id=current_user.tenant_id)
 
 
 @router.put("/config/plataformas", response_model=SalvarPlataformasResponse)
-async def salvar_plataformas(dto: SalvarPlataformasRequest):
-    return await _config_service.salvar_plataformas(dto)
+async def salvar_plataformas(
+    dto: SalvarPlataformasRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    return await _config_service.salvar_plataformas(dto, tenant_id=current_user.tenant_id)
 
 
 # --- Brands (Design Systems por marca) ---
 
 @router.get("/brands")
-async def listar_brands():
+async def listar_brands(
+    current_user: CurrentUser = Depends(get_current_user),
+):
     return _listar_brands()
 
 
 @router.post("/analisar-referencias", response_model=AnalisarReferenciasResponse)
 @limiter.limit("5/minute")
-async def analisar_referencias(request: Request, req: AnalisarReferenciasRequest):
+async def analisar_referencias(
+    request: Request,
+    req: AnalisarReferenciasRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Analisa imagens de referencia via Gemini Vision e extrai brand profile."""
     try:
         return await BrandAnalyzerService.analisar(
@@ -181,7 +219,10 @@ async def analisar_referencias(request: Request, req: AnalisarReferenciasRequest
 
 
 @router.get("/brands/{slug}")
-async def buscar_brand(slug: str):
+async def buscar_brand(
+    slug: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     brand = _buscar_brand(slug)
     if not brand:
         raise HTTPException(status_code=404, detail=f"Marca '{slug}' nao encontrada")
@@ -189,7 +230,10 @@ async def buscar_brand(slug: str):
 
 
 @router.post("/brands", status_code=201)
-async def criar_brand(data: dict):
+async def criar_brand(
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     slug = data.get("slug", "")
     if not slug:
         raise HTTPException(status_code=400, detail="slug obrigatorio")
@@ -200,7 +244,11 @@ async def criar_brand(data: dict):
 
 
 @router.put("/brands/{slug}")
-async def atualizar_brand(slug: str, data: dict):
+async def atualizar_brand(
+    slug: str,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     result = _atualizar_brand(slug, data)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Marca '{slug}' nao encontrada")
@@ -208,13 +256,20 @@ async def atualizar_brand(slug: str, data: dict):
 
 
 @router.delete("/brands/{slug}", status_code=204)
-async def deletar_brand(slug: str):
+async def deletar_brand(
+    slug: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     if not _deletar_brand(slug):
         raise HTTPException(status_code=404, detail=f"Marca '{slug}' nao encontrada")
 
 
 @router.post("/brands/{slug}/clonar", status_code=201)
-async def clonar_brand(slug: str, data: dict):
+async def clonar_brand(
+    slug: str,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Clona marca. Body: {slug_destino, nome_destino}."""
     slug_destino = data.get("slug_destino", "")
     nome_destino = data.get("nome_destino", "")
@@ -229,7 +284,11 @@ async def clonar_brand(slug: str, data: dict):
 
 
 @router.post("/brands/{slug}/foto")
-async def upload_foto_brand(slug: str, data: dict):
+async def upload_foto_brand(
+    slug: str,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe {"foto": "data:image/jpeg;base64,..."} e salva."""
     foto_data = data.get("foto", "")
     if not foto_data:
@@ -238,7 +297,11 @@ async def upload_foto_brand(slug: str, data: dict):
 
 
 @router.put("/brands/{slug}/foto")
-async def salvar_foto_brand(slug: str, data: dict):
+async def salvar_foto_brand(
+    slug: str,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe {"foto": "data:image/jpeg;base64,..."} e salva."""
     foto_data = data.get("foto", "")
     if not foto_data:
@@ -247,7 +310,10 @@ async def salvar_foto_brand(slug: str, data: dict):
 
 
 @router.post("/editor/salvar-pdf")
-async def editor_salvar_pdf(data: dict):
+async def editor_salvar_pdf(
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe slides + logo + posicoes e gera PDF."""
     slides_data = data.get("slides", [])
     logo_data = data.get("logo", "")
@@ -257,7 +323,10 @@ async def editor_salvar_pdf(data: dict):
 
 
 @router.get("/editor/slides/{brand}")
-async def editor_slides_limpos(brand: str):
+async def editor_slides_limpos(
+    brand: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Serve imagens limpas (sem overlay) de um brand."""
     result = _buscar_slides_limpos(brand)
     if result is None:
@@ -266,13 +335,19 @@ async def editor_slides_limpos(brand: str):
 
 
 @router.get("/brands/{slug}/foto")
-async def buscar_foto_brand(slug: str):
+async def buscar_foto_brand(
+    slug: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Retorna URL da foto da marca."""
     return _buscar_foto_brand(slug)
 
 
 @router.get("/brands/{slug}/foto/file")
-async def servir_foto_brand(slug: str):
+async def servir_foto_brand(
+    slug: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Serve a foto da marca como bytes. Le do MongoDB."""
     from fastapi.responses import Response
     from services.brand_service import buscar_foto_brand_bytes
@@ -284,7 +359,11 @@ async def servir_foto_brand(slug: str):
 
 
 @router.get("/brands/{slug}/assets/{nome}/file")
-async def servir_asset_brand(slug: str, nome: str):
+async def servir_asset_brand(
+    slug: str,
+    nome: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Serve um asset da marca como bytes. Le do MongoDB."""
     from fastapi.responses import Response
     from services.brand_service import buscar_asset_bytes
@@ -297,7 +376,11 @@ async def servir_asset_brand(slug: str, nome: str):
 
 @router.post("/editor/corrigir-texto")
 @limiter.limit("5/minute")
-async def editor_corrigir_texto(request: Request, data: dict):
+async def editor_corrigir_texto(
+    request: Request,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Corrige texto ou aplica instrucao customizada (ex: remover texto)."""
     image = data.get("image", "")
     instrucao = data.get("instrucao", "")
@@ -319,7 +402,11 @@ async def editor_corrigir_texto(request: Request, data: dict):
 
 @router.post("/editor/ajustar-imagem")
 @limiter.limit("10/minute")
-async def editor_ajustar_imagem(request: Request, data: dict):
+async def editor_ajustar_imagem(
+    request: Request,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe imagem existente + feedback e aplica ajuste minimo (image-to-image).
     Body: {imagem: base64, feedback: string, brand_slug?: string}"""
     api_key = os.getenv("GEMINI_API_KEY")
@@ -350,13 +437,20 @@ async def editor_ajustar_imagem(request: Request, data: dict):
 # --- Brand Assets (banco de imagens da marca) ---
 
 @router.get("/brands/{slug}/assets")
-async def listar_assets(slug: str):
+async def listar_assets(
+    slug: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Lista assets (imagens) da marca."""
     return _listar_assets(slug)
 
 
 @router.post("/brands/{slug}/assets")
-async def upload_asset(slug: str, data: dict):
+async def upload_asset(
+    slug: str,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Upload de asset da marca.
 
     Body:
@@ -384,7 +478,11 @@ async def upload_asset(slug: str, data: dict):
 
 
 @router.delete("/brands/{slug}/assets/{nome}")
-async def deletar_asset(slug: str, nome: str):
+async def deletar_asset(
+    slug: str,
+    nome: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Deleta asset da marca."""
     result = _deletar_asset(slug, nome)
     if result is None:
@@ -393,7 +491,11 @@ async def deletar_asset(slug: str, nome: str):
 
 
 @router.put("/brands/{slug}/referencia")
-async def definir_referencia(slug: str, data: dict):
+async def definir_referencia(
+    slug: str,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Define qual asset eh a referencia visual para geracao de imagens.
     Body: {nome: 'asset_name'} ou {nome: null} para remover."""
     nome = data.get("nome")
@@ -405,7 +507,12 @@ async def definir_referencia(slug: str, data: dict):
 
 @router.post("/brands/{slug}/dna/regenerate")
 @limiter.limit("10/minute")
-async def regenerate_dna(request: Request, slug: str, data: dict | None = None):
+async def regenerate_dna(
+    request: Request,
+    slug: str,
+    data: dict | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Gera o DNA da marca (4 linhas: estilo, cores, tipografia, elementos)
     a partir de uma imagem de referencia.
 
@@ -431,7 +538,11 @@ async def regenerate_dna(request: Request, slug: str, data: dict | None = None):
 
 @router.post("/descrever-referencia")
 @limiter.limit("10/minute")
-async def descrever_referencia(request: Request, data: dict):
+async def descrever_referencia(
+    request: Request,
+    data: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Recebe uma imagem base64 e retorna descricao do estilo visual.
     Body: {imagem: 'base64...'}. Usa Gemini Flash (gratis)."""
     imagem = data.get("imagem", "")

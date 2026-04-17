@@ -11,6 +11,16 @@
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import SlideDotsNav from '$lib/components/ui/SlideDotsNav.svelte';
 	import PipelineBreadcrumb from '$lib/components/pipeline/PipelineBreadcrumb.svelte';
+	import { getToken } from '$lib/stores/auth.svelte';
+	import { API_BASE } from '$lib/api';
+
+	function authHeadersIfBackend(src: string): Record<string, string> | undefined {
+		// Se a URL aponta para nossa API, incluir Bearer. Caso contrario (CDN externo), nao enviar header.
+		if (src.startsWith(API_BASE) || src.startsWith('/api/')) {
+			return { 'Authorization': `Bearer ${getToken()}` };
+		}
+		return undefined;
+	}
 
 	const pipelineId = $derived(page.params.id);
 
@@ -48,7 +58,8 @@
 
 	async function loadImageAsDataUrl(src: string): Promise<string> {
 		if (src.startsWith('data:')) return src;
-		const resp = await fetch(src);
+		const headers = authHeadersIfBackend(src);
+		const resp = await fetch(src, headers ? { headers } : undefined);
 		const blob = await resp.blob();
 		return new Promise((resolve, reject) => {
 			const reader = new FileReader();

@@ -2,8 +2,16 @@ import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { CopyDTO } from '$lib/dtos/CopyDTO';
 import { HookDTO } from '$lib/dtos/HookDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 /** Extrai string de texto de um valor que pode ser string, dict, ou array de dicts. */
 function _str(val: any): string {
@@ -100,7 +108,7 @@ export class CopyRepository {
       await new Promise(r => setTimeout(r, 400));
       return new CopyDTO({ ...copyMock, pipeline_id: pipelineId });
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar copy');
     const data = await res.json();
     const saida = data.saida ?? {};
@@ -113,7 +121,7 @@ export class CopyRepository {
       await new Promise(r => setTimeout(r, 400));
       return [new CopyDTO({ ...copyMock, pipeline_id: pipelineId })];
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar copy');
     const data = await res.json();
     const saida = data.saida ?? {};
@@ -129,7 +137,7 @@ export class CopyRepository {
       await new Promise(r => setTimeout(r, 300));
       return new HookDTO({ ...hooksMock, pipeline_id: pipelineId });
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/hook_specialist`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/hook_specialist`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar hooks');
     const data = await res.json();
     const saida = data.saida ?? {};
@@ -155,12 +163,29 @@ export class CopyRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/hook_specialist/aprovar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ dados_editados: payload, etapa: 'hook_specialist' })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail ?? 'Erro ao aprovar copy');
+    }
+  }
+
+  /** Aprova a etapa copywriter (AP-2) — usado na tela de revisao de copy. */
+  static async aprovarCopywriter(pipelineId: string, payload: Record<string, any>): Promise<void> {
+    if (USE_MOCK) {
+      await new Promise(r => setTimeout(r, 600));
+      return;
+    }
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter/aprovar`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ saida_editada: JSON.stringify(payload) })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail ?? 'Erro ao aprovar copywriter');
     }
   }
 
@@ -171,9 +196,37 @@ export class CopyRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/hook_specialist/rejeitar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ motivo: feedback || 'Rejeitado pelo usuario' })
     });
     if (!res.ok) throw new Error('Erro ao rejeitar copy');
+  }
+
+  /** Rejeita a etapa copywriter. */
+  static async rejeitarCopywriter(pipelineId: string, feedback: string = ''): Promise<void> {
+    if (USE_MOCK) {
+      await new Promise(r => setTimeout(r, 600));
+      return;
+    }
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter/rejeitar`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ motivo: feedback || 'Rejeitado pelo usuario' })
+    });
+    if (!res.ok) throw new Error('Erro ao rejeitar copywriter');
+  }
+
+  /**
+   * Busca status da etapa copywriter (usado pra polling pos-rejeitar).
+   * Devolve status simples, sem mapear pra DTO.
+   */
+  static async buscarStatusCopywriter(pipelineId: string): Promise<{ status: string } | null> {
+    if (USE_MOCK) {
+      return { status: 'aguardando_aprovacao' };
+    }
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/copywriter`, { headers: authHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { status: data?.status ?? '' };
   }
 }

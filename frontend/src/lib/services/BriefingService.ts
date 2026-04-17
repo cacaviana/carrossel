@@ -13,4 +13,8 @@ export class BriefingService {
   static async rejeitar(pipelineId: string, feedback: string): Promise<void> {
     return BriefingRepository.rejeitar(pipelineId, feedback);
   }
+
+  static async buscarStatus(pipelineId: string): Promise<{ status: string } | null> {
+    return BriefingRepository.buscarStatus(pipelineId);
+  }
 }

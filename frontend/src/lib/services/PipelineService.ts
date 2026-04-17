@@ -26,4 +26,8 @@ export class PipelineService {
   static async retomar(id: string): Promise<void> {
     return PipelineRepository.retomar(id);
   }
+
+  static async aprovarEtapa(pipelineId: string, agente: string): Promise<void> {
+    return PipelineRepository.aprovarEtapa(pipelineId, agente);
+  }
 }

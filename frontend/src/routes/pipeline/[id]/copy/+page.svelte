@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { API_BASE } from '$lib/api';
 	import { CopyService } from '$lib/services/CopyService';
 	import { PipelineService } from '$lib/services/PipelineService';
 	import { CopyDTO } from '$lib/dtos/CopyDTO';
@@ -41,8 +40,6 @@
 		slideExpandido = -1;
 	}
 
-	const API = API_BASE;
-
 	onMount(async () => {
 		try {
 			const vs = await CopyService.buscarVersoes(pipelineId);
@@ -58,11 +55,7 @@
 	async function aprovar() {
 		aprovando = true;
 		try {
-			await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter/aprovar`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ saida_editada: JSON.stringify({ headline, narrativa, cta, slides }) })
-			});
+			await CopyService.aprovarCopywriter(pipelineId, { headline, narrativa, cta, slides });
 			PipelineService.executar(pipelineId).catch(() => {});
 			goto(`/pipeline/${pipelineId}`);
 		} catch {
@@ -79,11 +72,7 @@
 		showRejectModal = false;
 		regerando = true;
 		try {
-			await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter/rejeitar`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ motivo: feedbackRejeicao || 'Rejeitado pelo usuario' })
-			});
+			await CopyService.rejeitarCopywriter(pipelineId, feedbackRejeicao);
 			feedbackRejeicao = '';
 			aprovando = false;
 
@@ -93,11 +82,8 @@
 			while (tentativas < 30) {
 				await new Promise(r => setTimeout(r, 3000));
 				try {
-					const step = await fetch(`${API}/api/pipelines/${pipelineId}/etapas/copywriter`);
-					if (step.ok) {
-						const data = await step.json();
-						if (data.status === 'aguardando_aprovacao') break;
-					}
+					const status = await CopyService.buscarStatusCopywriter(pipelineId);
+					if (status?.status === 'aguardando_aprovacao') break;
 				} catch {}
 				tentativas++;
 			}

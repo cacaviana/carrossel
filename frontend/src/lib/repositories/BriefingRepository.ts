@@ -1,8 +1,16 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { BriefingDTO } from '$lib/dtos/BriefingDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class BriefingRepository {
   static async buscar(pipelineId: string): Promise<BriefingDTO> {
@@ -11,7 +19,7 @@ export class BriefingRepository {
       await new Promise(r => setTimeout(r, 400));
       return new BriefingDTO({ ...briefingMock, pipeline_id: pipelineId });
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/strategist`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/strategist`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar briefing');
     const data = await res.json();
     const saida = data.saida ?? {};
@@ -70,7 +78,7 @@ export class BriefingRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/strategist/aprovar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ dados_editados: { briefing_completo: briefing, pecas_funil: pecasFunil }, etapa: 'strategist' })
     });
     if (!res.ok) {
@@ -86,12 +94,23 @@ export class BriefingRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/strategist/rejeitar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feedback })
+      headers: authHeaders(),
+      body: JSON.stringify({ motivo: feedback })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail ?? 'Erro ao rejeitar briefing');
     }
+  }
+
+  /** Status simples da etapa strategist (usado em polling pos-rejeitar). */
+  static async buscarStatus(pipelineId: string): Promise<{ status: string } | null> {
+    if (USE_MOCK) {
+      return { status: 'aguardando_aprovacao' };
+    }
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/strategist`, { headers: authHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { status: data?.status ?? '' };
   }
 }

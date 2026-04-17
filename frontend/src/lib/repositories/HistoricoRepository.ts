@@ -1,8 +1,16 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { HistoricoItemDTO } from '$lib/dtos/HistoricoItemDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class HistoricoRepository {
   static async listar(filtros?: Record<string, string>): Promise<HistoricoItemDTO[]> {
@@ -18,7 +26,7 @@ export class HistoricoRepository {
     const query = params.toString() ? `?${params.toString()}` : '';
 
     // 1. Historico (exportados pro Drive)
-    const histRes = await fetch(`${API_BASE}/api/historico${query}`);
+    const histRes = await fetch(`${API_BASE}/api/historico${query}`, { headers: authHeaders() });
     if (!histRes.ok) throw new Error('Erro ao carregar historico');
     const histData = await histRes.json();
     const histItems = Array.isArray(histData) ? histData : (histData.items ?? []);
@@ -26,7 +34,7 @@ export class HistoricoRepository {
     // 2. Pipelines (gerados mas nao necessariamente exportados)
     let pipeItems: any[] = [];
     try {
-      const pipeRes = await fetch(`${API_BASE}/api/pipelines/`);
+      const pipeRes = await fetch(`${API_BASE}/api/pipelines/`, { headers: authHeaders() });
       if (pipeRes.ok) {
         const pipeData = await pipeRes.json();
         pipeItems = Array.isArray(pipeData) ? pipeData : (pipeData.items ?? []);
@@ -48,7 +56,7 @@ export class HistoricoRepository {
         total_slides: 0,
         final_score: null,
         google_drive_link: '',
-        criado_em: p.created_at ?? '',
+        created_at: p.created_at ?? '',
       }));
 
     // Unir: historico (exportado) primeiro, depois pipelines em andamento
@@ -61,7 +69,10 @@ export class HistoricoRepository {
       await new Promise(r => setTimeout(r, 300));
       return;
     }
-    const res = await fetch(`${API_BASE}/api/historico/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/api/historico/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
     if (!res.ok) throw new Error('Erro ao remover item');
   }
 }

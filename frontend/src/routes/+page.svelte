@@ -2,8 +2,8 @@
 	import { disciplinas } from '$lib/data/disciplinas';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { API_BASE } from '$lib/api';
 	import { PipelineService } from '$lib/services/PipelineService';
+	import { BrandService } from '$lib/services/BrandService';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import DeadlinePicker from '$lib/components/kanban/DeadlinePicker.svelte';
 	import type { FormatoConteudo } from '$lib/dtos/PipelineDTO';
@@ -43,11 +43,14 @@
 	import { onMount } from 'svelte';
 	onMount(async () => {
 		try {
-			const res = await fetch(`${API_BASE}/api/brands`);
-			if (res.ok) {
-				brands = await res.json();
-				if (brands.length > 0) brandSelecionada = brands[0].slug;
-			}
+			const lista = await BrandService.listar();
+			brands = lista.map(dto => ({
+				slug: dto.slug,
+				nome: dto.nome,
+				cor_principal: dto.cor_principal,
+				cor_fundo: dto.cor_fundo
+			}));
+			if (brands.length > 0) brandSelecionada = brands[0].slug;
 		} catch {}
 	});
 

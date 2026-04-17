@@ -38,7 +38,13 @@ backend/*.pdf
 backend/uvicorn.log
 backend/test_output/
 backend/*_slides.json
+backend/scripts/test_*.png
 test_output/
+prod-logs.zip
+
+# Artefatos de QA E2E (tenants fictos criados nos testes)
+backend/configs/tenant-e2e-*/
+backend/configs/tenant-A/
 
 # Artefatos de runtime (geradas pelo pipeline)
 backend/assets/pipeline-images/

@@ -55,6 +55,15 @@ export class EditorService {
     return EditorRepository.ajustarImagem(payload);
   }
 
+  static async corrigirAvatar(payload: {
+    imagem: string;
+    brand_slug: string;
+    pipeline_id?: string;
+    slide_index?: number;
+  }): Promise<{ image?: string; tentativas?: number; aviso?: string; detail?: string }> {
+    return EditorRepository.corrigirAvatar(payload);
+  }
+
   static async salvarDrive(payload: {
     title: string;
     pdf_base64: string;

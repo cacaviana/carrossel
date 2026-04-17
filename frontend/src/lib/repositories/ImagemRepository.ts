@@ -1,8 +1,16 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { ImagemVariacaoDTO } from '$lib/dtos/ImagemVariacaoDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class ImagemRepository {
   static async buscar(pipelineId: string): Promise<ImagemVariacaoDTO> {
@@ -13,7 +21,7 @@ export class ImagemRepository {
       return new ImagemVariacaoDTO({ ...data, pipeline_id: pipelineId });
     }
     // Buscar do image_generator (novo formato: versoes de backgrounds + slides renderizados)
-    const igRes = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/image_generator`);
+    const igRes = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/image_generator`, { headers: authHeaders() });
     if (!igRes.ok) throw new Error('Erro ao carregar imagens');
     const igData = await igRes.json();
     const saida = igData.saida ?? {};
@@ -86,7 +94,7 @@ export class ImagemRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/brand_gate/aprovar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ dados_editados: { selecoes }, etapa: 'brand_gate' })
     });
     if (!res.ok) {
@@ -102,8 +110,8 @@ export class ImagemRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/brand_gate/rejeitar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feedback: 'Todas as imagens rejeitadas pelo usuario' })
+      headers: authHeaders(),
+      body: JSON.stringify({ motivo: 'Todas as imagens rejeitadas pelo usuario' })
     });
     if (!res.ok) throw new Error('Erro ao rejeitar imagens');
   }
@@ -115,7 +123,7 @@ export class ImagemRepository {
     }
     const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/image_generator/aprovar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ dados_editados: { regerar: true, slide_index: slideIndex, variacao_id: variacaoId }, etapa: 'image_generator' })
     });
     if (!res.ok) throw new Error('Erro ao regerar imagem');

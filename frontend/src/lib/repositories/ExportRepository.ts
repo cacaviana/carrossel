@@ -1,8 +1,16 @@
 import { browser } from '$app/environment';
 import { API_BASE } from '$lib/api';
 import { ScoreDTO } from '$lib/dtos/ScoreDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class ExportRepository {
   static async buscarScore(pipelineId: string): Promise<ScoreDTO> {
@@ -11,7 +19,7 @@ export class ExportRepository {
       await new Promise(r => setTimeout(r, 500));
       return new ScoreDTO({ ...scoreMock, pipeline_id: pipelineId });
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/content_critic`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/content_critic`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar score');
     const data = await res.json();
     const saida = data.saida ?? {};
@@ -24,7 +32,7 @@ export class ExportRepository {
       await new Promise(r => setTimeout(r, 200));
       return legendaLinkedinMock;
     }
-    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/content_critic`);
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipelineId}/etapas/content_critic`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar legenda');
     const data = await res.json();
     return data.saida?.legenda ?? '';
@@ -37,7 +45,7 @@ export class ExportRepository {
     }
     const res = await fetch(`${API_BASE}/api/google-drive/carrossel`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ pipeline_id: pipelineId })
     });
     if (!res.ok) {

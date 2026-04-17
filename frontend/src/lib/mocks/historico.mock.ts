@@ -10,7 +10,7 @@ export const historicoMock = [
     total_slides: 1,
     final_score: 8.3,
     google_drive_link: 'https://drive.google.com/drive/folders/example1',
-    criado_em: '2026-03-28T10:45:00Z'
+    created_at: '2026-03-28T10:45:00Z'
   },
   {
     id: 2,
@@ -23,7 +23,7 @@ export const historicoMock = [
     total_slides: 10,
     final_score: 9.1,
     google_drive_link: 'https://drive.google.com/drive/folders/example2',
-    criado_em: '2026-03-25T14:20:00Z'
+    created_at: '2026-03-25T14:20:00Z'
   },
   {
     id: 3,
@@ -36,7 +36,7 @@ export const historicoMock = [
     total_slides: 7,
     final_score: 7.8,
     google_drive_link: 'https://drive.google.com/drive/folders/example3',
-    criado_em: '2026-03-22T09:00:00Z'
+    created_at: '2026-03-22T09:00:00Z'
   },
   {
     id: 4,
@@ -49,7 +49,7 @@ export const historicoMock = [
     total_slides: 1,
     final_score: 8.7,
     google_drive_link: 'https://drive.google.com/drive/folders/example4',
-    criado_em: '2026-03-20T16:30:00Z'
+    created_at: '2026-03-20T16:30:00Z'
   },
   {
     id: 5,
@@ -62,7 +62,7 @@ export const historicoMock = [
     total_slides: 10,
     final_score: null,
     google_drive_link: '',
-    criado_em: '2026-03-30T16:12:00Z'
+    created_at: '2026-03-30T16:12:00Z'
   },
   {
     id: 6,
@@ -75,7 +75,7 @@ export const historicoMock = [
     total_slides: 10,
     final_score: null,
     google_drive_link: 'https://drive.google.com/drive/folders/example6',
-    criado_em: '2026-03-15T11:00:00Z'
+    created_at: '2026-03-15T11:00:00Z'
   },
   {
     id: 7,
@@ -88,7 +88,7 @@ export const historicoMock = [
     total_slides: 1,
     final_score: null,
     google_drive_link: '',
-    criado_em: '2026-04-01T08:00:00Z'
+    created_at: '2026-04-01T08:00:00Z'
   },
   {
     id: 8,
@@ -101,6 +101,6 @@ export const historicoMock = [
     total_slides: 7,
     final_score: 8.9,
     google_drive_link: 'https://drive.google.com/drive/folders/example8',
-    criado_em: '2026-03-18T13:45:00Z'
+    created_at: '2026-03-18T13:45:00Z'
   }
 ];

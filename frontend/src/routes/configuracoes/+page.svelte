@@ -2,13 +2,14 @@
 	import { fotos, fotoPrincipalId } from '$lib/stores/fotos';
 	import { config } from '$lib/stores/config';
 	import { ConfigRepository } from '$lib/repositories/ConfigRepository';
+	import { BrandService } from '$lib/services/BrandService';
+	import { BrandDTO } from '$lib/dtos/BrandDTO';
 	import { CreatorEntryDTO } from '$lib/dtos/CreatorEntryDTO';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
-	import { API_BASE } from '$lib/api';
 	import SlidePreviewMini from '$lib/components/brand/SlidePreviewMini.svelte';
 
 	let tabAtiva = $state('marcas');
@@ -52,7 +53,6 @@
 
 	const funcoes = ['TECH_SOURCE', 'EXPLAINER', 'VIRAL_ENGINE', 'THOUGHT_LEADER', 'DINAMICA'];
 	const plataformasCreator = ['YouTube', 'Twitter', 'dev.to', 'Hacker News', 'Blog'];
-	const backendUrl = $derived($config.backendUrl);
 
 	function showSucesso(msg: string) {
 		sucesso = msg;
@@ -63,17 +63,16 @@
 	async function carregarMarcas() {
 		carregando = true;
 		try {
-			const res = await fetch(`${backendUrl}/api/brands`);
-			if (!res.ok) throw new Error('Erro ao carregar marcas');
-			const lista = await res.json();
+			const lista = await BrandService.listar();
 			// Carregar perfil completo de cada marca
 			const completas = await Promise.all(
-				lista.map(async (b: any) => {
+				lista.map(async (b) => {
 					try {
-						const r = await fetch(`${backendUrl}/api/brands/${b.slug}`);
-						if (r.ok) return await r.json();
-					} catch {}
-					return b;
+						const dto = await BrandService.buscar(b.slug);
+						return dto.raw;
+					} catch {
+						return b.raw;
+					}
 				})
 			);
 			// Inicializar sem foto/assets (carregam ao clicar "Ver")
@@ -93,26 +92,15 @@
 	async function verMarca(slug: string) {
 		if (marcaVisualizando === slug) { marcaVisualizando = ''; return; }
 		try {
-			const res = await fetch(`${backendUrl}/api/brands/${slug}`);
-			if (!res.ok) throw new Error('Erro ao buscar marca');
-			const ds = await res.json();
+			const dto = await BrandService.buscar(slug);
+			const ds = dto.raw;
 			// Carregar foto e assets sob demanda
 			try {
-				const fotoRes = await fetch(`${backendUrl}/api/brands/${slug}/foto`);
-				if (fotoRes.ok) {
-					const fotoData = await fotoRes.json();
-					if (fotoData.foto) ds._fotoPreview = fotoData.foto.startsWith('http') ? fotoData.foto : `${backendUrl}${fotoData.foto}`;
-				}
+				const foto = await BrandService.buscarFoto(slug);
+				if (foto) ds._fotoPreview = foto;
 			} catch {}
 			try {
-				const assetsRes = await fetch(`${backendUrl}/api/brands/${slug}/assets`);
-				if (assetsRes.ok) {
-					const assetsData = await assetsRes.json();
-					ds._assets = (assetsData.assets || []).map((a: any) => ({
-						...a,
-						preview: a.preview.startsWith('http') || a.preview.startsWith('data:') ? a.preview : `${backendUrl}${a.preview}`,
-					}));
-				}
+				ds._assets = await BrandService.listarAssets(slug);
 			} catch {}
 			ds._loaded = true;
 			// Carregar analise salva se existir
@@ -137,15 +125,10 @@
 		if (!vazio || regenerandoDna[slug]) return;
 		regenerandoDna = { ...regenerandoDna, [slug]: true };
 		try {
-			const res = await fetch(`${backendUrl}/api/brands/${slug}/dna/regenerate`, {
-				method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
-			});
-			if (res.ok) {
-				const body = await res.json();
-				marcas[mi].dna = body.dna;
-				marcas = [...marcas];
-				showSucesso('DNA gerado automaticamente!');
-			}
+			const body = await BrandService.regenerarDna(slug);
+			marcas[mi].dna = body.dna;
+			marcas = [...marcas];
+			showSucesso('DNA gerado automaticamente!');
 		} catch {}
 		regenerandoDna = { ...regenerandoDna, [slug]: false };
 	}
@@ -167,12 +150,7 @@
 		if (!renomearNome) return;
 		renomeando = true;
 		try {
-			const res = await fetch(`${API_BASE}/api/brands/${renomearSlug}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ nome: renomearNome, slug: renomearSlug }),
-			});
-			if (!res.ok) throw new Error('Erro ao renomear');
+			await BrandService.atualizar(renomearSlug, { nome: renomearNome, slug: renomearSlug });
 			showRenomearModal = false;
 			showSucesso(`Marca renomeada para "${renomearNome}"!`);
 			await carregarMarcas();
@@ -202,15 +180,7 @@
 		if (!clonarSlug || !clonarNome) return;
 		clonando = true;
 		try {
-			const res = await fetch(`${API_BASE}/api/brands/${clonarOrigem}/clonar`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ slug_destino: clonarSlug, nome_destino: clonarNome }),
-			});
-			if (!res.ok) {
-				const err = await res.json().catch(() => ({}));
-				throw new Error(err.detail || 'Erro ao clonar');
-			}
+			await BrandService.clonar(clonarOrigem, clonarSlug, clonarNome);
 			showClonarModal = false;
 			showSucesso(`Marca "${clonarNome}" clonada!`);
 			await carregarMarcas();
@@ -234,8 +204,7 @@
 	async function confirmarRemover() {
 		showRemoverModal = false;
 		try {
-			const res = await fetch(`${API_BASE}/api/brands/${removerSlug}`, { method: 'DELETE' });
-			if (!res.ok) throw new Error('Erro ao remover');
+			await BrandService.remover(removerSlug);
 			marcas = marcas.filter(m => m.slug !== removerSlug);
 			showSucesso('Marca removida!');
 		} catch (e) {
@@ -249,12 +218,7 @@
 		try {
 			const marca = marcas.find(m => m.slug === slug);
 			if (!marca) throw new Error('Marca nao encontrada');
-			const res = await fetch(`${backendUrl}/api/brands/${slug}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(marca)
-			});
-			if (!res.ok) throw new Error('Erro ao salvar');
+			await BrandService.atualizar(slug, marca);
 			showSucesso(`${marca.nome} salva!`);
 		} catch (e) {
 			erro = e instanceof Error ? e.message : 'Erro ao salvar marca';
@@ -298,12 +262,8 @@
 		if (acentoMatch) ds.elementos.glow_cores = [acentoMatch[1]];
 
 		try {
-			const res = await fetch(`${backendUrl}/api/brands`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(ds)
-			});
-			if (!res.ok) throw new Error('Erro ao criar marca');
+			const dto = new BrandDTO(ds);
+			await BrandService.criar(dto);
 			await carregarMarcas();
 			showSucesso(`"${nome}" adicionada!`);
 		} catch (e) {
@@ -372,23 +332,13 @@
 		if (novaMarcaImagens.length === 0) return;
 		novaMarcaAnalisando = true;
 		try {
-			const res = await fetch(`${backendUrl}/api/analisar-referencias`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					imagens: novaMarcaImagens.map(img => img.split(',')[1] || img),
-					nome_marca: novaMarcaNome,
-					descricao: novaMarcaDescricao,
-				}),
+			novaMarcaResultado = await BrandService.analisarReferencias({
+				imagens: novaMarcaImagens.map(img => img.split(',')[1] || img),
+				nome_marca: novaMarcaNome,
+				descricao: novaMarcaDescricao,
 			});
-			if (res.ok) {
-				novaMarcaResultado = await res.json();
-			} else {
-				const d = await res.json().catch(() => ({}));
-				erro = d.detail || 'Erro ao analisar referencias';
-			}
-		} catch {
-			erro = 'Erro ao conectar com o servidor';
+		} catch (e) {
+			erro = e instanceof Error ? e.message : 'Erro ao analisar referencias';
 		} finally {
 			novaMarcaAnalisando = false;
 		}
@@ -419,24 +369,16 @@
 				};
 				payload.elementos = { badge_topo: novaMarcaNome, badge_topo_cor: '#A78BFA', rodape_nome: novaMarcaNome };
 			}
-			const res = await fetch(`${backendUrl}/api/brands`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload),
-			});
-			if (res.ok) {
-				await carregarMarcas();
-				showSucesso(`"${novaMarcaNome}" criada com sucesso!`);
-				showNovaMarca = false;
-				novaMarcaNome = '';
-				novaMarcaDescricao = '';
-				novaMarcaImagens = [];
-				novaMarcaResultado = null;
-			} else {
-				const d = await res.json().catch(() => ({}));
-				erro = d.detail || 'Erro ao criar marca';
-			}
-		} catch { erro = 'Erro ao criar marca'; }
+			const dto = new BrandDTO(payload);
+			await BrandService.criar(dto);
+			await carregarMarcas();
+			showSucesso(`"${novaMarcaNome}" criada com sucesso!`);
+			showNovaMarca = false;
+			novaMarcaNome = '';
+			novaMarcaDescricao = '';
+			novaMarcaImagens = [];
+			novaMarcaResultado = null;
+		} catch (e) { erro = e instanceof Error ? e.message : 'Erro ao criar marca'; }
 		finally { novaMarcaCriando = false; }
 	}
 
@@ -501,29 +443,11 @@
 	async function analisarReferencia(slug: string, imagemBase64: string, nomeAsset: string) {
 		analisandoRef = { ...analisandoRef, [slug]: true };
 		erro = '';
-		console.log('[analisar] Iniciando analise para', slug, '- imagem:', imagemBase64?.slice(0, 50));
 		try {
-			const res = await fetch(`${backendUrl}/api/descrever-referencia`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ imagem: imagemBase64 }),
-			});
-			console.log('[analisar] Response status:', res.status);
-			const rawText = await res.text();
-			console.log('[analisar] Raw response (primeiros 500 chars):', rawText.slice(0, 500));
-			if (res.ok) {
-				const data = JSON.parse(rawText);
-				console.log('[analisar] Campos:', Object.keys(data));
-				console.log('[analisar] tem cores?', !!data.cores || !!data.dna_cores, '| tem tipografia?', !!data.tipografia || !!data.dna_tipografia);
-				analiseRef = { ...analiseRef, [slug]: { ...data, asset: nomeAsset } };
-			} else {
-				const d = await res.json().catch(() => ({}));
-				console.error('[analisar] Erro:', d);
-				erro = d.detail || 'Erro ao analisar imagem';
-			}
+			const data = await BrandService.descreverReferencia(imagemBase64);
+			analiseRef = { ...analiseRef, [slug]: { ...data, asset: nomeAsset } };
 		} catch (e) {
-			console.error('[analisar] Exception:', e);
-			erro = 'Erro ao conectar com o servidor';
+			erro = e instanceof Error ? e.message : 'Erro ao analisar imagem';
 		} finally {
 			analisandoRef = { ...analisandoRef, [slug]: false };
 		}
@@ -585,20 +509,12 @@
 		// 6. Auto-salvar no backend
 		salvando = true;
 		try {
-			const res = await fetch(`${backendUrl}/api/brands/${slug}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(marcas[mi])
-			});
-			if (res.ok) {
-				showSucesso('Aplicado e SALVO! Veja nas abas Aparencia e Estilo.');
-				// Trocar pra aba Aparencia pra ver resultado
-				setBrandTab(slug, 'aparencia');
-			} else {
-				erro = 'Erro ao salvar marca';
-			}
-		} catch {
-			erro = 'Erro ao salvar';
+			await BrandService.atualizar(slug, marcas[mi]);
+			showSucesso('Aplicado e SALVO! Veja nas abas Aparencia e Estilo.');
+			// Trocar pra aba Aparencia pra ver resultado
+			setBrandTab(slug, 'aparencia');
+		} catch (e) {
+			erro = e instanceof Error ? e.message : 'Erro ao salvar marca';
 		} finally {
 			salvando = false;
 		}
@@ -610,6 +526,81 @@
 		if (tabAtiva === 'marcas') carregarMarcas();
 		if (tabAtiva === 'creators') carregarCreators();
 	});
+
+	// --- Helpers de asset (chamados inline no template) ---
+	async function removerAsset(mi: number, slug: string, nomeAsset: string) {
+		try {
+			await BrandService.removerAsset(slug, nomeAsset);
+			marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== nomeAsset);
+			showSucesso('Referencia removida');
+		} catch {}
+	}
+
+	async function uploadAsset(mi: number, slug: string, e: Event, pool: 'com_avatar' | 'sem_avatar' | null) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		const prefix = pool === null ? 'avatar_' : '';
+		const nome = prefix + file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
+		const reader = new FileReader();
+		reader.onload = async () => {
+			try {
+				const payload: { nome: string; imagem: string; pool?: string } = { nome, imagem: reader.result as string };
+				if (pool) payload.pool = pool;
+				const body = await BrandService.criarAsset(slug, payload);
+				const asset: any = { nome: body.nome, preview: reader.result as string, is_referencia: pool !== null };
+				if (pool) asset.pool = pool;
+				marcas[mi]._assets = [...marcas[mi]._assets, asset];
+				if (pool) autoGerarDnaSeVazio(slug, mi);
+				showSucesso(pool ? 'Referencia adicionada!' : 'Foto de avatar adicionada!');
+			} catch {}
+		};
+		reader.readAsDataURL(file);
+		input.value = '';
+	}
+
+	async function uploadLogo(mi: number, slug: string, e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = async () => {
+			const dataUrl = reader.result as string;
+			marcas[mi]._fotoPreview = dataUrl;
+			try {
+				await BrandService.salvarFoto(slug, dataUrl);
+				showSucesso('Logo salvo!');
+			} catch {}
+		};
+		reader.readAsDataURL(file);
+	}
+
+	async function removerReferenciaAtiva(mi: number, slug: string, nomeAsset: string) {
+		try {
+			await BrandService.definirReferencia(slug, null);
+			await BrandService.removerAsset(slug, nomeAsset);
+			marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== nomeAsset);
+			analiseRef = { ...analiseRef, [slug]: undefined };
+			showSucesso('Referencia removida');
+		} catch {}
+	}
+
+	async function uploadReferencia(mi: number, slug: string, e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		const nome = 'ref_' + file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
+		const reader = new FileReader();
+		reader.onload = async () => {
+			try {
+				await BrandService.criarAsset(slug, { nome, imagem: reader.result as string });
+				marcas[mi]._assets = [...marcas[mi]._assets, { nome, preview: reader.result as string, is_referencia: true }];
+				showSucesso(`Referencia ${marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5 adicionada!`);
+			} catch {}
+		};
+		reader.readAsDataURL(file);
+		input.value = '';
+	}
 </script>
 
 <svelte:head>
@@ -824,22 +815,13 @@
 																if (regenerandoDna[marca.slug]) return;
 																regenerandoDna = { ...regenerandoDna, [marca.slug]: true };
 																try {
-																	const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/dna/regenerate`, {
-																		method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
-																	});
-																	if (res.ok) {
-																		const body = await res.json();
-																		marcas[mi].dna = body.dna;
-																		if (body.padrao_visual) marcas[mi].padrao_visual = body.padrao_visual;
-																		marcas = [...marcas];
-																		showSucesso('DNA regenerado!');
-																	} else {
-																		const err = await res.json().catch(() => ({}));
-																		erro = err.detail || 'Erro ao gerar DNA (precisa ter pelo menos 1 referencia)';
-																		setTimeout(() => erro = '', 5000);
-																	}
-																} catch {
-																	erro = 'Erro de rede ao gerar DNA';
+																	const body = await BrandService.regenerarDna(marca.slug);
+																	marcas[mi].dna = body.dna;
+																	if (body.padrao_visual) marcas[mi].padrao_visual = body.padrao_visual;
+																	marcas = [...marcas];
+																	showSucesso('DNA regenerado!');
+																} catch (e) {
+																	erro = e instanceof Error ? e.message : 'Erro ao gerar DNA (precisa ter pelo menos 1 referencia)';
 																	setTimeout(() => erro = '', 5000);
 																} finally {
 																	regenerandoDna = { ...regenerandoDna, [marca.slug]: false };
@@ -941,13 +923,7 @@
 															<div class="relative group">
 																<img src={asset.preview} alt={asset.nome}
 																	class="w-20 h-20 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-sm" />
-																<button onclick={async () => {
-																	try {
-																		await fetch(`${backendUrl}/api/brands/${marca.slug}/assets/${asset.nome}`, { method: 'DELETE' });
-																		marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== asset.nome);
-																		showSucesso('Referencia removida');
-																	} catch {}
-																}}
+																<button onclick={() => removerAsset(mi, marca.slug, asset.nome)}
 																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
 															</div>
 														{/each}
@@ -955,28 +931,7 @@
 															<label class="w-20 h-20 rounded-xl border-2 border-dashed border-amber/40 flex flex-col items-center justify-center text-amber/70 cursor-pointer hover:bg-amber/5 transition-all gap-0.5">
 																<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
 																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.pool === 'com_avatar').length}/5</span>
-																<input type="file" accept="image/*" onchange={async (e) => {
-																	const input = e.target as HTMLInputElement;
-																	const file = input.files?.[0];
-																	if (!file) return;
-																	const nome = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
-																	const reader = new FileReader();
-																	reader.onload = async () => {
-																		try {
-																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
-																				method: 'POST', headers: { 'Content-Type': 'application/json' },
-																				body: JSON.stringify({ nome, imagem: reader.result, pool: 'com_avatar' })
-																			});
-																			if (res.ok) {
-																				const body = await res.json();
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'com_avatar' }]; autoGerarDnaSeVazio(marca.slug, mi);
-																				showSucesso('Referencia adicionada!');
-																			}
-																		} catch {}
-																	};
-																	reader.readAsDataURL(file);
-																	input.value = '';
-																}} class="hidden" />
+																<input type="file" accept="image/*" onchange={(e) => uploadAsset(mi, marca.slug, e, 'com_avatar')} class="hidden" />
 															</label>
 														{/if}
 													</div>
@@ -993,13 +948,7 @@
 															<div class="relative group">
 																<img src={asset.preview} alt={asset.nome}
 																	class="w-20 h-20 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-sm" />
-																<button onclick={async () => {
-																	try {
-																		await fetch(`${backendUrl}/api/brands/${marca.slug}/assets/${asset.nome}`, { method: 'DELETE' });
-																		marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== asset.nome);
-																		showSucesso('Referencia removida');
-																	} catch {}
-																}}
+																<button onclick={() => removerAsset(mi, marca.slug, asset.nome)}
 																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
 															</div>
 														{/each}
@@ -1007,28 +956,7 @@
 															<label class="w-20 h-20 rounded-xl border-2 border-dashed border-amber/40 flex flex-col items-center justify-center text-amber/70 cursor-pointer hover:bg-amber/5 transition-all gap-0.5">
 																<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
 																<span class="text-[8px] font-medium">{marcas[mi]._assets.filter((a: any) => a.pool === 'sem_avatar').length}/5</span>
-																<input type="file" accept="image/*" onchange={async (e) => {
-																	const input = e.target as HTMLInputElement;
-																	const file = input.files?.[0];
-																	if (!file) return;
-																	const nome = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
-																	const reader = new FileReader();
-																	reader.onload = async () => {
-																		try {
-																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
-																				method: 'POST', headers: { 'Content-Type': 'application/json' },
-																				body: JSON.stringify({ nome, imagem: reader.result, pool: 'sem_avatar' })
-																			});
-																			if (res.ok) {
-																				const body = await res.json();
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome: body.nome, preview: reader.result as string, is_referencia: true, pool: 'sem_avatar' }]; autoGerarDnaSeVazio(marca.slug, mi);
-																				showSucesso('Referencia adicionada!');
-																			}
-																		} catch {}
-																	};
-																	reader.readAsDataURL(file);
-																	input.value = '';
-																}} class="hidden" />
+																<input type="file" accept="image/*" onchange={(e) => uploadAsset(mi, marca.slug, e, 'sem_avatar')} class="hidden" />
 															</label>
 														{/if}
 													</div>
@@ -1321,24 +1249,7 @@
 														<div>
 															<label class="inline-flex px-4 py-2 rounded-full text-xs font-medium text-purple border border-purple/20 hover:bg-purple/8 cursor-pointer">
 																{marcas[mi]._fotoPreview ? 'Trocar logo' : 'Upload logo'}
-																<input type="file" accept="image/*" onchange={async (e) => {
-																	const input = e.target as HTMLInputElement;
-																	const file = input.files?.[0];
-																	if (!file) return;
-																	const reader = new FileReader();
-																	reader.onload = async () => {
-																		const dataUrl = reader.result as string;
-																		marcas[mi]._fotoPreview = dataUrl;
-																		try {
-																			await fetch(`${backendUrl}/api/brands/${marca.slug}/foto`, {
-																				method: 'PUT', headers: { 'Content-Type': 'application/json' },
-																				body: JSON.stringify({ foto: dataUrl })
-																			});
-																			showSucesso('Logo salvo!');
-																		} catch {}
-																	};
-																	reader.readAsDataURL(file);
-																}} class="hidden" />
+																<input type="file" accept="image/*" onchange={(e) => uploadLogo(mi, marca.slug, e)} class="hidden" />
 															</label>
 														</div>
 													</div>
@@ -1356,13 +1267,7 @@
 															<div class="relative group">
 																<img src={asset.preview} alt={asset.nome}
 																	class="w-20 h-20 rounded-full object-cover border-2 border-border-default hover:border-purple/40 transition-all" />
-																<button onclick={async () => {
-																	try {
-																		await fetch(`${backendUrl}/api/brands/${marca.slug}/assets/${asset.nome}`, { method: 'DELETE' });
-																		marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== asset.nome);
-																		showSucesso('Foto removida');
-																	} catch {}
-																}}
+																<button onclick={() => removerAsset(mi, marca.slug, asset.nome)}
 																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
 																<p class="text-[9px] text-text-muted text-center mt-1 truncate w-20">{asset.nome}</p>
 															</div>
@@ -1370,27 +1275,7 @@
 														<label class="w-20 h-20 rounded-full border-2 border-dashed border-purple/30 flex flex-col items-center justify-center text-purple cursor-pointer hover:bg-purple/5 transition-all">
 															<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
 															<span class="text-[8px] mt-0.5">Foto</span>
-															<input type="file" accept="image/*" onchange={async (e) => {
-																const input = e.target as HTMLInputElement;
-																const file = input.files?.[0];
-																if (!file) return;
-																const nome = 'avatar_' + file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
-																const reader = new FileReader();
-																reader.onload = async () => {
-																	try {
-																		const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
-																			method: 'POST', headers: { 'Content-Type': 'application/json' },
-																			body: JSON.stringify({ nome, imagem: reader.result })
-																		});
-																		if (res.ok) {
-																			marcas[mi]._assets = [...marcas[mi]._assets, { nome, preview: reader.result as string, is_referencia: false }];
-																			showSucesso('Foto de avatar adicionada!');
-																		}
-																	} catch {}
-																};
-																reader.readAsDataURL(file);
-																input.value = '';
-															}} class="hidden" />
+															<input type="file" accept="image/*" onchange={(e) => uploadAsset(mi, marca.slug, e, null)} class="hidden" />
 														</label>
 													</div>
 													<p class="text-[10px] text-text-muted">Suba 1-3 fotos da pessoa em angulos diferentes. A IA vai manter a aparencia consistente.</p>
@@ -1417,18 +1302,7 @@
 															<div class="relative group">
 																<img src={asset.preview} alt={asset.nome}
 																	class="w-24 h-30 rounded-xl object-cover border-2 border-amber ring-2 ring-amber/30 shadow-lg" />
-																<button onclick={async () => {
-																	try {
-																		await fetch(`${backendUrl}/api/brands/${marca.slug}/referencia`, {
-																			method: 'PUT', headers: { 'Content-Type': 'application/json' },
-																			body: JSON.stringify({ nome: null })
-																		});
-																		await fetch(`${backendUrl}/api/brands/${marca.slug}/assets/${asset.nome}`, { method: 'DELETE' });
-																		marcas[mi]._assets = marcas[mi]._assets.filter((a: any) => a.nome !== asset.nome);
-																		analiseRef = { ...analiseRef, [marca.slug]: undefined };
-																		showSucesso('Referencia removida');
-																	} catch {}
-																}}
+																<button onclick={() => removerReferenciaAtiva(mi, marca.slug, asset.nome)}
 																	class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">x</button>
 																<p class="text-[9px] text-amber text-center mt-1 font-semibold">REFERENCIA ATIVA</p>
 															</div>
@@ -1439,28 +1313,7 @@
 																<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
 																<span class="text-[9px] font-medium">+ Referencia</span>
 																<span class="text-[7px] text-text-muted">{marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5</span>
-																<input type="file" accept="image/*" onchange={async (e) => {
-																	const input = e.target as HTMLInputElement;
-																	const file = input.files?.[0];
-																	if (!file) return;
-																	const nome = 'ref_' + file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 15);
-																	const reader = new FileReader();
-																	reader.onload = async () => {
-																		try {
-																			// Upload asset
-																			const res = await fetch(`${backendUrl}/api/brands/${marca.slug}/assets`, {
-																				method: 'POST', headers: { 'Content-Type': 'application/json' },
-																				body: JSON.stringify({ nome, imagem: reader.result })
-																			});
-																			if (res.ok) {
-																				marcas[mi]._assets = [...marcas[mi]._assets, { nome, preview: reader.result as string, is_referencia: true }];
-																				showSucesso(`Referencia ${marcas[mi]._assets.filter((a: any) => a.is_referencia).length}/5 adicionada!`);
-																			}
-																		} catch {}
-																	};
-																	reader.readAsDataURL(file);
-																	input.value = '';
-																}} class="hidden" />
+																<input type="file" accept="image/*" onchange={(e) => uploadReferencia(mi, marca.slug, e)} class="hidden" />
 															</label>
 														{/if}
 													</div>

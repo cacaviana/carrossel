@@ -111,7 +111,7 @@ class AuthService:
 
     @staticmethod
     def aceitar_convite(dto):
-        """Aceita convite: cria usuario com a senha fornecida."""
+        """Aceita convite: cria usuario com a senha fornecida e ja autentica (retorna JWT)."""
         token, password = AuthFactory.extract_token_and_password(dto)
         invite_doc = InviteRepository.find_by_token(token)
         if invite_doc is None:
@@ -132,7 +132,17 @@ class AuthService:
 
         saved = AuthRepository.insert_user(user_doc)
         InviteRepository.mark_used(token)
-        return AuthMapper.to_usuario_response(saved)
+
+        # Gera JWT para ja logar o usuario (evita UX quebrada — BUG-E2E-01)
+        jwt_token = create_access_token({
+            "user_id": str(saved["_id"]),
+            "tenant_id": saved["tenant_id"],
+            "role": saved["role"],
+            "email": saved["email"],
+            "name": saved["name"],
+        })
+
+        return AuthMapper.to_login_response(saved, jwt_token)
 
     @staticmethod
     def atualizar_usuario(user_id: str, dto, current_user: CurrentUser):

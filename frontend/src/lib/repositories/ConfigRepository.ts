@@ -3,8 +3,16 @@ import { API_BASE } from '$lib/api';
 import { BrandPaletteDTO } from '$lib/dtos/BrandPaletteDTO';
 import { CreatorEntryDTO } from '$lib/dtos/CreatorEntryDTO';
 import { PlatformRuleDTO } from '$lib/dtos/PlatformRuleDTO';
+import { getToken } from '$lib/stores/auth.svelte';
 
 const USE_MOCK = browser && import.meta.env.VITE_USE_MOCK === 'true';
+
+function authHeaders(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`
+  };
+}
 
 export class ConfigRepository {
   // --- Brand Palette ---
@@ -15,7 +23,7 @@ export class ConfigRepository {
       await new Promise(r => setTimeout(r, 300));
       return new BrandPaletteDTO(brandPaletteMock);
     }
-    const res = await fetch(`${API_BASE}/api/config/brand-palette`);
+    const res = await fetch(`${API_BASE}/api/config/brand-palette`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar brand palette');
     return new BrandPaletteDTO(await res.json());
   }
@@ -27,7 +35,7 @@ export class ConfigRepository {
     }
     const res = await fetch(`${API_BASE}/api/config/brand-palette`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
@@ -45,7 +53,7 @@ export class ConfigRepository {
       await new Promise(r => setTimeout(r, 300));
       return creatorsMock.map((c: any) => new CreatorEntryDTO(c));
     }
-    const res = await fetch(`${API_BASE}/api/config/creator-registry`);
+    const res = await fetch(`${API_BASE}/api/config/creator-registry`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar creator registry');
     const data = await res.json();
     const items = Array.isArray(data) ? data : (data.criadores ?? []);
@@ -59,7 +67,7 @@ export class ConfigRepository {
     }
     const res = await fetch(`${API_BASE}/api/config/creator-registry`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ criadores: payload })
     });
     if (!res.ok) {
@@ -76,7 +84,7 @@ export class ConfigRepository {
       await new Promise(r => setTimeout(r, 300));
       return platformRulesMock.map((p: any) => new PlatformRuleDTO(p));
     }
-    const res = await fetch(`${API_BASE}/api/config/platform-rules`);
+    const res = await fetch(`${API_BASE}/api/config/platform-rules`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar platform rules');
     const data = await res.json();
     const items = Array.isArray(data) ? data : (data.regras ?? []);
@@ -90,7 +98,7 @@ export class ConfigRepository {
     }
     const res = await fetch(`${API_BASE}/api/config/platform-rules`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ regras: payload })
     });
     if (!res.ok) {
@@ -106,7 +114,7 @@ export class ConfigRepository {
       await new Promise(r => setTimeout(r, 300));
       return [];
     }
-    const res = await fetch(`${API_BASE}/api/config/plataformas`);
+    const res = await fetch(`${API_BASE}/api/config/plataformas`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar plataformas');
     const data = await res.json();
     return data.plataformas ?? [];
@@ -119,7 +127,7 @@ export class ConfigRepository {
     }
     const res = await fetch(`${API_BASE}/api/config/plataformas`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ plataformas })
     });
     if (!res.ok) {
@@ -137,7 +145,7 @@ export class ConfigRepository {
     }
     const res = await fetch(`${API_BASE}/api/config`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error('Erro ao salvar chaves');
@@ -148,7 +156,7 @@ export class ConfigRepository {
       await new Promise(r => setTimeout(r, 300));
       return { claude: false, gemini: false, drive_credentials: false, drive_folder: false };
     }
-    const res = await fetch(`${API_BASE}/api/config`);
+    const res = await fetch(`${API_BASE}/api/config`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar status das chaves');
     return res.json();
   }
