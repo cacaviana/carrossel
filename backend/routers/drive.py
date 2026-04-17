@@ -116,6 +116,7 @@ async def api_salvar_carrossel(req: SaveCarrosselDriveRequest):
                 legenda=req.legenda_linkedin,
                 drive_link=result.get("web_view_link", ""),
                 folder_name=result.get("subfolder_name", ""),
+                pipeline_id=req.pipeline_id,
             )
         except Exception:
             pass  # Não falhar o save no Drive por causa do banco

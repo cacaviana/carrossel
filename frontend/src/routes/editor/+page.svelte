@@ -544,10 +544,12 @@
 			const imagesClean = slides.map(img =>
 				img.startsWith('data:') ? img.split(',')[1] : img
 			);
+			const pipelineIdUrl = page.url.searchParams.get('pipeline') || undefined;
 			const data = await EditorService.salvarDrive({
 				title: pipelineTema || 'carrossel',
 				pdf_base64: pdfBase64,
 				images_base64: imagesClean,
+				pipeline_id: pipelineIdUrl,
 			});
 			driveSalvo = data.web_view_link;
 		} catch (e) {

@@ -59,6 +59,7 @@ export class EditorService {
     title: string;
     pdf_base64: string;
     images_base64: string[];
+    pipeline_id?: string;
   }): Promise<{ web_view_link: string }> {
     return EditorRepository.salvarDrive(payload);
   }

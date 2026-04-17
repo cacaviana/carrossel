@@ -160,6 +160,7 @@ export class EditorRepository {
     title: string;
     pdf_base64: string;
     images_base64: string[];
+    pipeline_id?: string;
   }): Promise<{ web_view_link: string }> {
     if (USE_MOCK) {
       await new Promise(r => setTimeout(r, 800));

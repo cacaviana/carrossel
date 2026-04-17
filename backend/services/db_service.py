@@ -4,14 +4,14 @@ from config import settings
 from data.connections.database import get_sql_session_context
 
 
-async def salvar_historico(titulo, disciplina, tecnologia, tipo, total_slides, legenda, drive_link, folder_name):
+async def salvar_historico(titulo, disciplina, tecnologia, tipo, total_slides, legenda, drive_link, folder_name, pipeline_id=None):
     if not settings.MSSQL_URL:
         return
     async with get_sql_session_context() as session:
         await session.execute(
             text("""INSERT INTO carrossel.historico
-            (titulo, disciplina, tecnologia_principal, tipo_carrossel, total_slides, legenda_linkedin, google_drive_link, google_drive_folder_name)
-            VALUES (:titulo, :disciplina, :tecnologia, :tipo, :total_slides, :legenda, :drive_link, :folder_name)"""),
+            (titulo, disciplina, tecnologia_principal, tipo_carrossel, total_slides, legenda_linkedin, google_drive_link, google_drive_folder_name, pipeline_id)
+            VALUES (:titulo, :disciplina, :tecnologia, :tipo, :total_slides, :legenda, :drive_link, :folder_name, :pipeline_id)"""),
             {
                 "titulo": titulo,
                 "disciplina": disciplina,
@@ -21,6 +21,7 @@ async def salvar_historico(titulo, disciplina, tecnologia, tipo, total_slides, l
                 "legenda": legenda,
                 "drive_link": drive_link,
                 "folder_name": folder_name,
+                "pipeline_id": pipeline_id,
             },
         )
 
@@ -36,6 +37,7 @@ async def listar_historico(limit=50):
         return [
             {
                 "id": r["id"],
+                "pipeline_id": str(r["pipeline_id"]) if r.get("pipeline_id") else None,
                 "titulo": r["titulo"],
                 "disciplina": r["disciplina"],
                 "tecnologia_principal": r["tecnologia_principal"],
