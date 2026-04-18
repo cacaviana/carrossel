@@ -147,15 +147,23 @@
 						if (i.image_path) return `${API_BASE}/api/pipeline-images/${i.image_path}`;
 						return '';
 					});
-					// Verificar se URLs realmente carregam (disco pode ter sido apagado)
+					// URLs internas da API exigem Bearer token (fix C1). Browser <img> nao
+					// manda Authorization header, entao baixamos aqui e convertemos pra data URL.
 					const validados = await Promise.all(slideUrls.map(async (url: string) => {
 						if (!url || url.startsWith('data:')) return url;
 						try {
-							// HEAD pode dar 405 em algumas rotas; GET garante resposta real
-							// URLs internas da API exigem Bearer token (fix C1)
 							const isApiUrl = url.startsWith(API_BASE) || url.startsWith('/api/');
-							const r = await fetch(url, isApiUrl ? { headers: authHeaders() } : undefined);
-							return r.ok ? url : '';
+							const opts = isApiUrl ? { headers: { 'Authorization': `Bearer ${getToken()}` } } : undefined;
+							const r = await fetch(url, opts);
+							if (!r.ok) return '';
+							if (!isApiUrl) return url;
+							const blob = await r.blob();
+							return await new Promise<string>((resolve) => {
+								const reader = new FileReader();
+								reader.onloadend = () => resolve(reader.result as string);
+								reader.onerror = () => resolve('');
+								reader.readAsDataURL(blob);
+							});
 						} catch { return ''; }
 					}));
 					const temValido = validados.some((v: string) => v !== '');
