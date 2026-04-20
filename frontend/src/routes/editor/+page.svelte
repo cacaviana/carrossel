@@ -617,7 +617,7 @@
 			onclick={handleClick}
 		>
 			{#if currentImage}
-				<img src={currentImage} alt="Slide {currentSlide + 1}" class="w-full h-full object-cover" />
+				<img src={currentImage} alt="Slide {currentSlide + 1}" class="w-full h-full object-contain" />
 			{:else}
 				<div class="w-full h-full flex items-center justify-center bg-bg-elevated text-text-muted text-sm">
 					Gerando imagem...

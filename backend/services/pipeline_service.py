@@ -5,6 +5,7 @@ from dtos.pipeline.criar_pipeline.request import CriarPipelineRequest
 from services.pipeline_db_service import (
     criar_pipeline,
     buscar_pipeline,
+    buscar_etapas_completas,
     listar_pipelines,
     buscar_etapa_por_agente,
     atualizar_etapa,
@@ -94,6 +95,156 @@ class PipelineService:
     @staticmethod
     async def buscar(pipeline_id: str) -> dict | None:
         return await buscar_pipeline(pipeline_id)
+
+    @staticmethod
+    async def obter_status(pipeline_id: str) -> dict | None:
+        """Retorna snapshot enxuto do progresso: porcentagem, etapa_atual, logs resumidos e ETA.
+
+        ETA = duracao_media_etapas_concluidas * etapas_pendentes. None se nao ha amostra.
+        Status concluido: "aprovado" ou "concluido". Pendente: tudo o que nao e terminal.
+        """
+        pipeline = await buscar_pipeline(pipeline_id)
+        if not pipeline:
+            return None
+
+        etapas = pipeline.get("etapas", []) or []
+        total = len(etapas)
+        STATUS_CONCLUIDO = {"aprovado", "concluido"}
+
+        logs: list[dict] = []
+        duracoes: list[float] = []
+        concluidas = 0
+
+        for e in etapas:
+            started = e.get("started_at")
+            finished = e.get("finished_at")
+            duracao_seg: float | None = None
+            if started and finished:
+                try:
+                    s = datetime.fromisoformat(started)
+                    f = datetime.fromisoformat(finished)
+                    duracao_seg = max(0.0, (f - s).total_seconds())
+                except (ValueError, TypeError):
+                    duracao_seg = None
+
+            status_e = e.get("status")
+            if status_e in STATUS_CONCLUIDO:
+                concluidas += 1
+                if duracao_seg is not None:
+                    duracoes.append(duracao_seg)
+
+            logs.append({
+                "agente": e.get("agente"),
+                "ordem": e.get("ordem"),
+                "status": status_e,
+                "duracao_seg": duracao_seg,
+                "started_at": started,
+                "finished_at": finished,
+            })
+
+        porcentagem = round((concluidas / total) * 100, 1) if total else 0.0
+        pendentes = max(0, total - concluidas)
+        eta_segundos: int | None = None
+        if duracoes and pendentes > 0:
+            media = sum(duracoes) / len(duracoes)
+            eta_segundos = int(round(media * pendentes))
+
+        return {
+            "pipeline_id": str(pipeline.get("id")),
+            "status": pipeline.get("status"),
+            "etapa_atual": pipeline.get("etapa_atual"),
+            "porcentagem": porcentagem,
+            "etapas_concluidas": concluidas,
+            "total_etapas": total,
+            "eta_segundos": eta_segundos,
+            "logs": logs,
+        }
+
+    @staticmethod
+    async def obter_logs(pipeline_id: str) -> dict | None:
+        """Logs detalhados por etapa: timestamps, latencia, erro, score do Critic.
+
+        custos_instrumentados=False por ora: chamadas a Claude/Gemini nao gravam tokens
+        usados em pipeline_step. Quando instrumentar, tokens_* e custo_* serao preenchidos.
+        """
+        pipeline = await buscar_etapas_completas(pipeline_id)
+        if not pipeline:
+            return None
+
+        etapas = pipeline.get("etapas", []) or []
+        TERMINAIS_OK = {"aprovado", "concluido"}
+
+        logs: list[dict] = []
+        concluidas = 0
+        com_erro = 0
+        latencia_total = 0.0
+        critic_score: dict | None = None
+
+        for e in etapas:
+            latencia: float | None = None
+            s = e.get("started_at"); f = e.get("finished_at")
+            if s and f:
+                try:
+                    sd = datetime.fromisoformat(s); fd = datetime.fromisoformat(f)
+                    latencia = max(0.0, (fd - sd).total_seconds())
+                except (ValueError, TypeError):
+                    latencia = None
+
+            status_e = e.get("status")
+            if status_e in TERMINAIS_OK:
+                concluidas += 1
+                if latencia is not None:
+                    latencia_total += latencia
+            if status_e == "erro":
+                com_erro += 1
+
+            logs.append({
+                "agente": e.get("agente"),
+                "ordem": e.get("ordem"),
+                "status": status_e,
+                "started_at": s,
+                "finished_at": f,
+                "latencia_seg": latencia,
+                "erro_mensagem": e.get("erro_mensagem"),
+                "tokens_entrada": None,
+                "tokens_saida": None,
+                "custo_usd": None,
+            })
+
+            # Extrair score do content_critic a partir da saida JSON
+            if e.get("agente") == "content_critic" and status_e in TERMINAIS_OK and e.get("saida"):
+                try:
+                    saida_raw = e["saida"]
+                    parsed = _json.loads(saida_raw) if isinstance(saida_raw, str) else saida_raw
+                    if isinstance(parsed, dict):
+                        critic_score = {
+                            "clarity":       parsed.get("clarity"),
+                            "impact":        parsed.get("impact"),
+                            "originality":   parsed.get("originality"),
+                            "scroll_stop":   parsed.get("scroll_stop"),
+                            "cta_strength":  parsed.get("cta_strength"),
+                            "final_score":   parsed.get("final_score"),
+                            "decision":      parsed.get("decision"),
+                        }
+                except (ValueError, TypeError):
+                    pass
+
+        return {
+            "pipeline_id": str(pipeline.get("id")),
+            "status": pipeline.get("status"),
+            "etapa_atual": pipeline.get("etapa_atual"),
+            "etapas": logs,
+            "resumo": {
+                "total_etapas": len(etapas),
+                "etapas_concluidas": concluidas,
+                "etapas_com_erro": com_erro,
+                "latencia_total_seg": round(latencia_total, 2),
+                "custo_total_usd": None,
+                "tokens_total": None,
+            },
+            "critic_score": critic_score,
+            "custos_instrumentados": False,
+        }
 
     @staticmethod
     async def listar(formato: str | None = None, status: str | None = None, limit: int = 50) -> dict:

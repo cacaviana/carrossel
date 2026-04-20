@@ -24,6 +24,49 @@ from utils.constants import GEMINI_API_URL as API_URL
 
 MAX_CONCURRENT_SLIDES = 3  # Gemini rate limit safe
 
+
+def _resize_to_target_dims(img_b64: str, dims: dict) -> str:
+    """Redimensiona imagem pras dimensoes target do formato.
+
+    Gemini gera em resolucao nativa (928x1152, 1024x1024) que difere do target
+    (1080x1350). Se ja bate o tamanho, retorna como veio. Se o ratio bate (5%
+    tolerancia), faz upscale via LANCZOS. Se ratio nao bate, retorna original
+    (nao distorce — aspecto errado ja eh tratado pelo retry de aspect_ratio).
+    """
+    import base64
+    from io import BytesIO
+    from PIL import Image
+
+    target_w = dims.get("width")
+    target_h = dims.get("height")
+    if not target_w or not target_h:
+        return img_b64
+
+    try:
+        raw = img_b64.split(",", 1)[1] if "," in img_b64 else img_b64
+        img = Image.open(BytesIO(base64.b64decode(raw)))
+    except Exception:
+        return img_b64
+
+    if img.size == (target_w, target_h):
+        return img_b64
+
+    target_ratio = target_w / target_h
+    img_ratio = img.width / img.height
+    if abs(img_ratio - target_ratio) > 0.05:
+        # Ratio errado — nao distorce. Deixa como veio (o retry ja tentou corrigir).
+        return img_b64
+
+    try:
+        img_resized = img.resize((target_w, target_h), Image.LANCZOS)
+        buf = BytesIO()
+        img_resized.save(buf, format="PNG")
+        new_b64 = base64.b64encode(buf.getvalue()).decode()
+        prefix = "data:image/png;base64," if img_b64.startswith("data:") else ""
+        return f"{prefix}{new_b64}"
+    except Exception:
+        return img_b64
+
 NANO_BANANA_MODEL = "gemini-2.5-flash-image"
 
 # Face safe zone (em %) — box central que sempre fica preto no overlay
@@ -336,6 +379,12 @@ async def _gerar_slide_smart(
 
     if not img_completa:
         return None
+
+    # Resize pra dimensoes target do formato.
+    # Gemini 3 Pro gera em resolucao nativa (ex: 928x1152, 1024x1024) que quase
+    # sempre difere do target (ex: 1080x1350). Se o ratio bate (tolerancia 5%),
+    # faz upscale via PIL LANCZOS pra exportar na dimensao correta.
+    img_completa = _resize_to_target_dims(img_completa, dims)
 
     # Se skip_validation (regenerar do editor), retornar direto sem corrigir
     if skip_validation:

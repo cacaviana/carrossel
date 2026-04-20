@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, field_validator
 from typing import Optional
 
@@ -8,6 +9,7 @@ class AtualizarCardRequest(BaseModel):
     disciplina: Optional[str] = None
     tecnologia: Optional[str] = None
     priority: Optional[str] = None
+    deadline: Optional[datetime] = None
 
     @field_validator("title")
     @classmethod

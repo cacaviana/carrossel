@@ -77,7 +77,13 @@ def salvar_pdf(slides_data: list, logo_data: str, borda_cor_hex: str | None = No
 
         page = slide_img.convert("RGB")
         if page.size != (target_w, target_h):
-            page = page.resize((target_w, target_h), Image.LANCZOS)
+            # Resize so se o ratio bate (tolerancia 5%) — evita esticar/deformar
+            # quando imagem foi gerada em aspecto diferente do formato target.
+            target_ratio = target_w / target_h
+            page_ratio = page.width / page.height
+            if abs(page_ratio - target_ratio) <= 0.05:
+                page = page.resize((target_w, target_h), Image.LANCZOS)
+            # ratio diferente: preserva a imagem original (sem cortar nem esticar)
         pil_pages.append(page)
 
     # Gerar PDF

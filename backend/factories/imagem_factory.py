@@ -194,6 +194,31 @@ def select_model(slide: dict, position: int, total: int) -> str:
     return "gemini-3-pro-image-preview"
 
 
+def _refs_conflitam_com_layout(refs_fixas: dict | None, pool_atual: str, tipo_layout: str | None) -> bool:
+    """Refs conflitam com o layout pedido somente quando TODAS as refs do pool
+    estao etiquetadas com layout_tag diferente do tipo_layout atual.
+
+    Regra:
+    - Ref com layout_tag=None e GENERICA — serve pra qualquer tipo_layout. Nao conflita.
+    - Ref com layout_tag igual ao tipo_layout — bate. Nao conflita.
+    - Ref com layout_tag diferente — conflita SO se TODAS as refs do pool forem assim.
+
+    Se existe qualquer ref generica ou alguma que bate o tag, NAO ha conflito — as
+    refs podem (e devem) ser usadas como guia de layout.
+    """
+    if not tipo_layout or not refs_fixas:
+        return False
+    docs_key = "_docs_com" if pool_atual == "com_avatar" else "_docs_sem"
+    docs = refs_fixas.get(docs_key, [])
+    if not docs:
+        return False
+    for d in docs:
+        tag = getattr(d, "layout_tag", None)
+        if tag is None or tag == tipo_layout:
+            return False
+    return True
+
+
 def build_payload(
     slide: dict,
     position: int,
@@ -494,8 +519,14 @@ def build_payload(
             p += "\n"
 
         # === REGRA DE HIERARQUIA — muda conforme tem ref de layout ou nao
-        if tipo_layout and not ref2_matches_layout:
-            # SEM ref tagueada pro layout: refs sao SO pra estilo, layout vem do tipo_layout
+        # Só considera "conflito" se TODAS as refs do pool tem layout_tag DIFERENTE do tipo_layout.
+        # Refs sem layout_tag (None) sao genericas — servem pra qualquer tipo_layout, sempre valem
+        # como guia de composicao (a marca tem padrao visual forte que deve ser preservado).
+        refs_conflitam = _refs_conflitam_com_layout(refs_fixas, pool_atual, tipo_layout)
+
+        if tipo_layout and not ref2_matches_layout and refs_conflitam:
+            # SEM ref tagueada pro layout E todas as refs apontam pra OUTROS layouts:
+            # refs servem SO pra estilo, layout vem do tipo_layout
             p += (
                 "[REGRA DE HIERARQUIA - OBRIGATORIA]\n"
                 "1. TODAS as referencias anexadas servem APENAS para APARENCIA: cores, tipografia, iluminacao, textura, vibe, elementos decorativos\n"

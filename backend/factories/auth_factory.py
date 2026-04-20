@@ -17,7 +17,7 @@ from middleware.auth import hash_password, verify_password
 class AuthFactory:
     """Cria e valida objetos do dominio Auth."""
 
-    VALID_ROLES = {"admin", "copywriter", "designer", "reviewer", "viewer"}
+    VALID_ROLES = {"super_admin", "admin", "copywriter", "designer", "reviewer", "viewer"}
 
     @staticmethod
     def extract_login_credentials(dto) -> tuple[str, str]:

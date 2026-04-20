@@ -25,10 +25,12 @@ class TestGetDims:
         assert d["height"] == 1350
         assert d["ratio"] == "4:5"
 
-    def test_post_unico_quadrado_1_1(self):
+    def test_post_unico_portrait_4_5(self):
+        """Post unico migrou de 1:1 (1080x1080) para 4:5 (1080x1350)."""
         d = get_dims("post_unico")
-        assert d["width"] == d["height"] == 1080
-        assert d["ratio"] == "1:1"
+        assert d["width"] == 1080
+        assert d["height"] == 1350
+        assert d["ratio"] == "4:5"
 
     def test_thumbnail_youtube_landscape_16_9(self):
         d = get_dims("thumbnail_youtube")
@@ -59,7 +61,7 @@ class TestGetDims:
 class TestGetPromptSizeStr:
     @pytest.mark.parametrize("formato,expected_size", [
         ("carrossel", "1080x1350px, 4:5 portrait"),
-        ("post_unico", "1080x1080px, 1:1 square"),
+        ("post_unico", "1080x1350px, 4:5 portrait"),
         ("thumbnail_youtube", "1280x720px, 16:9 landscape"),
         ("capa_reels", "1080x1920px, 9:16 tall portrait"),
     ])
@@ -94,7 +96,7 @@ class TestGetPageMm:
 # Parametrizacao: get_dims funciona pros 3 formatos novos
 # =============================================================================
 @pytest.mark.parametrize("formato,esperado_w,esperado_h,esperado_ratio", [
-    ("post_unico", 1080, 1080, "1:1"),
+    ("post_unico", 1080, 1350, "4:5"),
     ("capa_reels", 1080, 1920, "9:16"),
     ("thumbnail_youtube", 1280, 720, "16:9"),
 ])

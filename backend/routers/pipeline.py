@@ -4,6 +4,8 @@ from fastapi.responses import FileResponse
 from dtos.pipeline.criar_pipeline.request import CriarPipelineRequest
 from dtos.pipeline.aprovar_etapa.request import AprovarEtapaRequest
 from dtos.pipeline.rejeitar_etapa.request import RejeitarEtapaRequest
+from dtos.pipeline.obter_status.response import ObterStatusPipelineResponse
+from dtos.pipeline.obter_logs.response import ObterLogsPipelineResponse
 from middleware.auth import CurrentUser, get_current_user
 from middleware.rate_limiter import limiter
 from services.pipeline_service import PipelineService
@@ -45,6 +47,33 @@ async def buscar(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     result = await PipelineService.buscar(pipeline_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Pipeline nao encontrado")
+    return result
+
+
+@router.get("/{pipeline_id}/status", response_model=ObterStatusPipelineResponse)
+async def obter_status(
+    pipeline_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Snapshot enxuto do progresso: porcentagem, etapa atual, logs resumidos e ETA.
+    Endpoint de polling — nao retorna entradas/saidas pesadas das etapas."""
+    result = await PipelineService.obter_status(pipeline_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Pipeline nao encontrado")
+    return result
+
+
+@router.get("/{pipeline_id}/logs", response_model=ObterLogsPipelineResponse)
+async def obter_logs(
+    pipeline_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Logs detalhados: timestamps, latencia e erro por etapa + score do Content Critic.
+    custos_instrumentados=False por ora — tokens/custo serao preenchidos quando houver
+    instrumentacao de uso em pipeline_step (feature futura)."""
+    result = await PipelineService.obter_logs(pipeline_id)
     if not result:
         raise HTTPException(status_code=404, detail="Pipeline nao encontrado")
     return result

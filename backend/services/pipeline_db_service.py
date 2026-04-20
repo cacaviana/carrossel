@@ -339,6 +339,55 @@ async def buscar_proxima_etapa(pipeline_id, tenant_id="itvalley"):
         return pipeline, step
 
 
+async def buscar_etapas_completas(pipeline_id, tenant_id="itvalley"):
+    """Versao detalhada de buscar_pipeline: traz entrada, saida, erro_mensagem por step.
+    Usada pelo endpoint /logs — nao substitui buscar_pipeline (que e usado como snapshot leve)."""
+    if not settings.MSSQL_URL:
+        return None
+    async with get_sql_session_context() as session:
+        result = await session.execute(
+            text("SELECT id, tema, formato, status, etapa_atual, created_at FROM carrossel.pipeline WHERE id = :id AND tenant_id = :tenant_id AND deleted_at IS NULL"),
+            {"id": pipeline_id, "tenant_id": tenant_id},
+        )
+        pipeline = result.mappings().first()
+        if not pipeline:
+            return None
+
+        result2 = await session.execute(
+            text("""SELECT id, agente, ordem, status, entrada, saida, erro_mensagem,
+                    started_at, finished_at, created_at
+                    FROM carrossel.pipeline_step
+                    WHERE pipeline_id = :pipeline_id ORDER BY ordem"""),
+            {"pipeline_id": pipeline_id},
+        )
+        steps = result2.mappings().all()
+
+        etapas = []
+        for s in steps:
+            etapas.append({
+                "id": str(s["id"]),
+                "agente": s["agente"],
+                "ordem": s["ordem"],
+                "status": s["status"],
+                "entrada": s.get("entrada"),
+                "saida": s.get("saida"),
+                "erro_mensagem": s.get("erro_mensagem"),
+                "started_at": s["started_at"].isoformat() if s.get("started_at") else None,
+                "finished_at": s["finished_at"].isoformat() if s.get("finished_at") else None,
+                "created_at": s["created_at"].isoformat() if s.get("created_at") else None,
+            })
+
+        return {
+            "id": str(pipeline["id"]),
+            "tema": pipeline["tema"],
+            "formato": pipeline["formato"],
+            "status": pipeline["status"],
+            "etapa_atual": pipeline["etapa_atual"],
+            "created_at": pipeline["created_at"].isoformat() if pipeline["created_at"] else None,
+            "etapas": etapas,
+        }
+
+
 async def buscar_etapa_por_agente(pipeline_id, agente):
     if not settings.MSSQL_URL:
         return None

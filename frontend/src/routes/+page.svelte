@@ -123,7 +123,7 @@
 
 	const formatoDims: Record<string, string> = {
 		carrossel: '1080 x 1350 · LinkedIn, Instagram',
-		post_unico: '1080 x 1080 · Instagram, Facebook, LinkedIn',
+		post_unico: '1080 x 1350 · Instagram, Facebook, LinkedIn',
 		thumbnail_youtube: '1280 x 720 · YouTube',
 		capa_reels: '1080 x 1920 · Instagram Reels, TikTok',
 		funil: 'Mix de formatos · Todas as plataformas'

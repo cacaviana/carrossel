@@ -23,6 +23,7 @@ class KanbanCardMapper:
             image_urls=doc.get("image_urls", []),
             order_in_column=doc.get("order_in_column", 0),
             comment_count=comment_count,
+            deadline=doc.get("deadline"),
             created_at=doc["created_at"],
             updated_at=doc.get("updated_at"),
             archived_at=doc.get("archived_at"),

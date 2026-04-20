@@ -59,9 +59,9 @@
     {
       "id": "post_unico",
       "nome": "Post Unico",
-      "dimensoes": {"width": 1080, "height": 1080, "ratio": "1:1", "label": "square"},
+      "dimensoes": {"width": 1080, "height": 1350, "ratio": "4:5", "label": "portrait"},
       "layout_rules": [
-        "Layout quadrado. Equilibrio visual entre elementos.",
+        "Layout vertical (portrait 4:5). Equilibrio visual entre elementos.",
         "Texto MUITO GRANDE e legivel mesmo em preview pequeno.",
         "REGRA CRITICA: Maximo 6 palavras no titulo e 2 linhas curtas no corpo. NUNCA texto longo.",
         "O visual e o protagonista, nao o texto. Menos texto = mais impacto."

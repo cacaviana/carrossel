@@ -67,7 +67,7 @@ class TestGerarPdfFromImages:
 # Exportar PDF pros 3 formatos (post_unico, reels, thumbnail)
 # =============================================================================
 @pytest.mark.parametrize("formato,w,h", [
-    ("post_unico", 1080, 1080),
+    ("post_unico", 1080, 1350),
     ("capa_reels", 1080, 1920),
     ("thumbnail_youtube", 1280, 720),
     ("carrossel", 1080, 1350),

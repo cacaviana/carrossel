@@ -7,6 +7,7 @@ from dtos.kanban_card.atualizar_card.request import AtualizarCardRequest
 from dtos.kanban_card.mover_card.request import MoverCardRequest
 from dtos.kanban_card.atribuir_responsaveis.request import AtribuirResponsaveisRequest
 from dtos.kanban_card.vincular_artefato.request import VincularArtefatoRequest
+from dtos.kanban_card.listar_calendario.response import ListarCalendarioResponse
 from middleware.auth import get_current_user, require_role, CurrentUser
 from services.kanban_card_service import KanbanCardService
 
@@ -22,6 +23,18 @@ async def criar_card(
         dto,
         tenant_id=current_user.tenant_id,
         created_by=current_user.user_id,
+    )
+
+
+@router.get("/calendario", response_model=ListarCalendarioResponse)
+async def listar_calendario(
+    mes: str = Query(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="YYYY-MM"),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Lista cards com deadline dentro do mes. View de calendario para Historico."""
+    return KanbanCardService.listar_calendario(
+        tenant_id=current_user.tenant_id,
+        mes=mes,
     )
 
 

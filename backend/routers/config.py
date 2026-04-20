@@ -19,6 +19,8 @@ from dtos.config.salvar_platform_rules.response import SalvarPlatformRulesRespon
 from dtos.config.buscar_platform_rules.response import BuscarPlatformRulesResponse
 from dtos.config.plataformas.request import SalvarPlataformasRequest
 from dtos.config.plataformas.response import BuscarPlataformasResponse, SalvarPlataformasResponse
+from dtos.config.validar_api_key.request import ValidarApiKeyRequest
+from dtos.config.validar_api_key.response import ValidarApiKeyResponse
 from factories.config_factory import read_env, write_env, update_key
 from services.config_service import ConfigService
 from services.brand_service import (
@@ -92,6 +94,18 @@ async def test_slides_file(
 
 
 # --- API Keys (existente) ---
+
+@router.post("/config/validar", response_model=ValidarApiKeyResponse)
+@limiter.limit("10/minute")
+async def validar_api_key(
+    request: Request,
+    dto: ValidarApiKeyRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Ping trivial no provider pra confirmar que a chave funciona, ANTES de salvar."""
+    from services.api_key_validator_service import validar as _validar_api_key
+    return await _validar_api_key(dto.provider, dto.api_key)
+
 
 @router.post("/config")
 @limiter.limit("10/minute")

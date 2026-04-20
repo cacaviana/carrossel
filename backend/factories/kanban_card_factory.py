@@ -34,7 +34,7 @@ class KanbanCardFactory:
     @staticmethod
     def to_update_fields(dto) -> dict:
         fields = {}
-        for campo in ("title", "copy_text", "disciplina", "tecnologia", "priority"):
+        for campo in ("title", "copy_text", "disciplina", "tecnologia", "priority", "deadline"):
             valor = getattr(dto, campo, None)
             if valor is not None:
                 if campo == "priority":

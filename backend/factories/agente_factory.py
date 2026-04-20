@@ -36,7 +36,7 @@ AGENTES_LLM = [
     {
         "slug": "copywriter-post-unico",
         "nome": "Copywriter Post Unico",
-        "descricao": "Cria posts unicos (1080x1080): 1 ideia forte, texto grande, legenda rica no LinkedIn.",
+        "descricao": "Cria posts unicos (1080x1350): 1 ideia forte, texto grande, legenda rica no LinkedIn.",
         "tipo": "llm",
         "ordem_pipeline": None,
         "arquivo": "copywriter-post-unico.md",

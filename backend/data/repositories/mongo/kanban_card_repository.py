@@ -63,6 +63,22 @@ class KanbanCardRepository:
         return docs
 
     @staticmethod
+    def listar_com_deadline(tenant_id: str, inicio, fim) -> list[dict]:
+        """Retorna cards com deadline dentro do intervalo [inicio, fim] (datetime aware).
+        Usado pela view de calendario."""
+        db = get_mongo_db()
+        if db is None:
+            return []
+        query = {
+            "tenant_id": tenant_id,
+            "archived_at": None,
+            "deadline": {"$gte": inicio, "$lte": fim},
+        }
+        docs = list(db.kanban_cards.find(query))
+        docs.sort(key=lambda d: d.get("deadline") or d.get("created_at", ""))
+        return docs
+
+    @staticmethod
     def atualizar(card_id: str, tenant_id: str, fields: dict) -> dict | None:
         db = get_mongo_db()
         if db is None:

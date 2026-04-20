@@ -16,6 +16,7 @@ from routers import (
     conteudo, imagem, drive, config, agentes, historico, pipeline,
     foto_overlay, visual_preference, design_system, prompt_layer,
     auth, kanban_board, kanban_card, kanban_comment, kanban_notification,
+    tenant,
 )
 from middleware.rate_limiter import limiter, rate_limit_handler
 
@@ -53,6 +54,7 @@ app.include_router(kanban_board.router, prefix="/api")
 app.include_router(kanban_card.router, prefix="/api")
 app.include_router(kanban_comment.router, prefix="/api")
 app.include_router(kanban_notification.router, prefix="/api")
+app.include_router(tenant.router, prefix="/api")
 
 
 # Servir test_slides como arquivos estáticos (dev only)

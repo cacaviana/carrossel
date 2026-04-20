@@ -13,6 +13,33 @@ from services.kanban_notification_service import KanbanNotificationService
 class KanbanCardService:
 
     @staticmethod
+    def listar_calendario(tenant_id: str, mes: str) -> dict:
+        """Lista cards com deadline dentro do mes informado (YYYY-MM).
+        Retorna dict no formato de ListarCalendarioResponse."""
+        from datetime import datetime, timezone
+        from calendar import monthrange
+
+        ano, mes_num = int(mes[:4]), int(mes[5:7])
+        _, ultimo_dia = monthrange(ano, mes_num)
+        inicio = datetime(ano, mes_num, 1, 0, 0, 0, tzinfo=timezone.utc)
+        fim = datetime(ano, mes_num, ultimo_dia, 23, 59, 59, tzinfo=timezone.utc)
+
+        docs = KanbanCardRepository.listar_com_deadline(tenant_id, inicio, fim)
+
+        items = []
+        for d in docs:
+            items.append({
+                "card_id": str(d["_id"]),
+                "title": d["title"],
+                "deadline": d["deadline"],
+                "column_id": d["column_id"],
+                "priority": d["priority"],
+                "pipeline_id": d.get("pipeline_id"),
+                "pdf_url": d.get("pdf_url"),
+            })
+        return {"mes": mes, "total": len(items), "items": items}
+
+    @staticmethod
     def criar(dto, tenant_id: str, created_by: str):
         board = KanbanBoardRepository.garantir_board_padrao(tenant_id)
         board_id = str(board["_id"])

@@ -21,6 +21,7 @@ class CardResponse(BaseModel):
     image_urls: list[str] = []
     order_in_column: int = 0
     comment_count: int = 0
+    deadline: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     archived_at: Optional[datetime] = None

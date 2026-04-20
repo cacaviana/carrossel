@@ -55,12 +55,18 @@ class RefsFixasComDocs(TypedDict):
     _rng_seed: str
 
 
-def _escolher_par(pool: list[str], rng: random.Random) -> PoolRefs:
-    """Escolhe 2 refs distintas (ou 1 duplicada se pool so tem 1)."""
+def _escolher_par(pool: list[str], rng: random.Random, single: bool = False) -> PoolRefs:
+    """Escolhe refs do pool.
+
+    - single=True: sorteia UMA ref so (REF1==REF2). Evita o "frankenstein" de misturar
+      duas refs de estilos diferentes — cada ref ja e template completo (cores + layout).
+    - single=False (default): sorteia 2 refs distintas (ou 1 duplicada se pool tem 1).
+    """
     if not pool:
         return {"ref1_estilo": None, "ref2_composicao": None}
-    if len(pool) == 1:
-        return {"ref1_estilo": pool[0], "ref2_composicao": pool[0]}
+    if single or len(pool) == 1:
+        escolhida = rng.choice(pool)
+        return {"ref1_estilo": escolhida, "ref2_composicao": escolhida}
     par = rng.sample(pool, 2)
     return {"ref1_estilo": par[0], "ref2_composicao": par[1]}
 
@@ -81,7 +87,11 @@ def escolher_refs_fixas(brand_slug: str, pipeline_id: str) -> RefsFixasComDocs:
 
     return {
         "com_avatar": _escolher_par(pool_com, rng),
-        "sem_avatar": _escolher_par(pool_sem, rng),
+        # Slides sem avatar recebem UMA ref so (REF1==REF2). Cada ref da marca ja
+        # e template completo (cores + composicao). Misturar 2 refs de estilos
+        # diferentes produzia "frankenstein" — Gemini usava cores de uma e layout
+        # inventado. Com 1 ref unica, ele e forcado a seguir aquele template inteiro.
+        "sem_avatar": _escolher_par(pool_sem, rng, single=True),
         "_docs_com": docs_com,
         "_docs_sem": docs_sem,
         "_rng_seed": f"{brand_slug}:{pipeline_id}",

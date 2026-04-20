@@ -7,7 +7,7 @@
       "rules": {
         "max_caracteres": 3000,
         "hashtags_max": 5,
-        "specs": "Carrossel PDF ou imagens 1080x1350. Post unico 1080x1080. Legenda ate 3000 chars."
+        "specs": "Carrossel PDF ou imagens 1080x1350. Post unico 1080x1350. Legenda ate 3000 chars."
       },
       "brand_palette": {
         "cores": {
@@ -29,7 +29,7 @@
       "rules": {
         "max_caracteres": 2200,
         "hashtags_max": 30,
-        "specs": "Carrossel ate 10 imagens 1080x1350. Post unico 1080x1080. Reels cover 1080x1920."
+        "specs": "Carrossel ate 10 imagens 1080x1350. Post unico 1080x1350. Reels cover 1080x1920."
       },
       "brand_palette": {
         "cores": {
@@ -73,7 +73,7 @@
       "rules": {
         "max_caracteres": 63206,
         "hashtags_max": 10,
-        "specs": "Post unico 1080x1080. Legenda sem limite pratico."
+        "specs": "Post unico 1080x1350. Legenda sem limite pratico."
       },
       "brand_palette": {
         "cores": {

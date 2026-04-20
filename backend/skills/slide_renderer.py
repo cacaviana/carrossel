@@ -30,7 +30,7 @@ def _load_foto_criador() -> str | None:
 
 DIMS = {
     "carrossel": (1080, 1350),
-    "post_unico": (1080, 1080),
+    "post_unico": (1080, 1350),
     "thumbnail_youtube": (1280, 720),
 }
 

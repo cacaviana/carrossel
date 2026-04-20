@@ -36,7 +36,7 @@ VARIACOES = [
 
 MOODS = {
     "carrossel": "Vertical 1080x1350, deep dark atmosphere for text overlay",
-    "post_unico": "Square 1080x1080, centered composition for single impactful text",
+    "post_unico": "Vertical 1080x1350 (4:5), centered composition for single impactful text",
     "thumbnail_youtube": "Horizontal 1280x720, high contrast for YouTube thumbnail",
     "capa_reels": "Tall vertical 1080x1920, full-screen mobile atmosphere for Reels/Stories",
 }

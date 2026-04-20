@@ -9,7 +9,7 @@ from pathlib import Path
 
 FORMATS = {
     "carrossel": {"width": 1080, "height": 1350, "ratio": "4:5", "label": "portrait"},
-    "post_unico": {"width": 1080, "height": 1080, "ratio": "1:1", "label": "square"},
+    "post_unico": {"width": 1080, "height": 1350, "ratio": "4:5", "label": "portrait"},
     "thumbnail_youtube": {"width": 1280, "height": 720, "ratio": "16:9", "label": "landscape"},
     "capa_reels": {"width": 1080, "height": 1920, "ratio": "9:16", "label": "tall portrait"},
 }

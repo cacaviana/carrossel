@@ -38,6 +38,9 @@ def mock_mongo():
         "data.connections.mongo_connection.get_mongo_db",
         "data.repositories.mongo.auth_repository.get_mongo_db",
         "data.repositories.mongo.invite_repository.get_mongo_db",
+        "data.repositories.mongo.kanban_card_repository.get_mongo_db",
+        "data.repositories.mongo.kanban_board_repository.get_mongo_db",
+        "data.repositories.mongo.tenant_repository.get_mongo_db",
     ]
 
     patches = []
@@ -50,7 +53,7 @@ def mock_mongo():
         p.start()
 
     # Limpa collections relevantes
-    for coll in ("kanban_users", "kanban_invite_tokens", "brand_assets", "visual_preferences"):
+    for coll in ("kanban_users", "kanban_invite_tokens", "brand_assets", "visual_preferences", "tenants", "kanban_cards"):
         db[coll].drop()
     yield db
 

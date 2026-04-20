@@ -12,6 +12,80 @@ if not PROMPT_PATH.exists():
     PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "agents" / "art-director.md"
 
 
+def _todos_slides_viram_sem_avatar(avatar_mode: str, brand_palette: dict | None) -> bool:
+    """Decide se vale pular o Art Director pra esse pipeline.
+
+    Cenarios em que o short-circuit ajuda:
+    1. avatar_mode == 'sem' — intencional: sem pessoa em nenhum slide
+    2. avatar_mode != 'sem' MAS a brand nao tem REFS FISICAS no pool com_avatar
+       (nome iniciando por 'ref_ca_' em brand_assets) — todos os slides caem em
+       sem_avatar pelo fallback do pool.
+
+    Importante: consulta refs FISICAS, nao o padrao_visual textual. O padrao_visual
+    pode ter descricao com_avatar escrita mas nenhuma imagem real — o que gera
+    descricoes com pessoa que conflitam com ref sem_avatar que o Gemini recebe.
+    """
+    if avatar_mode == "sem":
+        return True
+    if not brand_palette:
+        return False
+    brand_slug = brand_palette.get("slug")
+    if not brand_slug:
+        return False
+    try:
+        from factories.imagem_factory import _load_ref_docs_by_pool
+        docs_com = _load_ref_docs_by_pool(brand_slug, "com_avatar")
+    except Exception:
+        return False  # em duvida, mantem fluxo normal
+    return not docs_com
+
+
+def _short_circuit_sem_avatar(copy: dict) -> dict:
+    """Gera prompts minimos pra slides sem avatar — sem chamar Claude.
+
+    Cada ref da marca ja eh template completo (fundo + card + logo + cores).
+    Descricoes longas do Art Director so conflitavam com a composicao da ref.
+    Aqui passamos APENAS o texto de cada slide; o image_generator preserva a
+    composicao da ref anexada.
+    """
+    slides = copy.get("slides", []) if isinstance(copy, dict) else []
+    prompts = []
+    for i, slide in enumerate(slides, start=1):
+        titulo = slide.get("titulo") or slide.get("title") or ""
+        corpo = slide.get("corpo") or slide.get("body") or slide.get("subtitle") or ""
+
+        # Minimo viavel: manda reproduzir a composicao da ref anexada, trocando so o texto.
+        # Sem prescricoes de fundo, cores ou layout (tudo isso vem da ref visual).
+        illustration = (
+            "REPLICATE the attached reference image pixel-for-pixel as closely as possible, "
+            "changing ONLY the text content. Everything else MUST match the reference:\n"
+            "\n"
+            "BACKGROUND: copy the EXACT background of the reference. "
+            "If the reference background is PURE WHITE, the output background MUST be PURE WHITE — "
+            "do NOT add gradients, color tints, textures, or decorative washes to the background.\n"
+            "\n"
+            "COLORS: use the EXACT RGB values from the reference. "
+            "If a colored box in the reference is a washed-out near-neutral pastel (barely visible, "
+            "almost gray-lavender or gray-mint), the output MUST also be washed-out near-neutral. "
+            "DO NOT saturate, DO NOT enhance, DO NOT make vivid, DO NOT shift hue. "
+            "A lavender box stays lavender (not purple/magenta). A mint box stays mint (not rose/lilac).\n"
+            "\n"
+            "COMPOSITION: preserve card positions, sizes, logo placement, arrows, footer — identical to the reference.\n"
+            "\n"
+            f"TEXT REPLACEMENT: replace only the text content with: titulo='{titulo}'"
+            + (f", corpo='{corpo}'" if corpo else "")
+            + "."
+        )
+        prompts.append({
+            "slide_index": i,
+            "prompt": titulo,
+            "illustration_description": illustration,
+            "pool_usado": "sem_avatar",
+            "composicao_usada": "copiar_da_referencia",
+        })
+    return {"prompts": prompts, "_provider": "short_circuit_sem_avatar"}
+
+
 async def executar(
     copy: dict,
     hook: str,
@@ -25,6 +99,11 @@ async def executar(
 
     Retorna: dict com prompts: [{slide_index, prompt}]
     """
+    # SHORT-CIRCUIT: pular Claude quando todos os slides vao acabar em sem_avatar
+    # (avatar_mode='sem' explicito OU brand sem refs com_avatar -> fallback pra sem).
+    if _todos_slides_viram_sem_avatar(avatar_mode, brand_palette):
+        return _short_circuit_sem_avatar(copy)
+
     system_prompt = PROMPT_PATH.read_text(encoding="utf-8") if PROMPT_PATH.exists() else ""
 
     # Separar feedback e cena anterior se existirem
