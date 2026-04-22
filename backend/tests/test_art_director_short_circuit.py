@@ -20,19 +20,25 @@ SAMPLE_COPY = {
 }
 
 
+def _run(coro):
+    """Helper: roda coroutine sincronamente no teste."""
+    return asyncio.run(coro)
+
+
 class TestShortCircuitDireto:
+    """Chamadas SEM brand_palette+pipeline_id caem no fallback generico (sem analise)."""
 
     def test_retorna_prompt_por_slide(self):
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         assert "prompts" in result
         assert len(result["prompts"]) == 2
 
     def test_marca_provider_como_short_circuit(self):
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         assert result["_provider"] == "short_circuit_sem_avatar"
 
     def test_cada_slide_tem_campos_esperados(self):
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         for p in result["prompts"]:
             assert "slide_index" in p
             assert "prompt" in p
@@ -41,51 +47,158 @@ class TestShortCircuitDireto:
             assert p["composicao_usada"] == "copiar_da_referencia"
 
     def test_illustration_inclui_titulo_e_corpo(self):
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         illu = result["prompts"][0]["illustration_description"]
         assert "VibeCoding" in illu
         assert "um mundo novo" in illu
 
     def test_illustration_manda_reproduzir_composicao_da_ref(self):
-        """Eh a regra central: composicao vem da ref, nao do art director."""
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        """Fallback sem analise: usa texto em ingles generico."""
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         illu = result["prompts"][0]["illustration_description"]
-        # Prompt agora em ingles (Gemini 3 Pro interpreta melhor)
         assert "replicate the attached reference" in illu.lower()
 
     def test_illustration_nao_prescreve_estilo_visual(self):
-        """Art director NAO deve descrever fundo/cores/gradiente/ondas — isso vem da ref."""
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        """Fallback nao descreve fundo/cores/gradiente — isso vem da ref."""
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         illu = result["prompts"][0]["illustration_description"].lower()
-        # Nao prescreve cores nem estilo
         for termo_proibido in ("gradient fullscreen", "fundo gradiente", "ondas decorativas", "background azul"):
             assert termo_proibido not in illu
 
     def test_illustration_reforca_preservar_cores(self):
-        """Reforco anti-arcoiris: Gemini tende a saturar cores pastel da ref.
-        Instrucoes firmes em ingles (Gemini 3 Pro entende melhor):
-        - BACKGROUND: pure white stays white, no gradient/tint
-        - COLORS: exact RGB, no saturation, no hue shift
-        """
-        result = _short_circuit_sem_avatar(SAMPLE_COPY)
+        """Fallback: PURE WHITE + DO NOT saturate/shift hue."""
+        result = _run(_short_circuit_sem_avatar(SAMPLE_COPY))
         illu = result["prompts"][0]["illustration_description"]
-        # Background pure white enforcement
         assert "PURE WHITE" in illu
-        assert "do NOT add gradients" in illu or "DO NOT add gradients" in illu
-        # Color preservation
-        assert "EXACT" in illu  # EXACT colors/background
+        assert "EXACT" in illu
         assert "DO NOT saturate" in illu
         assert "DO NOT shift hue" in illu
 
     def test_slide_sem_corpo_nao_quebra(self):
         copy = {"slides": [{"titulo": "so titulo"}]}
-        result = _short_circuit_sem_avatar(copy)
+        result = _run(_short_circuit_sem_avatar(copy))
         assert len(result["prompts"]) == 1
         assert "so titulo" in result["prompts"][0]["illustration_description"]
 
     def test_copy_vazio_retorna_prompts_vazios(self):
-        result = _short_circuit_sem_avatar({"slides": []})
+        result = _run(_short_circuit_sem_avatar({"slides": []}))
         assert result["prompts"] == []
+
+
+class TestShortCircuitComAnalise:
+    """Quando pipeline_id + brand_palette.slug estao presentes, usa analise_visual do Mongo.
+    Descricao adapta ao copy (blocos_conteudo)."""
+
+    def test_usa_analise_visual_pra_gerar_prompt(self, monkeypatch):
+        """Se o ref_analyzer retorna analise, o prompt gerado usa a paleta + composicao."""
+        import agents.art_director as ad
+
+        fake_analise = {
+            "composicao": "Fundo branco puro, badge outline topo-esquerdo, 3 caixas empilhadas.",
+            "paleta": {
+                "fundo": "#FFFFFF",
+                "caixa_1": "#E8E2F5",
+                "caixa_2": "#E6ECF5",
+                "caixa_3": "#E5F2EB",
+                "texto_principal": "#0A0A0A",
+            },
+            "blocos_conteudo": 3,
+            "tipo_estrutural": "slide_bullets",
+            "tom_cores": "neutro_pastel",
+        }
+
+        async def fake_obter_analise(brand_palette, pipeline_id, key):
+            return fake_analise
+
+        monkeypatch.setattr(ad, "_obter_analise_ref", fake_obter_analise)
+
+        result = _run(_short_circuit_sem_avatar(
+            SAMPLE_COPY,
+            brand_palette={"slug": "linkedin"},
+            pipeline_id="p-x",
+            claude_api_key="k",
+        ))
+        illu = result["prompts"][0]["illustration_description"]
+        # Tem composicao da analise
+        assert "badge outline topo-esquerdo" in illu
+        # Tem paleta com HEX
+        assert "#FFFFFF" in illu
+        assert "#E8E2F5" in illu
+        # Tem tom cromatico
+        assert "neutro_pastel" in illu
+        # Nao saturar/mudar matiz
+        assert "NAO transforme em cores vivas" in illu
+
+    def test_adapta_blocos_quando_copy_tem_menos_que_ref(self, monkeypatch):
+        """Ref tem 3 blocos mas copy tem 1 (so titulo) — deve mandar usar 1 bloco so."""
+        import agents.art_director as ad
+
+        fake_analise = {
+            "composicao": "3 caixas",
+            "paleta": {"fundo": "#FFFFFF"},
+            "blocos_conteudo": 3,
+            "tom_cores": "neutro_pastel",
+        }
+
+        async def fake_obter_analise(*a, **kw):
+            return fake_analise
+
+        monkeypatch.setattr(ad, "_obter_analise_ref", fake_obter_analise)
+
+        copy_so_titulo = {"slides": [{"titulo": "Vibecoding"}]}
+        result = _run(_short_circuit_sem_avatar(
+            copy_so_titulo,
+            brand_palette={"slug": "linkedin"},
+            pipeline_id="p-x",
+            claude_api_key="k",
+        ))
+        illu = result["prompts"][0]["illustration_description"]
+        assert "ADAPTACAO DE BLOCOS" in illu
+        assert "APENAS 1 bloco" in illu
+        assert "NAO adicione caixas vazias" in illu
+
+    def test_adapta_blocos_quando_copy_tem_mais_que_ref(self, monkeypatch):
+        """Ref tem 1 bloco mas copy tem titulo+corpo (2 blocos) — expande a estrutura."""
+        import agents.art_director as ad
+
+        fake_analise = {
+            "composicao": "capa impacto",
+            "paleta": {"fundo": "#FFFFFF"},
+            "blocos_conteudo": 1,
+            "tom_cores": "vibrante",
+        }
+
+        async def fake_obter_analise(*a, **kw):
+            return fake_analise
+
+        monkeypatch.setattr(ad, "_obter_analise_ref", fake_obter_analise)
+
+        result = _run(_short_circuit_sem_avatar(
+            SAMPLE_COPY,  # 2 slides, cada um com titulo+corpo
+            brand_palette={"slug": "linkedin"},
+            pipeline_id="p-x",
+            claude_api_key="k",
+        ))
+        illu = result["prompts"][0]["illustration_description"]
+        assert "Expanda a estrutura" in illu
+
+    def test_sem_pipeline_id_cai_no_fallback(self, monkeypatch):
+        """Se pipeline_id eh None, nao consulta Mongo — cai no fallback generico."""
+        import agents.art_director as ad
+
+        async def should_not_be_called(*a, **kw):
+            raise AssertionError("nao deveria consultar analise sem pipeline_id")
+
+        # _obter_analise_ref checa pipeline_id antes de chamar o resto
+        result = _run(_short_circuit_sem_avatar(
+            SAMPLE_COPY,
+            brand_palette={"slug": "linkedin"},
+            pipeline_id=None,
+            claude_api_key="k",
+        ))
+        illu = result["prompts"][0]["illustration_description"]
+        # Fallback usa ingles "PURE WHITE", prompt com analise usa portugues
+        assert "PURE WHITE" in illu
 
 
 class TestQuandoDeveShortCircuit:
@@ -149,6 +262,29 @@ class TestQuandoDeveShortCircuit:
 
         brand = {"slug": "linkedin"}
         assert _todos_slides_viram_sem_avatar("livre", brand) is False
+
+    def test_thumbnail_youtube_nunca_short_circuit(self, monkeypatch):
+        """RN-005: thumbnail_youtube SEMPRE requer avatar. Mesmo com avatar_mode=sem
+        ou brand sem refs com_avatar, o art_director precisa rodar pra dirigir a cena
+        com o avatar disponivel (senao Gemini inventa cenario aleatorio)."""
+        import factories.imagem_factory as factory_mod
+
+        def fake_load(slug, pool):
+            return []  # sem refs em nenhum pool
+        monkeypatch.setattr(factory_mod, "_load_ref_docs_by_pool", fake_load)
+
+        brand = {"slug": "linkedin"}
+        # Mesmo em avatar_mode=sem, thumbnail nao pula
+        assert _todos_slides_viram_sem_avatar("sem", brand, formato="thumbnail_youtube") is False
+        # Mesmo em livre com brand sem refs com_avatar
+        assert _todos_slides_viram_sem_avatar("livre", brand, formato="thumbnail_youtube") is False
+        # Mesmo sem brand_palette
+        assert _todos_slides_viram_sem_avatar("sem", None, formato="thumbnail_youtube") is False
+
+    def test_post_unico_com_avatar_sem_segue_regra_normal(self, monkeypatch):
+        """Para post_unico, avatar_mode=sem ainda faz short-circuit (comportamento normal)."""
+        assert _todos_slides_viram_sem_avatar("sem", None, formato="post_unico") is True
+        assert _todos_slides_viram_sem_avatar("sem", None, formato="carrossel") is True
 
 
 class TestExecutarComSemAvatar:

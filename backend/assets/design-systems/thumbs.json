@@ -1,0 +1,37 @@
+{
+  "nome": "Thumbs",
+  "slug": "thumbs",
+  "comunicacao": {
+    "persona": "",
+    "tom": "",
+    "linguagem": "",
+    "publico": "Escola de TI",
+    "palavras_proibidas": []
+  },
+  "cores": {
+    "fundo": "#0A0A0F",
+    "gradiente_de": "#1a0a2e",
+    "gradiente_ate": "#0a1628",
+    "card": "#12121A",
+    "card_borda": "rgba(167,139,250,0.2)",
+    "acento_principal": "#A78BFA",
+    "acento_secundario": "#34D399",
+    "acento_terciario": "#FBBF24",
+    "acento_negativo": "#F87171",
+    "texto_principal": "#FFFFFF",
+    "texto_secundario": "#9896A3",
+    "texto_muted": "#5A5A66"
+  },
+  "elementos": {
+    "badge_topo": "Thumbs",
+    "badge_topo_cor": "#A78BFA",
+    "rodape_nome": "Thumbs"
+  },
+  "_loaded": true,
+  "dna": {
+    "estilo": "sci-fi tecnológico dinâmico espacial",
+    "cores": "preto azul branco cinza",
+    "tipografia": "bold sans-serif glitch distorcida",
+    "elementos": "asteroides astronauta OVNI estrelas"
+  }
+}

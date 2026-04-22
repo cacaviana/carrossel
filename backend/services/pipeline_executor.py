@@ -430,6 +430,11 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None, avatar_
         except Exception:
             pass
 
+    # Garante que brand_palette_dict tem o slug (necessario pro art_director buscar
+    # a analise visual da ref escolhida no Mongo).
+    if brand_palette_dict is not None and brand_slug and "slug" not in brand_palette_dict:
+        brand_palette_dict = {**brand_palette_dict, "slug": brand_slug}
+
     return await executar_art_director(
         copy=copy,
         hook="",
@@ -437,6 +442,7 @@ async def _exec_art_director(context, formato, api_key, brand_slug=None, avatar_
         brand_palette=brand_palette_dict,
         claude_api_key=api_key,
         avatar_mode=avatar_mode,
+        pipeline_id=context.get("_pipeline_id"),
     )
 
 
@@ -623,7 +629,7 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
 
                 try:
                     print(f"[pass2] slide {position}: corrigindo avatar... (img len={len(img) if isinstance(img, str) else 'nao-str'})")
-                    result = await corrigir_avatar(img, brand_slug, gemini_api_key)
+                    result = await corrigir_avatar(img, brand_slug, gemini_api_key, formato=formato)
                     if result and len(result) > 100:
                         images[i] = result
                         print(f"[pass2] slide {position}: OK (nova img len={len(result)})")

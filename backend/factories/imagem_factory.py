@@ -66,12 +66,13 @@ def _nome_match_pool(nome: str, pool: str) -> bool:
 
 
 class RefDoc:
-    """Ref com metadados (base64 + layout_tag)."""
-    __slots__ = ("b64", "layout_tag")
+    """Ref com metadados (base64 + layout_tag + nome)."""
+    __slots__ = ("b64", "layout_tag", "nome")
 
-    def __init__(self, b64: str, layout_tag: str | None):
+    def __init__(self, b64: str, layout_tag: str | None, nome: str | None = None):
         self.b64 = b64
         self.layout_tag = layout_tag
+        self.nome = nome
 
 
 def _load_references_by_pool(brand_slug: str, pool: str) -> list[str]:
@@ -102,6 +103,7 @@ def _load_ref_docs_by_pool(brand_slug: str, pool: str) -> list[RefDoc]:
             refs.append(RefDoc(
                 b64=_data_uri_to_raw(data_uri),
                 layout_tag=doc.get("layout_tag"),
+                nome=nome,
             ))
 
     return refs[:5]
@@ -445,15 +447,16 @@ def build_payload(
     if ref1_estilo:
         from utils.dimensions import get_prompt_size_str
 
-        # Decidir se este slide vai ter a pessoa (avatar)
+        # PASS 1: NAO passa avatar ao Gemini.
+        # O avatar eh aplicado no PASS 2 (services/avatar_fixer.corrigir_avatar),
+        # que existe justamente pra trocar o rosto mantendo composicao/aspect.
+        # Passar avatar no Pass 1 causava 2 problemas:
+        #   1. Avatares retrato puxavam o aspect ratio (Gemini gerava 4:5 em vez
+        #      de 16:9 pra thumbnail, por exemplo)
+        #   2. Gemini misturava os 3 avatares em uma face Frankenstein
+        # Pass 2 recebe a imagem gerada + avatares e substitui o rosto cirurgicamente.
         is_capa_ou_cta = (position == 1 or position == total)
-        include_avatar = bool(avatar_images) and avatar_mode != "sem" and (
-            avatar_mode == "sim" or
-            (avatar_mode in ("livre", "capa") and is_capa_ou_cta)
-        )
-        # Se pool escolhido pra esse slide eh sem_avatar, NAO inclui avatar
-        if pool_atual == "sem_avatar":
-            include_avatar = False
+        include_avatar = False
 
         # Injeta REF1 (estilo) e REF2 (composicao) na ordem — ordem importa
         parts.append({"inline_data": {"mime_type": "image/png", "data": ref1_estilo}})
@@ -496,7 +499,19 @@ def build_payload(
         illustration = slide.get("illustration_description", "")
 
         # === PROMPT MONTADO — estrutura validada pelo usuario ===
-        p = f"Create a {size_str} social media image.\n\n"
+        # Extrai ratio puro (ex: "16:9") do size_str "1280x720px, 16:9 landscape"
+        ratio_puro = size_str.split(", ")[1].split(" ")[0] if ", " in size_str else "4:5"
+        p = (
+            f"Create a {size_str} social media image.\n\n"
+            f"[CRITICAL OUTPUT SIZE — MANDATORY]\n"
+            f"Final image dimensions MUST be EXACTLY {size_str}. "
+            f"Aspect ratio is {ratio_puro} — NON-NEGOTIABLE.\n"
+            f"The attached reference images are STYLE GUIDES ONLY. "
+            f"DO NOT copy the aspect ratio or dimensions of the references.\n"
+            f"If a reference is landscape but output must be portrait (or vice-versa), "
+            f"adapt the composition to fit the required {ratio_puro} frame — "
+            f"keep the visual style but change the layout orientation.\n\n"
+        )
 
         # === IMAGENS ANEXADAS (map de ordem pra Gemini saber o que eh cada uma)
         if include_avatar:

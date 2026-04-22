@@ -12,7 +12,30 @@ if not PROMPT_PATH.exists():
     PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "agents" / "art-director.md"
 
 
-def _todos_slides_viram_sem_avatar(avatar_mode: str, brand_palette: dict | None) -> bool:
+def _carregar_dna_agregado(brand_palette: dict | None) -> dict | None:
+    """Busca o dna_agregado da brand no Mongo (gerado por dna_aggregator_service).
+    Retorna None se nao tiver — fluxo cai pro DNA antigo como fallback."""
+    if not brand_palette:
+        return None
+    # Se ja veio no brand_palette dict, usar direto
+    if "dna_agregado" in brand_palette:
+        return brand_palette.get("dna_agregado")
+    brand_slug = brand_palette.get("slug")
+    if not brand_slug:
+        return None
+    try:
+        from data.connections.mongo_connection import get_mongo_db
+        db = get_mongo_db()
+        if db is None:
+            return None
+        doc = db.brands.find_one({"slug": brand_slug}, {"dna_agregado": 1})
+        return (doc or {}).get("dna_agregado")
+    except Exception as e:
+        print(f"[art_director] erro ao carregar dna_agregado: {e}")
+        return None
+
+
+def _todos_slides_viram_sem_avatar(avatar_mode: str, brand_palette: dict | None, formato: str | None = None) -> bool:
     """Decide se vale pular o Art Director pra esse pipeline.
 
     Cenarios em que o short-circuit ajuda:
@@ -21,10 +44,15 @@ def _todos_slides_viram_sem_avatar(avatar_mode: str, brand_palette: dict | None)
        (nome iniciando por 'ref_ca_' em brand_assets) — todos os slides caem em
        sem_avatar pelo fallback do pool.
 
-    Importante: consulta refs FISICAS, nao o padrao_visual textual. O padrao_visual
-    pode ter descricao com_avatar escrita mas nenhuma imagem real — o que gera
-    descricoes com pessoa que conflitam com ref sem_avatar que o Gemini recebe.
+    EXCECAO: formato 'thumbnail_youtube' sempre requer avatar (RN-005) — nunca
+    short-circuit. Mesmo que a brand nao tenha ref com_avatar cadastrada, o
+    art_director precisa rodar pra dirigir a cena com o avatar disponivel
+    (senao Gemini inventa cenario aleatorio, tipo naves ET).
+
+    Importante: consulta refs FISICAS, nao o padrao_visual textual.
     """
+    if formato == "thumbnail_youtube":
+        return False
     if avatar_mode == "sem":
         return True
     if not brand_palette:
@@ -40,42 +68,32 @@ def _todos_slides_viram_sem_avatar(avatar_mode: str, brand_palette: dict | None)
     return not docs_com
 
 
-def _short_circuit_sem_avatar(copy: dict) -> dict:
-    """Gera prompts minimos pra slides sem avatar — sem chamar Claude.
+async def _short_circuit_sem_avatar(
+    copy: dict,
+    brand_palette: dict | None = None,
+    pipeline_id: str | None = None,
+    claude_api_key: str = "",
+) -> dict:
+    """Gera prompts pra slides sem avatar usando a ANALISE VISUAL pre-computada da ref.
 
-    Cada ref da marca ja eh template completo (fundo + card + logo + cores).
-    Descricoes longas do Art Director so conflitavam com a composicao da ref.
-    Aqui passamos APENAS o texto de cada slide; o image_generator preserva a
-    composicao da ref anexada.
+    Fluxo:
+    1. Sorteia qual ref sera usada (determinismo por pipeline_id)
+    2. Busca analise_visual da ref no Mongo (cache). Se nao tem, chama Claude Vision uma vez.
+    3. Usa a analise (composicao + paleta + blocos_conteudo) pra gerar illustration
+       adaptada ao copy — evita caixas vazias quando ref tem 3 blocos mas copy tem 1.
+
+    Fallback: se nao consegue analise (sem pipeline_id, brand sem slug, Mongo down),
+    usa illustration minima generica (apenas "replique a ref anexada").
     """
     slides = copy.get("slides", []) if isinstance(copy, dict) else []
+    ref_analise = await _obter_analise_ref(brand_palette, pipeline_id, claude_api_key)
+
     prompts = []
     for i, slide in enumerate(slides, start=1):
         titulo = slide.get("titulo") or slide.get("title") or ""
         corpo = slide.get("corpo") or slide.get("body") or slide.get("subtitle") or ""
 
-        # Minimo viavel: manda reproduzir a composicao da ref anexada, trocando so o texto.
-        # Sem prescricoes de fundo, cores ou layout (tudo isso vem da ref visual).
-        illustration = (
-            "REPLICATE the attached reference image pixel-for-pixel as closely as possible, "
-            "changing ONLY the text content. Everything else MUST match the reference:\n"
-            "\n"
-            "BACKGROUND: copy the EXACT background of the reference. "
-            "If the reference background is PURE WHITE, the output background MUST be PURE WHITE — "
-            "do NOT add gradients, color tints, textures, or decorative washes to the background.\n"
-            "\n"
-            "COLORS: use the EXACT RGB values from the reference. "
-            "If a colored box in the reference is a washed-out near-neutral pastel (barely visible, "
-            "almost gray-lavender or gray-mint), the output MUST also be washed-out near-neutral. "
-            "DO NOT saturate, DO NOT enhance, DO NOT make vivid, DO NOT shift hue. "
-            "A lavender box stays lavender (not purple/magenta). A mint box stays mint (not rose/lilac).\n"
-            "\n"
-            "COMPOSITION: preserve card positions, sizes, logo placement, arrows, footer — identical to the reference.\n"
-            "\n"
-            f"TEXT REPLACEMENT: replace only the text content with: titulo='{titulo}'"
-            + (f", corpo='{corpo}'" if corpo else "")
-            + "."
-        )
+        illustration = _build_illustration_com_analise(titulo, corpo, ref_analise)
         prompts.append({
             "slide_index": i,
             "prompt": titulo,
@@ -86,6 +104,106 @@ def _short_circuit_sem_avatar(copy: dict) -> dict:
     return {"prompts": prompts, "_provider": "short_circuit_sem_avatar"}
 
 
+async def _obter_analise_ref(
+    brand_palette: dict | None,
+    pipeline_id: str | None,
+    claude_api_key: str,
+) -> dict | None:
+    """Descobre qual ref sera usada e retorna sua analise_visual (com cache)."""
+    if not brand_palette or not pipeline_id:
+        return None
+    brand_slug = brand_palette.get("slug")
+    if not brand_slug:
+        return None
+    try:
+        from factories.refs_selector import escolher_refs_fixas, nome_ref_escolhida
+        from services.ref_analyzer_service import obter_ou_analisar
+
+        refs_fixas = escolher_refs_fixas(brand_slug, pipeline_id)
+        ref_nome = nome_ref_escolhida(refs_fixas, "sem_avatar")
+        if not ref_nome:
+            return None
+        return await obter_ou_analisar(brand_slug, ref_nome, claude_api_key)
+    except Exception as e:
+        print(f"[short_circuit] falha ao obter analise da ref: {e}")
+        return None
+
+
+def _build_illustration_com_analise(
+    titulo: str,
+    corpo: str,
+    analise: dict | None,
+) -> str:
+    """Monta illustration_description usando a analise pre-computada da ref.
+
+    Sem analise -> instrucao generica (mesma do caminho anterior).
+    Com analise -> adapta ao copy: se copy tem 1 texto mas ref tem 3 blocos,
+    manda usar apenas 1 bloco (evita caixas vazias).
+    """
+    partes_texto = []
+    if titulo:
+        partes_texto.append(f"titulo='{titulo}'")
+    if corpo:
+        partes_texto.append(f"corpo='{corpo}'")
+    texto_str = ", ".join(partes_texto) if partes_texto else "(sem texto)"
+    blocos_copy = sum(1 for x in (titulo, corpo) if x)
+
+    # Sem analise: versao anterior (generica, pede pra replicar ref literal)
+    if not analise:
+        return (
+            "REPLICATE the attached reference image pixel-for-pixel as closely as possible, "
+            "changing ONLY the text content. Everything else MUST match the reference:\n\n"
+            "BACKGROUND: copy the EXACT background. If reference is PURE WHITE, output MUST be PURE WHITE — "
+            "no gradients, tints, textures.\n\n"
+            "COLORS: use EXACT RGB values from reference. If washed-out pastel, stay washed-out. "
+            "DO NOT saturate, DO NOT shift hue. Lavender stays lavender (not purple). Mint stays mint (not rose).\n\n"
+            "COMPOSITION: preserve card positions, logo, arrows, footer — identical.\n\n"
+            f"TEXT REPLACEMENT: {texto_str}."
+        )
+
+    composicao = analise.get("composicao") or ""
+    paleta = analise.get("paleta") or {}
+    blocos_ref = analise.get("blocos_conteudo") or 1
+    tom = analise.get("tom_cores") or "neutro_pastel"
+
+    # Paleta formatada
+    paleta_parts = []
+    for k, v in paleta.items():
+        if v and v != "null":
+            paleta_parts.append(f"{k}={v}")
+    paleta_str = "; ".join(paleta_parts) if paleta_parts else "(use cores exatas da ref)"
+
+    # Regra de adaptacao quantidade de blocos
+    adaptacao = ""
+    if blocos_copy < blocos_ref:
+        adaptacao = (
+            f"\nADAPTACAO DE BLOCOS: a referencia tem {blocos_ref} blocos de conteudo mas este slide "
+            f"so tem {blocos_copy} bloco(s). Use APENAS {blocos_copy} bloco(s) centralizado(s). "
+            f"NAO adicione caixas vazias ou placeholders."
+        )
+    elif blocos_copy > blocos_ref:
+        adaptacao = (
+            f"\nADAPTACAO DE BLOCOS: a referencia tem {blocos_ref} blocos mas este slide tem {blocos_copy}. "
+            f"Expanda a estrutura mantendo o estilo visual."
+        )
+
+    return (
+        f"Reproduzir fielmente a composicao da imagem de referencia anexada, "
+        f"trocando APENAS o texto.\n\n"
+        f"COMPOSICAO DA REFERENCIA (use como template):\n{composicao}\n\n"
+        f"PALETA EXATA (use esses HEX, nao mude, nao saturar, nao mudar matiz):\n{paleta_str}\n\n"
+        f"TOM CROMATICO: {tom}. "
+        f"Se '{tom}' = 'neutro_pastel', as cores das caixas sao quase neutras (barely visible). "
+        f"NAO transforme em cores vivas/vibrantes."
+        f"{adaptacao}\n\n"
+        f"TEXTO A USAR: {texto_str}.\n\n"
+        f"REGRAS:\n"
+        f"- Fundo EXATAMENTE como descrito na paleta (se fundo=#FFFFFF, manter branco puro sem gradiente)\n"
+        f"- Posicao de cards, logo e elementos: identica a ref\n"
+        f"- Fontes: preservar peso e estilo da ref"
+    )
+
+
 async def executar(
     copy: dict,
     hook: str,
@@ -94,15 +212,29 @@ async def executar(
     visual_memory: str | None = None,
     claude_api_key: str = "",
     avatar_mode: str = "livre",
+    pipeline_id: str | None = None,
 ) -> dict:
     """Executa o Art Director: gera prompt de imagem detalhado por slide.
 
     Retorna: dict com prompts: [{slide_index, prompt}]
     """
-    # SHORT-CIRCUIT: pular Claude quando todos os slides vao acabar em sem_avatar
+    # KILL-SWITCH (DEV/TEST): ART_DIRECTOR_DISABLED=1 pula completamente o Claude/OpenAI
+    # e usa o short-circuit minimalista (so manda "reproduza a ref + use este texto").
+    # Util pra isolar se o problema esta no art_director ou no image_generator/Gemini.
+    if os.getenv("ART_DIRECTOR_DISABLED", "0") == "1":
+        return await _short_circuit_sem_avatar(
+            copy, brand_palette=brand_palette,
+            pipeline_id=pipeline_id, claude_api_key=claude_api_key,
+        )
+
+    # SHORT-CIRCUIT: pular Claude (modo texto) quando todos os slides vao acabar em sem_avatar
     # (avatar_mode='sem' explicito OU brand sem refs com_avatar -> fallback pra sem).
-    if _todos_slides_viram_sem_avatar(avatar_mode, brand_palette):
-        return _short_circuit_sem_avatar(copy)
+    # EXCECAO: thumbnail_youtube sempre precisa de avatar (RN-005), nunca short-circuit.
+    if _todos_slides_viram_sem_avatar(avatar_mode, brand_palette, formato=formato):
+        return await _short_circuit_sem_avatar(
+            copy, brand_palette=brand_palette,
+            pipeline_id=pipeline_id, claude_api_key=claude_api_key,
+        )
 
     system_prompt = PROMPT_PATH.read_text(encoding="utf-8") if PROMPT_PATH.exists() else ""
 
@@ -112,6 +244,33 @@ async def executar(
 
     user_prompt = f"Copy completa:\n{json.dumps(copy, ensure_ascii=False, indent=2)}\n"
     user_prompt += f"Formato: {formato}\n"
+
+    # === DNA AGREGADO da brand (extraido das refs reais via dna_aggregator) ===
+    # Substitui o DNA antigo (que podia estar sujo/alucinado) com analise verdadeira
+    # cruzando todas as refs. Define o que e CONSTANTE (identidade) vs LIVRE (variacoes).
+    dna_agregado = _carregar_dna_agregado(brand_palette)
+    if dna_agregado:
+        constantes = dna_agregado.get("constantes") or {}
+        variaveis = dna_agregado.get("variaveis_livres") or {}
+        n_refs = dna_agregado.get("n_refs_analisadas", 0)
+        user_prompt += (
+            f"\n=== DNA AGREGADO DA MARCA (extraido de {n_refs} refs reais) ===\n"
+            f"CONSTANTES (identidade — manter SEMPRE):\n"
+            f"  - paleta principal: {', '.join(constantes.get('paleta', []))}\n"
+            f"  - tipografia: {constantes.get('tipografia', '')}\n"
+            f"  - tom_cores: {constantes.get('tom_cores', '')}\n"
+            f"  - elementos recorrentes: {', '.join(constantes.get('elementos_recorrentes', []))}\n"
+            f"  - estilo geral: {constantes.get('estilo_geral', '')}\n"
+            f"VARIAVEIS LIVRES (espaco criativo — pode variar):\n"
+            f"  - fundos exemplos: {'; '.join(variaveis.get('fundo', [])[:3])}\n"
+            f"  - composicoes: {'; '.join(variaveis.get('composicao', [])[:3])}\n"
+            f"REGRA: SIGA RIGOROSAMENTE as constantes. Para fundo/composicao, use as "
+            f"variaveis como inspiracao mas adapte ao tema do post atual. "
+            f"NAO inclua elementos que nao estao listados (ex: nao adicionar astronauta "
+            f"se nao esta nos elementos recorrentes).\n"
+            f"=== FIM DNA AGREGADO ===\n"
+        )
+
 
     # Se tem feedback de rejeição, PRESERVAR cena e só ajustar o que o usuario pediu
     if feedback and cena_anterior:

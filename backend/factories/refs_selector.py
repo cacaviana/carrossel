@@ -98,6 +98,22 @@ def escolher_refs_fixas(brand_slug: str, pipeline_id: str) -> RefsFixasComDocs:
     }
 
 
+def nome_ref_escolhida(refs_fixas: dict | None, pool: str) -> str | None:
+    """Retorna o nome do asset (ex: 'ref_sa_POST__07') da ref sorteada pra esse pool.
+    Usado pra localizar a ref no Mongo quando precisamos da analise_visual dela."""
+    if not refs_fixas:
+        return None
+    pool_refs = refs_fixas.get(pool) or {}
+    b64_alvo = pool_refs.get("ref1_estilo")
+    if not b64_alvo:
+        return None
+    docs_key = "_docs_com" if pool == "com_avatar" else "_docs_sem"
+    for d in refs_fixas.get(docs_key, []):
+        if d.b64 == b64_alvo:
+            return getattr(d, "nome", None)
+    return None
+
+
 def decidir_pool(avatar_mode: str, position: int, total: int) -> str:
     """Decide qual pool de refs usar baseado em avatar_mode + posicao do slide.
 

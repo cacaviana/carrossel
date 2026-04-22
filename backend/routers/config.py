@@ -550,6 +550,35 @@ async def regenerate_dna(
         raise HTTPException(status_code=500, detail=f"Erro ao gerar DNA: {str(e)}")
 
 
+@router.post("/brands/{slug}/dna/regenerate-aggregated")
+@limiter.limit("3/minute")
+async def regenerate_dna_aggregated(
+    request: Request,
+    slug: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Gera o DNA AGREGADO da marca cruzando as analises de todas as refs.
+
+    Diferente do /dna/regenerate (que analisa 1 imagem isolada), este:
+    - Analisa cada ref individualmente (lazy, salva em brand_assets.analise_visual)
+    - Cruza as N analises pra extrair traços comuns (constantes) vs variaveis livres
+    - Salva em brand.dna_agregado
+
+    Use Gemini (Claude pode estar fora). Retorna o DNA agregado.
+    """
+    from services.dna_aggregator_service import gerar_dna_agregado
+
+    claude_key = os.getenv("CLAUDE_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    try:
+        result = await gerar_dna_agregado(slug, claude_key, gemini_key)
+        if not result:
+            raise HTTPException(status_code=500, detail="Falha ao agregar DNA — sem refs ou LLM falhou")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro: {str(e)}")
+
+
 @router.post("/descrever-referencia")
 @limiter.limit("10/minute")
 async def descrever_referencia(

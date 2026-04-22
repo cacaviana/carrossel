@@ -17,11 +17,16 @@ async def corrigir_avatar(
     imagem_b64: str,
     brand_slug: str,
     gemini_api_key: str = "",
+    formato: str = "carrossel",
 ) -> str:
     """Troca a pessoa na imagem pelo avatar da marca.
 
     Manda 3 fotos do avatar como referencia multi-angulo pra Gemini
     entender a identidade e editar apenas o rosto da pessoa na imagem.
+
+    Args:
+        formato: 'carrossel' | 'post_unico' | 'capa_reels' | 'thumbnail_youtube'
+                 Usado pra preservar o aspectRatio da imagem original.
     """
     avatars = _load_avatars(brand_slug)
     if not avatars:
@@ -88,15 +93,20 @@ async def corrigir_avatar(
     )
     parts.append({"text": prompt})
 
+    # Preservar aspectRatio por formato — antes era hardcoded "4:5" e isso
+    # convertia thumbnail 16:9 em 4:5 na passagem do Pass 2.
+    from utils.dimensions import get_dims
+    dims = get_dims(formato)
+    aspect_map = {"4:5": "4:5", "1:1": "1:1", "16:9": "16:9", "9:16": "9:16"}
+    gemini_aspect = aspect_map.get(dims.get("ratio", "4:5"), "4:5")
+
     payload = {
         "contents": [{"parts": parts}],
         "generationConfig": {
             "responseModalities": ["IMAGE", "TEXT"],
             "temperature": 0.1,  # baixo pra nao improvisar
-            # PASS2 mantem o mesmo aspect ratio da imagem original (4:5 pra carrossel).
-            # Default carrossel pq o avatar_fixer nao recebe formato — seguro assumir.
             "imageConfig": {
-                "aspectRatio": "4:5",
+                "aspectRatio": gemini_aspect,
             },
         },
     }
