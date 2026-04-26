@@ -117,6 +117,12 @@ async def executar_proxima_etapa(pipeline_id: str, tenant_id: str = "") -> dict:
         # Se content_critic, pipeline completo
         if agente == "content_critic":
             await atualizar_pipeline(pipeline_id, {"status": "completo"})
+            # Hook de wiring: pipeline formato=anuncio popula AnuncioModel
+            if formato == "anuncio":
+                try:
+                    await _finalizar_anuncio(pipeline_id, tenant_id)
+                except Exception as hook_err:
+                    print(f"[pipeline] Hook on_pipeline_completed falhou: {hook_err}")
         else:
             await atualizar_pipeline(pipeline_id, {"status": "aguardando_aprovacao"})
 
@@ -139,7 +145,63 @@ async def executar_proxima_etapa(pipeline_id: str, tenant_id: str = "") -> dict:
             "finished_at": finished_at,
         })
         await atualizar_pipeline(pipeline_id, {"status": "erro"})
+        # Hook de wiring: pipeline formato=anuncio deve refletir erro no AnuncioModel
+        if formato == "anuncio":
+            try:
+                from services.anuncio_pipeline_service import AnuncioPipelineService
+                await AnuncioPipelineService.on_pipeline_erro(
+                    pipeline_id=pipeline_id,
+                    tenant_id=tenant_id,
+                    feedback=f"{type(e).__name__}: {str(e)[:500]}",
+                )
+            except Exception as hook_err:
+                print(f"[pipeline] Hook on_pipeline_erro falhou: {hook_err}")
         raise
+
+
+async def _finalizar_anuncio(pipeline_id: str, tenant_id: str) -> None:
+    """Hook chamado quando um pipeline formato=anuncio termina com sucesso.
+
+    Le as saidas das etapas (copywriter + image_generator + brand_gate) e repassa
+    pro AnuncioPipelineService que popula o AnuncioModel (image_url, copy, status).
+    """
+    from services.anuncio_pipeline_service import AnuncioPipelineService
+
+    # Busca todas as saidas ja persistidas
+    etapas = await buscar_etapas_anteriores(pipeline_id, 999)
+    saidas: dict = {}
+    image_url: str | None = None
+
+    for step in etapas:
+        agente = step.get("agente", "")
+        saida_raw = step.get("saida")
+        if not saida_raw:
+            continue
+        try:
+            parsed = json.loads(saida_raw) if isinstance(saida_raw, str) else saida_raw
+        except (json.JSONDecodeError, TypeError):
+            parsed = saida_raw
+        saidas[agente] = parsed
+
+        # image_generator pode retornar imagens[0].image_url ou paths relativos
+        if agente == "image_generator" and isinstance(parsed, dict):
+            imgs = parsed.get("imagens") or parsed.get("images") or []
+            if isinstance(imgs, list) and imgs:
+                primeira = imgs[0]
+                if isinstance(primeira, dict):
+                    image_url = (
+                        primeira.get("image_url")
+                        or primeira.get("url")
+                        or primeira.get("path")
+                        or primeira.get("image_base64")
+                    )
+
+    await AnuncioPipelineService.on_pipeline_completed(
+        pipeline_id=pipeline_id,
+        tenant_id=tenant_id,
+        image_url=image_url,
+        saidas_agentes=saidas,
+    )
 
 
 def _build_context(etapas_anteriores: list[dict]) -> dict:
@@ -335,12 +397,25 @@ async def _exec_copywriter(context, formato, api_key, brand_slug=None):
     m = re.search(r'\[MAX\s+(\d+)\s+SLIDES?\]', tema_str, re.IGNORECASE)
     if m:
         briefing["_max_slides"] = int(m.group(1))
-    return await executar_copywriter(
+    # Anuncio: extrair CTA travado pelo user do tema (formato: "[CTA:texto]").
+    # Se presente, o copywriter ainda gera headline+descricao mas o cta e fixado.
+    cta_user = None
+    if formato == "anuncio":
+        m_cta = re.search(r'\[CTA:([^\]]+)\]', tema_str)
+        if m_cta:
+            cta_user = m_cta.group(1).strip()[:30]
+    result = await executar_copywriter(
         briefing=briefing,
         formato=formato,
         feedback=feedback,
         claude_api_key=api_key,
     )
+    if cta_user:
+        # Sobrescreve o cta gerado pelo LLM. O fluxo a frente (image_generator,
+        # on_pipeline_completed) vai ler dessa saida, entao basta forcar aqui.
+        result["cta"] = cta_user
+        result["_cta_user"] = True
+    return result
 
 
 async def _exec_hook_specialist(context, formato, api_key, brand_slug=None):
@@ -464,6 +539,17 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
                 slides_raw = val
                 break
 
+    # Anuncio = single cover slide. O copywriter retorna flat {headline, descricao, cta},
+    # entao montamos 1 slide tipo 'cover' carregando o cta pra que o prompt builder
+    # mande o Gemini renderizar o botao com o texto exato.
+    if not slides_raw and formato == "anuncio" and copy_output.get("headline"):
+        slides_raw = [{
+            "tipo": "capa",
+            "titulo": copy_output.get("headline", ""),
+            "corpo": copy_output.get("descricao", ""),
+            "cta": copy_output.get("cta", ""),
+        }]
+
     if not slides_raw:
         raise ValueError("Nenhum slide encontrado na saida do copywriter")
 
@@ -479,8 +565,13 @@ async def _exec_image_generator(context, formato, gemini_api_key, step_id="", br
 
         if slide_type == "cover":
             slide = {"type": "cover", "headline": titulo, "subline": corpo}
+            # Anuncio: propaga o cta pra que o prompt builder gere o botao na imagem
+            if formato == "anuncio" and s.get("cta"):
+                slide["cta"] = s["cta"]
         elif slide_type == "cta":
             slide = {"type": "cta", "headline": titulo, "subline": corpo, "tags": []}
+            if s.get("cta"):
+                slide["cta"] = s["cta"]
         elif slide_type == "code":
             slide = {"type": "code", "code": corpo or titulo, "caption": titulo if corpo else ""}
         else:

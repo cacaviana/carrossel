@@ -673,6 +673,18 @@ def build_payload(
             "\n"
         )
 
+        # === CTA — botao com texto travado (anuncio / cta slide)
+        cta_texto = (slide.get("cta") or "").strip()
+        if cta_texto:
+            p += (
+                "[BOTAO CTA — OBRIGATORIO no slide]\n"
+                f"- Texto EXATO do botao: \"{cta_texto}\"\n"
+                "- Renderizar como botao/badge em destaque, alto contraste, base do slide\n"
+                "- NAO traduzir, NAO encurtar, NAO inventar variacao\n"
+                f"- Usar literalmente \"{cta_texto}\" caractere por caractere\n"
+                "\n"
+            )
+
         # === RODAPE / CONTADOR — bloquear clone das refs
         p += (
             "[RODAPE — REGRA ABSOLUTA]\n"

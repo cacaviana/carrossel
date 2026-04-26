@@ -145,9 +145,12 @@ class PromptComposer:
         formato_id = formato_map.get(formato, "carrossel")
 
         # Decidir cta_forca: CTA slide final = 'forte'; slide tipo 'cta' = 'forte';
-        # capa (slide 1) = 'inativo'; resto = 'padrao'
+        # anuncio com cta travado = 'forte'; capa (slide 1) sem cta = 'inativo'; resto = 'padrao'
         slide_type = (slide.get("type") or "").lower()
-        if slide_type == "cta" or (position == total and total > 1):
+        cta_texto = (slide.get("cta") or "").strip()
+        if cta_texto:
+            cta_forca = "forte"
+        elif slide_type == "cta" or (position == total and total > 1):
             cta_forca = "forte"
         elif position == 1:
             cta_forca = "inativo"
@@ -165,6 +168,7 @@ class PromptComposer:
                 brand=brand,
                 imagem_ativa=imagem_ativa,
                 cta_forca=cta_forca,
+                cta_texto=cta_texto,
             )
         except Exception:
             return ""
@@ -515,9 +519,21 @@ def _rodape_instruction(elementos: dict, counter: str, brand_slug: str | None = 
 def _cover(slide, elementos, cores, visual, rodape, ratio, size_str) -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
+    cta = slide.get("cta", "")
     badge = elementos.get("badge_topo", "")
     badge_cor = elementos.get("badge_topo_cor", cores.get("acento_secundario", ""))
     desenho = visual.get("estilo_desenho", "")
+
+    cta_clause = ""
+    if cta:
+        # Instrucao explicita pro Gemini renderizar o botao com texto EXATO.
+        # Sem isso, o modelo aluciona um CTA generico ("Fale com o comercial" etc).
+        cta_clause = (
+            f"BOTAO CTA OBRIGATORIO no slide: retangulo arredondado em destaque "
+            f"({cores.get('acento_principal', '#A78BFA')}) com o texto EXATO "
+            f"'{cta}' centralizado em branco bold. NAO traduza, NAO altere, NAO invente "
+            f"outro texto pro botao. Use literalmente '{cta}' caractere por caractere. "
+        )
 
     return (
         f"Crie slide LinkedIn {ratio} ({size_str}). "
@@ -525,6 +541,7 @@ def _cover(slide, elementos, cores, visual, rodape, ratio, size_str) -> str:
         f"Headline ENORME em {cores.get('texto_principal', 'branco')}, "
         f"com palavras-chave em {cores.get('acento_principal', '')} bold: '{headline}'. "
         f"Subline em {cores.get('texto_secundario', 'cinza')}: '{subline}'. "
+        f"{cta_clause}"
         f"Na parte inferior: {desenho} "
         f"{rodape} TODO texto LEGIVEL."
     )
@@ -583,15 +600,25 @@ def _comparison(slide, cores, rodape, counter, ratio, size_str) -> str:
 def _cta(slide, elementos, cores, visual, rodape, ratio, size_str) -> str:
     headline = slide.get("headline", "")
     subline = slide.get("subline", "")
+    cta = slide.get("cta", "")
     tags = slide.get("tags", [])
     tags_text = ", ".join(tags)
     desenho = visual.get("estilo_desenho", "")
+
+    cta_clause = ""
+    if cta:
+        cta_clause = (
+            f"BOTAO CTA OBRIGATORIO em destaque com texto EXATO '{cta}' "
+            f"centralizado em branco bold sobre {cores.get('acento_principal', '#A78BFA')}. "
+            f"NAO traduza, NAO altere, NAO invente outro texto. "
+        )
 
     return (
         f"Crie slide LinkedIn {ratio} ({size_str}). "
         f"Headline GRANDE em {cores.get('texto_principal', 'branco')} bold: '{headline}'. "
         f"Texto em {cores.get('texto_secundario', 'cinza')}: '{subline}'. "
         f"Tags em badges pill: {tags_text}. "
+        f"{cta_clause}"
         f"{desenho} sutil no fundo. "
         f"Rodape: '{elementos.get('rodape_nome', '')} -- "
         f"{elementos.get('rodape_instituicao', '')} -- "

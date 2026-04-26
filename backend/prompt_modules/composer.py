@@ -24,6 +24,7 @@ def montar(
     imagem_ocupacao: str = "40–60%",
     imagem_posicao: str = "topo OU fundo OU lateral",
     cta_forca: str = "padrao",
+    cta_texto: str = "",
 ) -> str:
     """Monta o prompt composto a partir dos 7 blocos.
 
@@ -42,7 +43,7 @@ def montar(
         formato_block(formato_id),
         imagem_block(ativa=imagem_ativa, ocupacao=imagem_ocupacao, posicao=imagem_posicao),
         texto_block(),
-        cta_block(cta_forca),
+        cta_block(cta_forca, cta_texto),
         regras_block(),
     ]
 

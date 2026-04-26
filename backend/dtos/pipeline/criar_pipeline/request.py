@@ -24,6 +24,7 @@ class CriarPipelineRequest(BaseModel):
     max_slides: Optional[int] = None  # maximo de slides para ideia livre
     background_base64: Optional[str] = None  # imagem de fundo (base64) — modo upload
     template_layout: Optional[str] = None  # template escolhido — modo upload
+    cta: Optional[str] = None  # CTA do anuncio (max 30 chars). So usado quando formato=anuncio.
 
     @field_validator("tema")
     @classmethod

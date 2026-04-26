@@ -32,17 +32,25 @@ _FORTE = """[CTA]: Forte
   - até 30% do layout"""
 
 
-def cta_block(forca: str = "padrao") -> str:
+def cta_block(forca: str = "padrao", texto: str = "") -> str:
     """Retorna o bloco [CTA].
 
     Args:
         forca: 'inativo' | 'padrao' | 'forte'. Default 'padrao'.
+        texto: texto literal do CTA travado pelo user. Quando preenchido,
+            anexa instrucao pro Gemini renderizar esse texto exato no botao.
 
     Returns:
         String com o bloco. Fallback 'padrao' se valor desconhecido.
     """
-    if forca == "inativo":
+    if forca == "inativo" and not texto:
         return _INATIVO
-    if forca == "forte":
-        return _FORTE
-    return _PADRAO
+    base = _FORTE if (forca == "forte" or texto) else _PADRAO
+    if texto:
+        base += (
+            f"\n\n- TEXTO EXATO DO BOTAO: \"{texto}\""
+            f"\n- Renderizar como BOTAO/BADGE em destaque, alto contraste"
+            f"\n- NAO traduzir, NAO encurtar, NAO inventar variacao"
+            f"\n- Usar literalmente \"{texto}\" caractere por caractere"
+        )
+    return base

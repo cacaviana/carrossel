@@ -25,6 +25,11 @@ class PipelineService:
         tema = dto.tema
         if dto.max_slides and dto.modo_entrada == "ideia":
             tema = f"{tema} [MAX {dto.max_slides} SLIDES]"
+        # Anuncio: o CTA escolhido pelo user vai pelo tema pra ser propagado ao
+        # copywriter e ao prompt da imagem (sem precisar de coluna nova).
+        if formato == "anuncio" and dto.cta and dto.cta.strip():
+            cta_clean = dto.cta.strip()[:30].replace("[", "(").replace("]", ")")
+            tema = f"{tema} [CTA:{cta_clean}]"
         result = await criar_pipeline(
             tema, formato, dto.modo_funil,
             modo_entrada=dto.modo_entrada,

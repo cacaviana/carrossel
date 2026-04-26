@@ -17,6 +17,12 @@
 	let erro = $state('');
 	let deadline = $state('');
 
+	// CTA opcional, usado so quando formato=anuncio. Se vazio, backend usa brand.cta_anuncio
+	// ou o Copywriter inventa um contextual (RN-023).
+	let ctaAnuncio = $state('');
+	let ctaUserEditou = $state(false); // trava: depois que o user editar, nao sobrescreve mais
+	const CTA_ANUNCIO_MAX = 30;
+
 	// Upload mode
 	let uploadedBg = $state('');
 	let uploadedFile = $state('');
@@ -54,6 +60,19 @@
 		} catch {}
 	});
 
+	// Quando o user troca a marca, pre-preenche o CTA com brand.cta_anuncio (so se o
+	// user ainda nao tiver digitado nada manualmente — depois disso a escolha dele vence).
+	$effect(() => {
+		const slug = brandSelecionada;
+		if (!slug || ctaUserEditou) return;
+		(async () => {
+			try {
+				const brand = await BrandService.buscar(slug);
+				if (!ctaUserEditou) ctaAnuncio = brand.cta_anuncio || '';
+			} catch {}
+		})();
+	});
+
 	// Avatar
 	type AvatarMode = 'capa' | 'livre' | 'sem' | 'sim';
 	let avatarMode = $state<AvatarMode>('capa');
@@ -61,7 +80,7 @@
 	const avatarOptions = $derived(
 		formatoAtual === 'thumbnail_youtube'
 			? [{ id: 'sim' as AvatarMode, label: 'Com avatar', tip: 'Sua foto aparece na thumbnail' }]
-			: formatoAtual === 'post_unico' || formatoAtual === 'capa_reels'
+			: formatoAtual === 'post_unico' || formatoAtual === 'capa_reels' || formatoAtual === 'anuncio'
 				? [
 					{ id: 'sim' as AvatarMode, label: 'Com avatar', tip: 'Sua foto aparece na imagem' },
 					{ id: 'sem' as AvatarMode, label: 'Sem avatar', tip: 'Imagem sem foto de pessoa' }
@@ -75,7 +94,7 @@
 
 	// Formatos de slide unico: default com avatar
 	$effect(() => {
-		if (formatoAtual === 'thumbnail_youtube' || formatoAtual === 'post_unico' || formatoAtual === 'capa_reels') avatarMode = 'sim';
+		if (formatoAtual === 'thumbnail_youtube' || formatoAtual === 'post_unico' || formatoAtual === 'capa_reels' || formatoAtual === 'anuncio') avatarMode = 'sim';
 	});
 
 
@@ -87,7 +106,7 @@
 		{ value: 'comparativo', label: 'Comparativo' },
 		{ value: 'dados', label: 'Dados' },
 	];
-	const FORMATOS_SLIDE_UNICO = ['post_unico', 'thumbnail_youtube', 'capa_reels'];
+	const FORMATOS_SLIDE_UNICO = ['post_unico', 'thumbnail_youtube', 'capa_reels', 'anuncio'];
 	const isSlideUnico = $derived(FORMATOS_SLIDE_UNICO.includes(formatoAtual));
 	let slidesTexto = $state<SlideTexto[]>(Array.from({ length: 3 }, () => ({ principal: '', alternativo: '', tipo_layout: 'texto' })));
 
@@ -118,6 +137,7 @@
 		post_unico: 'Post Unico',
 		thumbnail_youtube: 'Thumbnail YouTube',
 		capa_reels: 'Capa Reels',
+		anuncio: 'Anuncio (post de venda)',
 		funil: 'Funil de Conteudo'
 	};
 
@@ -126,6 +146,7 @@
 		post_unico: '1080 x 1350 · Instagram, Facebook, LinkedIn',
 		thumbnail_youtube: '1280 x 720 · YouTube',
 		capa_reels: '1080 x 1920 · Instagram Reels, TikTok',
+		anuncio: '1080 x 1350 · Meta Ads, LinkedIn Ads',
 		funil: 'Mix de formatos · Todas as plataformas'
 	};
 
@@ -134,6 +155,7 @@
 		post_unico: 'Uma imagem que para o scroll e gera conversa no feed.',
 		thumbnail_youtube: 'A thumbnail que faz o clique acontecer antes do titulo.',
 		capa_reels: 'A capa que transforma scroll em visualizacao completa.',
+		anuncio: '1 imagem 1080x1350 com copy de venda: headline (40) + descricao (125) + CTA (30).',
 		funil: 'Conteudo conectado que leva sua audiencia do interesse a acao.'
 	};
 
@@ -198,6 +220,11 @@
 
 			if (modoEntrada === 'ideia') {
 				payload.max_slides = maxSlidesIdeia;
+			}
+
+			// CTA opcional de anuncio — vazio = backend puxa de brand.cta_anuncio ou Copywriter inventa
+			if (formatoAtual === 'anuncio' && ctaAnuncio.trim().length > 0) {
+				payload.cta = ctaAnuncio.trim().slice(0, CTA_ANUNCIO_MAX);
 			}
 
 			const pipeline = await PipelineService.criar(payload);
@@ -604,6 +631,29 @@
 			{/if}
 		{/if}
 	</div>
+
+	<!-- CTA opcional (so anuncio) -->
+	{#if formatoAtual === 'anuncio'}
+		<div class="mb-4">
+			<p class="label-upper mb-2">CTA do anuncio (opcional)</p>
+			<input
+				type="text"
+				data-testid="campo-cta-anuncio"
+				bind:value={ctaAnuncio}
+				oninput={() => (ctaUserEditou = true)}
+				maxlength={CTA_ANUNCIO_MAX + 10}
+				disabled={criando}
+				placeholder='Ex: "Matricule-se agora", "Inscreva-se gratis", "Saiba mais"'
+				title="Se vazio, o sistema usa o CTA padrao da marca. Se a marca nao tiver CTA, o Copywriter inventa um contextual."
+				class="w-full px-4 py-2.5 rounded-lg border text-text-primary text-sm
+					focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all placeholder:text-text-muted bg-bg-input
+					{ctaAnuncio.length <= CTA_ANUNCIO_MAX ? 'border-border-default' : 'border-red ring-1 ring-red/30'}"
+			/>
+			<p class="text-[11px] text-text-muted mt-1">
+				{ctaAnuncio.length}/{CTA_ANUNCIO_MAX} — Vazio = usa o CTA padrao da marca ou o Copywriter inventa um.
+			</p>
+		</div>
+	{/if}
 
 	<!-- Prazo de publicacao com calendario visual -->
 	<div class="mb-4">

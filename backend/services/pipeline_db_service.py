@@ -33,6 +33,18 @@ UPLOAD_TEMPLATES = {
 async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_entrada="ideia", slides_texto_pronto=None, brand_slug=None, avatar_mode="livre", background_base64=None, template_layout=None):
     if not settings.MSSQL_URL:
         return None
+
+    # Extrair [CTA:texto] do tema (anuncio com CTA travado pelo user). Mantemos
+    # o sufixo no `tema` salvo (pra `_exec_copywriter` ler nos modos LLM), mas
+    # tambem usamos o cta_user direto na pre-populacao do modo texto_pronto.
+    import re as _re
+    cta_user_extraido = None
+    tema_sem_cta = tema or ""
+    _m = _re.search(r'\s*\[CTA:([^\]]+)\]\s*$', tema_sem_cta)
+    if _m:
+        cta_user_extraido = _m.group(1).strip()[:30]
+        tema_sem_cta = tema_sem_cta[: _m.start()].strip()
+
     async with get_sql_session_context() as session:
         pipeline_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
@@ -137,7 +149,7 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
             elif is_texto_pronto and agente == "strategist":
                 briefing_json = json.dumps({
                     "briefing": {
-                        "tema_principal": tema,
+                        "tema_principal": tema_sem_cta,
                         "angulo": "Conteudo fornecido pelo usuario — transformar em visual",
                         "publico_alvo": "Desenvolvedores e profissionais de tecnologia",
                         "objetivo": "Informar e engajar",
@@ -146,7 +158,7 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
                         "referencias": [],
                     },
                     "funil": [{
-                        "titulo": tema[:80],
+                        "titulo": tema_sem_cta[:80],
                         "etapa_funil": "meio",
                         "formato": formato,
                         "resumo": "Conteudo fornecido diretamente pelo usuario",
@@ -184,14 +196,35 @@ async def criar_pipeline(tema, formato, modo_funil, tenant_id="itvalley", modo_e
                     if tipo_layout:
                         entry["tipo_layout"] = tipo_layout
                     slides_para_copy.append(entry)
+                # CTA: prioridade pro travado pelo user (cta_user_extraido).
+                # Senao, pro anuncio cair no titulo do ultimo slide ainda eh ruim
+                # (vira tipo "Faca consultoria" que repete o headline). Deixar vazio
+                # nesse caso e seguir adiante.
+                cta_value = cta_user_extraido or ""
+                if not cta_value and formato != "anuncio":
+                    cta_value = (slides_para_copy[-1]["titulo"] if slides_para_copy else "")
                 copy_json = json.dumps({
-                    "headline": tema,
+                    "headline": tema_sem_cta,
                     "narrativa": "Conteudo original do usuario — texto pronto",
-                    "cta": (slides_para_copy[-1]["titulo"] if slides_para_copy else ""),
+                    "cta": cta_value,
+                    "_cta_user": bool(cta_user_extraido),
                     "slides": slides_para_copy,
                     "legenda_linkedin": "",
                     "hashtags": [],
                 }, ensure_ascii=False)
+                # Anuncio: propagar cta no slide pra que o prompt do Gemini leia
+                if formato == "anuncio" and slides_para_copy and cta_value:
+                    slides_para_copy[0]["cta"] = cta_value
+                    # Reserializar com slides ajustados
+                    copy_json = json.dumps({
+                        "headline": tema_sem_cta,
+                        "narrativa": "Conteudo original do usuario — texto pronto",
+                        "cta": cta_value,
+                        "_cta_user": bool(cta_user_extraido),
+                        "slides": slides_para_copy,
+                        "legenda_linkedin": "",
+                        "hashtags": [],
+                    }, ensure_ascii=False)
                 await session.execute(
                     text("""INSERT INTO carrossel.pipeline_step
                     (id, pipeline_id, agente, ordem, status, entrada, saida, created_at, started_at, finished_at)

@@ -514,4 +514,11 @@ async def executar(
     result = parse_llm_json(response.choices[0].message.content or "")
     result["_provider"] = "openai"
     result["_fallback"] = True
+    # Detectar recusa do moderador OpenAI (filtro de seguranca devolve raw_text sem JSON).
+    # Devolver estrutura valida pra UI nao quebrar e o pipeline poder seguir mesmo assim.
+    raw = (result.get("raw_text") or "").lower()
+    if not result.get("prompts") and ("can't assist" in raw or "cannot assist" in raw or "sorry" in raw):
+        print(f"[art_director] OpenAI recusou (filtro). Devolvendo prompts vazios.")
+        result["prompts"] = []
+        result["_filtro_recusou"] = True
     return result
