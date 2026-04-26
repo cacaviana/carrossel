@@ -16,7 +16,7 @@
 	}
 
 	let slides = $state<string[]>([]);
-	let textos = $state<{ titulo: string; corpo: string }[]>([]);
+	let textos = $state<{ titulo: string; corpo: string; cta?: string }[]>([]);
 	let logoSrc = $state('');
 	let logoPositions = $state<{ x: number; y: number }[]>([]);
 	let logoSize = $state<number[]>([]);
@@ -62,7 +62,7 @@
 		return '';
 	}
 
-	function parseCopySlides(saida: any): { titulo: string; corpo: string }[] {
+	function parseCopySlides(saida: any): { titulo: string; corpo: string; cta?: string }[] {
 		let copySlides: any[] = [];
 		if (Array.isArray(saida.slides) && saida.slides.length > 0) copySlides = saida.slides;
 		else if (saida.slide && typeof saida.slide === 'object') copySlides = [saida.slide];
@@ -73,9 +73,15 @@
 				if (v && typeof v === 'object' && !Array.isArray(v) && v.titulo) { copySlides = [v]; break; }
 			}
 		}
+		// Fallback pra anuncio e formatos single-slide que vem com campos flat (headline/descricao/cta)
+		if (copySlides.length === 0 && (saida.headline || saida.titulo || saida.descricao || saida.corpo)) {
+			copySlides = [saida];
+		}
+		const ctaSaida = extractStr(saida.cta) || extractStr(saida.call_to_action) || '';
 		return copySlides.map((s: any) => {
 			let titulo = extractStr(s.titulo) || extractStr(s.headline) || '';
-			let corpo = extractStr(s.corpo) || extractStr(s.conteudo) || extractStr(s.texto) || extractStr(s.texto_principal) || '';
+			let corpo = extractStr(s.corpo) || extractStr(s.descricao) || extractStr(s.conteudo) || extractStr(s.texto) || extractStr(s.texto_principal) || '';
+			let cta = extractStr(s.cta) || extractStr(s.call_to_action) || ctaSaida || '';
 			if ((!titulo || !corpo) && Array.isArray(s.elementos)) {
 				for (const el of s.elementos) {
 					const t = el.tipo ?? '';
@@ -84,7 +90,7 @@
 					if (!corpo && (t.includes('card') || t === 'corpo' || t === 'subtitulo' || t === 'call_to_action')) corpo = val;
 				}
 			}
-			return { titulo, corpo };
+			return { titulo, corpo, cta };
 		});
 	}
 
@@ -660,10 +666,35 @@
 		<!-- Texto esperado -->
 		{#if textos[currentSlide]}
 			<div class="mt-3 mx-auto bg-bg-card rounded-xl border border-border-default p-4" style="max-width: 540px;">
-				<p class="text-[10px] text-text-muted uppercase tracking-wider mb-1">Texto esperado</p>
-				<p class="text-sm text-text-primary font-medium">{textos[currentSlide].titulo}</p>
-				{#if textos[currentSlide].corpo}
-					<p class="text-xs text-text-secondary mt-1 whitespace-pre-line">{textos[currentSlide].corpo}</p>
+				<p class="text-[10px] text-text-muted uppercase tracking-wider mb-1">
+					{formato === 'anuncio' ? 'Copy do anuncio' : 'Texto esperado'}
+				</p>
+				{#if formato === 'anuncio'}
+					<div class="space-y-2">
+						<div>
+							<p class="text-[9px] text-text-muted uppercase tracking-wider">Headline</p>
+							<p class="text-sm text-text-primary font-semibold">{textos[currentSlide].titulo}</p>
+						</div>
+						{#if textos[currentSlide].corpo}
+							<div>
+								<p class="text-[9px] text-text-muted uppercase tracking-wider">Descricao</p>
+								<p class="text-xs text-text-secondary whitespace-pre-line">{textos[currentSlide].corpo}</p>
+							</div>
+						{/if}
+						{#if textos[currentSlide].cta}
+							<div>
+								<p class="text-[9px] text-text-muted uppercase tracking-wider">CTA</p>
+								<span class="inline-block px-3 py-1 rounded-full bg-cyan-400/10 text-cyan-500 text-xs font-semibold border border-cyan-400/30">
+									{textos[currentSlide].cta}
+								</span>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<p class="text-sm text-text-primary font-medium">{textos[currentSlide].titulo}</p>
+					{#if textos[currentSlide].corpo}
+						<p class="text-xs text-text-secondary mt-1 whitespace-pre-line">{textos[currentSlide].corpo}</p>
+					{/if}
 				{/if}
 			</div>
 		{/if}

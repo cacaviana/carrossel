@@ -143,16 +143,22 @@
 
 	onMount(async () => {
 		try {
-			const [s, l, img, pip] = await Promise.all([
+			// Primeiro carrega pipeline pra decidir se e anuncio (rota especial).
+			const pip = await PipelineService.buscar(pipelineId);
+			formato = pip.formato || 'carrossel';
+			// Se e anuncio, nao busca score/legenda/imagens carrossel — tudo vem do modulo Anuncios.
+			if (formato === 'anuncio') {
+				carregando = false;
+				return;
+			}
+			const [s, l, img] = await Promise.all([
 				ExportService.buscarScore(pipelineId),
 				ExportService.buscarLegenda(pipelineId),
-				ImagemService.buscar(pipelineId),
-				PipelineService.buscar(pipelineId)
+				ImagemService.buscar(pipelineId)
 			]);
 			score = s;
 			legenda = l;
 			slides = img.slides;
-			formato = pip.formato || 'carrossel';
 		} catch {
 			erro = 'Erro ao carregar dados de export';
 		} finally {
@@ -175,6 +181,26 @@
 				<Skeleton variant="block" height="h-48" />
 				<Skeleton variant="block" height="h-32" />
 			</div>
+		</div>
+	{:else if formato === 'anuncio'}
+		<!-- Pipeline de anuncio: o export completo (PNG + Drive) mora em /anuncios/[id]. -->
+		<div class="mb-4">
+			<Banner type="info" dismissible={false}>
+				Este pipeline gerou um Anuncio (1080x1350 com copy de venda). O export (PNG, Drive e edicao de copy) fica no modulo Anuncios.
+			</Banner>
+		</div>
+		<div class="bg-bg-card rounded-xl border border-cyan-400/20 p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-cyan-600/60 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+			</svg>
+			<h2 class="text-lg font-medium text-text-primary mb-2">Anuncio pronto para export</h2>
+			<p class="text-sm text-text-secondary mb-6">Acesse o modulo Anuncios para baixar o PNG, salvar no Drive e editar a copy.</p>
+			<a href="/anuncios" class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-bg-global bg-cyan-600 hover:opacity-90 transition-all no-underline cursor-pointer">
+				Abrir modulo Anuncios
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+				</svg>
+			</a>
 		</div>
 	{:else}
 		{#if erro}

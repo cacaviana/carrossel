@@ -16,14 +16,16 @@
 		carrossel: 'bg-purple-500',
 		post_unico: 'bg-blue-500',
 		thumbnail_youtube: 'bg-red-500',
-		capa_reels: 'bg-pink-500'
+		capa_reels: 'bg-pink-500',
+		anuncio: 'bg-cyan-500'
 	};
 
 	const formatoLabels: Record<CardFormato, string> = {
 		carrossel: 'Carrossel',
 		post_unico: 'Post unico',
 		thumbnail_youtube: 'YouTube',
-		capa_reels: 'Capa Reels'
+		capa_reels: 'Capa Reels',
+		anuncio: 'Anuncio'
 	};
 
 	// Cards com deadline agrupados por dia (YYYY-MM-DD)

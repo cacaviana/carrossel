@@ -3,6 +3,7 @@
 	import type { UserDTO } from '$lib/dtos/UserDTO';
 	import type { ColumnData } from '$lib/dtos/BoardDTO';
 	import { formatRelativeDate, formatAbsoluteDate } from '$lib/utils/date';
+	import AnuncioFormatoBadge from '$lib/components/anuncio/AnuncioFormatoBadge.svelte';
 
 	let { card, users, columns }: {
 		card: CardDTO;
@@ -117,21 +118,63 @@
 				<p class="text-sm text-purple">{card.pdf_url}</p>
 			</div>
 		{/if}
+
+		{#if card.isAnuncio}
+			<div>
+				<label class="label-upper mb-1.5 block">Formato</label>
+				<AnuncioFormatoBadge size="md" />
+			</div>
+			{#if card.hasAnuncio}
+				<div>
+					<a href={`/anuncios/${card.anuncio_id}`} target="_blank" rel="noopener"
+						class="inline-flex items-center gap-1 text-sm text-cyan-600 hover:underline">
+						Abrir no modulo Anuncios
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+						</svg>
+					</a>
+				</div>
+			{/if}
+		{/if}
 	</div>
 </div>
 
-<!-- Images gallery -->
+<!-- Images gallery: anuncio mostra 1 imagem 1080x1350, carrossel mostra thumbnails dos slides -->
 {#if card.hasImages}
 	<div class="mt-6">
-		<label class="label-upper mb-2 block">Imagens ({card.image_urls.length})</label>
-		<div class="grid grid-cols-4 gap-2">
-			{#each card.image_urls as url}
-				<div class="w-20 h-20 rounded-lg bg-bg-elevated border border-border-default flex items-center justify-center">
-					<svg class="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-					</svg>
-				</div>
-			{/each}
-		</div>
+		<label class="label-upper mb-2 block">
+			{card.isAnuncio ? 'Imagem do anuncio' : `Imagens (${card.image_urls.length})`}
+		</label>
+		{#if card.isAnuncio}
+			<div class="max-w-xs">
+				{#if card.image_urls[0]}
+					<div class="rounded-lg overflow-hidden border border-border-default bg-bg-elevated aspect-[4/5]">
+						<img src={card.image_urls[0]} alt="Anuncio" class="w-full h-full object-cover" />
+					</div>
+				{:else}
+					<div class="rounded-lg border border-border-default bg-bg-elevated flex items-center justify-center aspect-[4/5]">
+						<svg class="w-8 h-8 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+						</svg>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="grid grid-cols-4 gap-2">
+				{#each card.image_urls as url, i}
+					{#if url}
+						<div class="rounded-lg overflow-hidden border border-border-default bg-bg-elevated w-20 h-20">
+							<img src={url} alt="Slide {i + 1}" class="w-full h-full object-cover" />
+						</div>
+					{:else}
+						<div class="rounded-lg border border-border-default bg-bg-elevated flex items-center justify-center w-20 h-20">
+							<svg class="w-6 h-6 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+							</svg>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/if}

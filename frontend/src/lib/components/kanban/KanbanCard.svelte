@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { CardDTO } from '$lib/dtos/CardDTO';
 	import type { UserDTO } from '$lib/dtos/UserDTO';
+	import AnuncioFormatoBadge from '$lib/components/anuncio/AnuncioFormatoBadge.svelte';
 	let { card, users = [], onclick }: {
 		card: CardDTO;
 		users: UserDTO[];
@@ -49,12 +50,17 @@
 	class="w-full text-left p-3 rounded-xl bg-bg-card border border-border-default
 		hover:shadow-md hover:border-purple/30 transition-all cursor-pointer"
 >
-	<!-- Top row: priority + avatars -->
-	<div class="flex items-center justify-between mb-1.5">
-		<span class="{priorityClasses[card.priority] ?? ''} text-[10px] px-1.5 py-0.5 rounded-full font-medium">
-			{card.priorityLabel}
-		</span>
-		<div class="flex items-center gap-2">
+	<!-- Top row: priority + (badge Anuncio) + avatars -->
+	<div class="flex items-center justify-between mb-1.5 gap-2">
+		<div class="flex items-center gap-1.5 min-w-0">
+			<span class="{priorityClasses[card.priority] ?? ''} text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0">
+				{card.priorityLabel}
+			</span>
+			{#if card.isAnuncio}
+				<AnuncioFormatoBadge size="sm" />
+			{/if}
+		</div>
+		<div class="flex items-center gap-2 shrink-0">
 			{#if assignedUsers.length > 0}
 				<div class="flex -space-x-1.5">
 					{#each assignedUsers.slice(0, 3) as user}
@@ -75,6 +81,13 @@
 
 	<!-- Title -->
 	<p class="text-sm font-medium text-text-primary line-clamp-2 mb-2">{card.title}</p>
+
+	<!-- Anuncio: thumbnail 1080x1350 -->
+	{#if card.isAnuncio && card.thumbnailUrl}
+		<div class="mb-2 rounded-lg overflow-hidden aspect-[4/5] bg-bg-elevated">
+			<img src={card.thumbnailUrl} alt={card.title} class="w-full h-full object-cover" />
+		</div>
+	{/if}
 
 	<!-- Deadline -->
 	{#if card.hasDeadline}

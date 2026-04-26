@@ -364,6 +364,8 @@
 				<option value="carrossel">Carrossel</option>
 				<option value="post_unico">Post Unico</option>
 				<option value="thumbnail_youtube">Thumbnail YouTube</option>
+				<option value="capa_reels">Capa Reels</option>
+				<option value="anuncio">Anuncio (post de venda)</option>
 			</select>
 			<select bind:value={filtroStatus}
 				class="px-4 py-2.5 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
@@ -400,25 +402,47 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each historicoFiltrado as item}
 					<div
-						onclick={() => { if (item.isPipelineV3 && item.pipeline_id) window.open(`/pipeline/${item.pipeline_id}`, '_blank', 'noopener'); }}
-						role={item.isPipelineV3 ? 'link' : undefined}
-						class="bg-bg-card rounded-xl border border-border-default p-5 hover:-translate-y-1 hover:shadow-md hover:border-purple/30 transition-all
-							{item.isPipelineV3 ? 'cursor-pointer' : ''}"
+						onclick={() => {
+							if (item.isAnuncio && item.anuncio_id) {
+								window.open(`/anuncios/${item.anuncio_id}`, '_blank', 'noopener');
+							} else if (item.isPipelineV3 && item.pipeline_id) {
+								window.open(`/pipeline/${item.pipeline_id}`, '_blank', 'noopener');
+							}
+						}}
+						role={(item.isAnuncio && item.anuncio_id) || item.isPipelineV3 ? 'link' : undefined}
+						class="bg-bg-card rounded-xl border p-5 hover:-translate-y-1 hover:shadow-md transition-all
+							{item.isAnuncio ? 'border-cyan-400/30 hover:border-cyan-400/60' : 'border-border-default hover:border-purple/30'}
+							{(item.isAnuncio && item.anuncio_id) || item.isPipelineV3 ? 'cursor-pointer' : ''}"
 					>
 						<div class="flex items-center gap-2 mb-3 flex-wrap">
-							<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple/8 text-purple border border-purple/20">{item.formato || 'carrossel'}</span>
+							{#if item.isAnuncio}
+								<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-400/10 text-cyan-600 border border-cyan-400/30 uppercase tracking-wide">Anuncio</span>
+							{:else}
+								<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple/8 text-purple border border-purple/20">{item.formato || 'carrossel'}</span>
+							{/if}
 							<span class="px-2 py-0.5 rounded-full text-[10px] font-mono border {statusBadge(item.status)}">{item.status}</span>
-							{#if !item.isPipelineV3}
+							{#if !item.isPipelineV3 && !item.isAnuncio}
 								<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber/10 text-amber border border-amber/25">legado</span>
 							{/if}
 						</div>
+
+						{#if item.isAnuncio && item.thumbnailUrl}
+							<div class="mb-3 rounded-lg overflow-hidden aspect-[4/5] bg-bg-elevated">
+								<img src={item.thumbnailUrl} alt={item.titulo} class="w-full h-full object-cover" />
+							</div>
+						{/if}
+
 						<h3 class="text-sm font-medium text-text-primary mb-1 line-clamp-2">{item.titulo}</h3>
 						{#if item.disciplina}
 							<p class="text-xs text-text-secondary mb-2">{item.disciplina} — {item.tecnologia_principal}</p>
 						{/if}
 						<div class="flex items-center justify-between mt-3">
 							<span class="text-xs text-text-muted font-mono">
-								{item.total_slides} slide{item.total_slides !== 1 ? 's' : ''}
+								{#if item.isAnuncio}
+									1080 x 1350
+								{:else}
+									{item.total_slides} slide{item.total_slides !== 1 ? 's' : ''}
+								{/if}
 								{#if item.created_at} — {item.dataFormatada}{/if}
 							</span>
 							{#if item.temScore && item.final_score !== null}
@@ -430,10 +454,13 @@
 								<a href={item.google_drive_link} target="_blank" rel="noopener"
 									class="text-xs text-purple hover:text-purple-soft no-underline cursor-pointer">Drive</a>
 							{/if}
-							{#if item.isPipelineV3}
+							{#if item.isAnuncio && item.anuncio_id}
+								<a href="/anuncios/{item.anuncio_id}" target="_blank" rel="noopener"
+									class="text-xs text-cyan-600 hover:opacity-80 no-underline cursor-pointer">Ver detalhes</a>
+							{:else if item.isPipelineV3}
 								<a href="/pipeline/{item.pipeline_id}" target="_blank" rel="noopener" class="text-xs text-purple hover:text-purple-soft no-underline cursor-pointer">Reabrir</a>
 							{/if}
-							<button onclick={() => { itemToRemove = item; showRemoveModal = true; }}
+							<button onclick={(e) => { e.stopPropagation(); itemToRemove = item; showRemoveModal = true; }}
 								class="text-xs text-text-muted hover:text-red transition-colors cursor-pointer ml-auto">Remover</button>
 						</div>
 					</div>

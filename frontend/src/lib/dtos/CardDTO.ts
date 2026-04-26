@@ -1,7 +1,7 @@
 // src/lib/dtos/CardDTO.ts
 
 export type CardPriority = 'alta' | 'media' | 'baixa';
-export type CardFormato = 'carrossel' | 'post_unico' | 'thumbnail_youtube' | 'capa_reels';
+export type CardFormato = 'carrossel' | 'post_unico' | 'thumbnail_youtube' | 'capa_reels' | 'anuncio';
 
 export class CardDTO {
   readonly id: string;
@@ -17,6 +17,7 @@ export class CardDTO {
   readonly assigned_user_ids: string[];
   readonly created_by: string;
   readonly pipeline_id: string;
+  readonly anuncio_id: string;
   readonly drive_link: string;
   readonly drive_folder_name: string;
   readonly pdf_url: string;
@@ -42,6 +43,7 @@ export class CardDTO {
     this.assigned_user_ids = data.assigned_user_ids ?? [];
     this.created_by = data.created_by ?? '';
     this.pipeline_id = data.pipeline_id ?? '';
+    this.anuncio_id = data.anuncio_id ?? '';
     this.drive_link = data.drive_link ?? '';
     this.drive_folder_name = data.drive_folder_name ?? '';
     this.pdf_url = data.pdf_url ?? '';
@@ -52,6 +54,19 @@ export class CardDTO {
     this.created_at = data.created_at ?? '';
     this.updated_at = data.updated_at ?? '';
     this.archived_at = data.archived_at ?? '';
+  }
+
+  get isAnuncio(): boolean {
+    return this.formato === 'anuncio';
+  }
+
+  get hasAnuncio(): boolean {
+    return this.anuncio_id.length > 0;
+  }
+
+  get thumbnailUrl(): string {
+    // Anuncio tem 1 unica imagem (1080x1350) pos-pivot. Carrossel pega primeiro slide.
+    return this.image_urls[0] ?? '';
   }
 
   get isArchived(): boolean {
