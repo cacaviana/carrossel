@@ -9,6 +9,30 @@ from services.foto_overlay import overlay_foto
 from utils.constants import GEMINI_API_URL as API_URL
 
 
+# Modelo por formato (RN-015):
+# - 'anuncio' SEMPRE Pro (qualidade maxima exigida, ~R$0,30 por anuncio).
+# - Outros formatos ja usam Pro em todos os slides de alto impacto.
+_MODELO_PRO = "gemini-3-pro-image-preview"
+_MODELO_FLASH = "gemini-2.5-flash-image"
+
+
+def _select_model(formato: str, dimensao_id: str | None = None) -> str:
+    """Retorna o modelo Gemini a usar para o formato.
+
+    Args:
+        formato: "anuncio", "carrossel", "post_unico", etc.
+        dimensao_id: ignorado (legado).
+
+    Returns:
+        "gemini-3-pro-image-preview" ou "gemini-2.5-flash-image".
+    """
+    # Anuncio sempre Pro
+    if formato == "anuncio":
+        return _MODELO_PRO
+    # Fallback: usa Pro para demais formatos (comportamento atual)
+    return _MODELO_PRO
+
+
 async def gerar_imagem_slide(
     slide: dict,
     slide_index: int,

@@ -13,8 +13,14 @@ PROMPT_MAP = {
     "post_unico": AGENTS_DIR / "copywriter-post-unico.md",
     "thumbnail_youtube": AGENTS_DIR / "copywriter-thumbnail.md",
     "capa_reels": AGENTS_DIR / "copywriter-reels.md",
+    "anuncio": AGENTS_DIR / "copywriter-anuncio.md",
 }
 FALLBACK_PROMPT = AGENTS_DIR / "copywriter.md"
+
+# Limites do formato 'anuncio' -- copy de venda (RN-017)
+ANUNCIO_HEADLINE_MAX = 40
+ANUNCIO_DESCRICAO_MAX = 125
+ANUNCIO_CTA_MAX = 30
 
 
 def _load_prompt(formato: str) -> str:
@@ -50,7 +56,20 @@ def _build_user_prompt(briefing: dict, formato: str, feedback: str) -> str:
         user_prompt += f"\nFEEDBACK DO USUARIO (versao anterior rejeitada): {feedback}\n"
         user_prompt += "GERE copy COMPLETAMENTE DIFERENTE, seguindo o feedback acima.\n"
     FORMATOS_SLIDE_UNICO = ("post_unico", "thumbnail_youtube", "capa_reels")
-    if formato in FORMATOS_SLIDE_UNICO:
+    if formato == "anuncio":
+        user_prompt += (
+            f"\n=== FORMATO ANUNCIO (COPY DE VENDA / CONVERSAO) ===\n"
+            f"Voce agora e Copywriter em MODO VENDA -- foco em conversao, NAO educacional.\n"
+            f"Gere EXATAMENTE UMA copy de venda com 3 campos obrigatorios:\n"
+            f"- headline: ate {ANUNCIO_HEADLINE_MAX} caracteres. Pitch curto, impactante, foco em BENEFICIO concreto. Estilo venda.\n"
+            f"- descricao: ate {ANUNCIO_DESCRICAO_MAX} caracteres. Texto persuasivo com senso de urgencia e diferenciais. Objetivo: converter.\n"
+            f"- cta: ate {ANUNCIO_CTA_MAX} caracteres. VERBO no IMPERATIVO (Inscreva-se, Garanta, Comece agora, Matricule-se, etc). Texto do botao.\n"
+            f"Tom: vendedor profissional confiante. NUNCA educacional, NUNCA autoridade. VENDA.\n"
+            f"NUNCA ultrapasse os limites de caracteres.\n"
+            f"Responda em JSON com schema exato: {{\"headline\": \"...\", \"descricao\": \"...\", \"cta\": \"...\"}}\n"
+            f"=== FIM FORMATO ANUNCIO ===\n"
+        )
+    elif formato in FORMATOS_SLIDE_UNICO:
         user_prompt += f"ATENCAO: formato '{formato}' = APENAS 1 SLIDE. Gere exatamente 1 slide. NAO gere multiplos slides."
         user_prompt += " Responda em JSON."
     else:

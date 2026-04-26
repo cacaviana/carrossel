@@ -28,7 +28,19 @@
       "nome": "Meta Ads",
       "max_caracteres": 125,
       "hashtags_max": 0,
-      "specs": "Imagem 1080x1080. Texto primario ate 125 chars. Headline ate 40 chars."
+      "headline_max": 40,
+      "descricao_max": 125,
+      "cta_max": 30,
+      "specs": "Imagem 1080x1350. Headline ate 40 chars, descricao ate 125, CTA ate 30."
+    },
+    {
+      "nome": "Anuncio",
+      "max_caracteres": 125,
+      "hashtags_max": 0,
+      "headline_max": 40,
+      "descricao_max": 125,
+      "cta_max": 30,
+      "specs": "Formato unico 1080x1350 com copy de venda (headline 40 + descricao 125 + CTA 30)."
     }
   ]
 }

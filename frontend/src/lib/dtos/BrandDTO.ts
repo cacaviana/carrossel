@@ -21,6 +21,7 @@ export class BrandDTO {
   readonly overrides: Record<string, any>;
   readonly regras_feed: Record<string, any>;
   readonly hack_consistencia: string;
+  readonly cta_anuncio: string;
   readonly cor_principal: string;
   readonly cor_fundo: string;
   private readonly _raw: Record<string, any>;
@@ -41,6 +42,8 @@ export class BrandDTO {
     this.overrides = data.overrides ?? {};
     this.regras_feed = data.regras_feed ?? {};
     this.hack_consistencia = data.hack_consistencia ?? '';
+    // CTA default da marca para anuncios (RN-024). String vazia = marca nao tem CTA definido.
+    this.cta_anuncio = (data.cta_anuncio ?? '').toString().slice(0, 30);
     this.cor_principal = data.cor_principal ?? this.cores?.acento_principal ?? '#A78BFA';
     this.cor_fundo = data.cor_fundo ?? this.cores?.fundo ?? '#0A0A0F';
   }
@@ -50,7 +53,7 @@ export class BrandDTO {
   }
 
   toPayload(): Record<string, any> {
-    return { ...this._raw, slug: this.slug, nome: this.nome };
+    return { ...this._raw, slug: this.slug, nome: this.nome, cta_anuncio: this.cta_anuncio };
   }
 
   /** Devolve a estrutura raw (read-only) para uso em templates ricos. */

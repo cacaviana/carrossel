@@ -201,6 +201,11 @@ def _infographic_prompt(slide: dict, ds: str, size_str: str = "1080x1350px, 4:5 
     )
 
 
+# Anuncio (pos-pivot 2026-04-23): mesma dimensao do post_unico (1080x1350).
+# Nao ha build_anuncio_prompt dedicado -- o anuncio usa o mesmo pipeline
+# de imagem do post_unico via PromptComposer.
+
+
 def _thumbnail_prompt(slide: dict, ds: str, size_str: str = "1280x720px, 16:9 landscape", ratio: str = "16:9") -> str:
     headline = slide.get("headline", "") or slide.get("title", "") or slide.get("titulo", "")
     subline = slide.get("subline", "") or slide.get("corpo", "") or slide.get("conteudo", "")

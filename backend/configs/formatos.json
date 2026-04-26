@@ -131,6 +131,36 @@
       "tem_rodape": false,
       "tem_paginacao": false,
       "ativo": true
+    },
+    {
+      "id": "anuncio",
+      "nome": "Anuncio",
+      "dimensoes": {"width": 1080, "height": 1350, "ratio": "4:5", "label": "portrait"},
+      "layout_rules": [
+        "Mesma dimensao e identidade visual do post_unico (1080x1350 dark mode premium).",
+        "Copy de venda NAO impressa na imagem -- headline/descricao/CTA vao separados.",
+        "Foto+logo overlay igual post_unico."
+      ],
+      "modelo_por_posicao": {
+        "regra": "Sempre Pro (anuncio exige qualidade maxima -- RN-015).",
+        "pro_positions": "all",
+        "modelo_pro": "gemini-3-pro-image-preview",
+        "modelo_flash": "gemini-2.5-flash-image"
+      },
+      "copy_rules": {
+        "headline_max": 40,
+        "descricao_max": 125,
+        "cta_max": 30,
+        "copy_unica_por_anuncio": true
+      },
+      "estruturas": {
+        "1": [
+          {"posicao": 1, "tipo": "cover", "etapa": "IMPACTO"}
+        ]
+      },
+      "tem_rodape": false,
+      "tem_paginacao": false,
+      "ativo": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 export type PipelineStatus = 'pendente' | 'executando' | 'em_execucao' | 'aguardando_aprovacao' | 'aprovado' | 'rejeitado' | 'completo' | 'erro' | 'cancelado';
-export type FormatoConteudo = 'carrossel' | 'post_unico' | 'thumbnail_youtube' | 'capa_reels';
+export type FormatoConteudo = 'carrossel' | 'post_unico' | 'thumbnail_youtube' | 'capa_reels' | 'anuncio';
 export type EtapaPipeline = 'strategist' | 'copywriter' | 'hook_specialist' | 'art_director' | 'image_generator' | 'brand_gate' | 'content_critic';
 
 export class PipelineDTO {
@@ -61,7 +61,8 @@ export class PipelineDTO {
       carrossel: 'Carrossel',
       post_unico: 'Post Unico',
       thumbnail_youtube: 'Thumbnail YouTube',
-      capa_reels: 'Capa Reels'
+      capa_reels: 'Capa Reels',
+      anuncio: 'Anuncio (post de venda)'
     };
     return labels[this.formato] ?? this.formato;
   }

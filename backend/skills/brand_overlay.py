@@ -3,10 +3,20 @@ import io
 import base64
 
 
-def aplicar(image_base64: str, foto_criador_base64: str | None = None, logo_base64: str | None = None) -> str:
-    """Aplica foto redonda do criador + logo da marca sobre a imagem.
+def aplicar(
+    image_base64: str,
+    foto_criador_base64: str | None = None,
+    logo_base64: str | None = None,
+    dimensao_id: str | None = None,  # legado (ignorado); mantido pra compat de chamadas
+    modo: str | None = None,         # legado (ignorado)
+) -> str:
+    """Aplica overlay de marca sobre a imagem.
 
-    Retorna: image_base64 com overlay aplicado.
+    Padrao: foto redonda (canto inferior esquerdo) + logo (canto inferior direito).
+    Pos-pivot 2026-04-23: removidos os modos especiais por dimensao (anuncio
+    agora usa o mesmo overlay do post_unico).
+
+    Retorna: data URL da imagem final.
     """
     img_data = image_base64.split(",")[1] if "," in image_base64 else image_base64
     img = Image.open(io.BytesIO(base64.b64decode(img_data))).convert("RGBA")
@@ -15,7 +25,6 @@ def aplicar(image_base64: str, foto_criador_base64: str | None = None, logo_base
         foto_data = foto_criador_base64.split(",")[1] if "," in foto_criador_base64 else foto_criador_base64
         foto = Image.open(io.BytesIO(base64.b64decode(foto_data))).convert("RGBA")
         foto = _make_circle(foto, size=80)
-        # Posicao: canto inferior esquerdo com margem
         pos = (20, img.height - 100)
         img.paste(foto, pos, foto)
 
@@ -23,11 +32,9 @@ def aplicar(image_base64: str, foto_criador_base64: str | None = None, logo_base
         logo_data = logo_base64.split(",")[1] if "," in logo_base64 else logo_base64
         logo = Image.open(io.BytesIO(base64.b64decode(logo_data))).convert("RGBA")
         logo.thumbnail((120, 40))
-        # Posicao: canto inferior direito com margem
-        pos = (img.width - logo.width - 20, img.height - 60)
+        pos = (img.width - logo.width - 10, img.height - logo.height - 10)
         img.paste(logo, pos, logo)
 
-    # Converter de volta para base64
     buffer = io.BytesIO()
     img_rgb = img.convert("RGB")
     img_rgb.save(buffer, format="PNG")

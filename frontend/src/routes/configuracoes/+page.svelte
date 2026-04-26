@@ -1220,6 +1220,21 @@
 													</div>
 
 													<div class="bg-bg-card rounded-xl border border-border-default p-4">
+														<label class="block text-xs text-text-primary font-medium mb-1">CTA padrao de anuncio</label>
+														<p class="text-[10px] text-text-muted mb-2">Texto curto do botao usado em anuncios da marca quando o usuario nao digita um (max 30 chars).</p>
+														<input
+															type="text"
+															data-testid="campo-cta-anuncio-marca"
+															bind:value={marcas[mi].cta_anuncio}
+															maxlength="40"
+															placeholder="Ex: Matricule-se agora, Inscreva-se gratis, Saiba mais"
+															class="w-full px-3 py-2 rounded-lg border text-text-primary text-xs focus:border-purple outline-none bg-bg-input
+																{((marcas[mi].cta_anuncio ?? '').length <= 30) ? 'border-border-default' : 'border-red ring-1 ring-red/30'}"
+														/>
+														<p class="text-[9px] text-text-muted mt-1">{(marcas[mi].cta_anuncio ?? '').length}/30 — Opcional. Vazio = Copywriter inventa um CTA contextual.</p>
+													</div>
+
+													<div class="bg-bg-card rounded-xl border border-border-default p-4">
 														<label class="block text-xs text-text-primary font-medium mb-1">Palavras proibidas</label>
 														<p class="text-[10px] text-text-muted mb-2">Palavras que a IA NUNCA deve usar nos textos dessa marca.</p>
 														<input type="text" bind:value={marcas[mi].comunicacao.palavras_proibidas_texto}

@@ -34,12 +34,37 @@ export interface BrandAsset {
   [key: string]: any;
 }
 
+const MOCK_BRANDS: Record<string, any>[] = [
+  {
+    slug: 'itvalley-school',
+    nome: 'IT Valley School',
+    estilo: 'dark_mode_premium',
+    cor_principal: '#A78BFA',
+    cor_fundo: '#0A0A0F',
+    cores: { acento_principal: '#A78BFA', acento_secundario: '#6D28D9', fundo: '#0A0A0F', texto: '#FFFFFF' },
+    fontes: { titulo: 'Outfit', corpo: 'Outfit' },
+    modo_geracao: 'referencia',
+    cta_anuncio: 'Matricule-se agora'
+  },
+  {
+    slug: 'itvalley-cloud',
+    nome: 'IT Valley Cloud',
+    estilo: 'dark_mode_premium',
+    cor_principal: '#22D3EE',
+    cor_fundo: '#061018',
+    cores: { acento_principal: '#22D3EE', acento_secundario: '#0891B2', fundo: '#061018', texto: '#FFFFFF' },
+    fontes: { titulo: 'Outfit', corpo: 'Outfit' },
+    modo_geracao: 'referencia',
+    cta_anuncio: 'Migre para a nuvem'
+  }
+];
+
 export class BrandRepository {
   /** Lista marcas (resumo — sem assets/foto). */
   static async listar(): Promise<BrandDTO[]> {
     if (USE_MOCK) {
       await new Promise(r => setTimeout(r, 200));
-      return [];
+      return MOCK_BRANDS.map(b => new BrandDTO(b));
     }
     const res = await fetch(`${API_BASE}/api/brands`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao carregar marcas');
@@ -51,7 +76,8 @@ export class BrandRepository {
   static async buscar(slug: string): Promise<BrandDTO> {
     if (USE_MOCK) {
       await new Promise(r => setTimeout(r, 200));
-      return new BrandDTO({ slug, nome: 'Mock' });
+      const match = MOCK_BRANDS.find(b => b.slug === slug);
+      return new BrandDTO(match ?? { slug, nome: slug });
     }
     const res = await fetch(`${API_BASE}/api/brands/${slug}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Erro ao buscar marca');

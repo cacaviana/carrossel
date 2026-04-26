@@ -146,3 +146,9 @@ async def _gerar_com_retry(
 def _select_model(slide_index: int, total_slides: int) -> str:
     """Pro para todos os slides — qualidade consistente."""
     return "gemini-3-pro-image-preview"
+
+
+# Formato 'anuncio' (pos-pivot 2026-04-23):
+# Anuncio e 1 formato 1080x1350 com mesma dimensao do post_unico.
+# Nao ha logica de multi-dimensao -- usa o mesmo caminho de geracao
+# via imagem_service/pipeline_executor com formato="anuncio".

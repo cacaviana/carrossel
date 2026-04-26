@@ -16,5 +16,12 @@
     "min_slides": 1,
     "max_slides": 1,
     "default_slides": 1
+  },
+  "anuncio": {
+    "campos": ["headline", "descricao", "cta", "imagem_unica"],
+    "min_slides": 1,
+    "max_slides": 1,
+    "default_slides": 1,
+    "design": "Dark mode premium 1080x1350 (mesma dimensao do post unico). Copy de venda impactante (headline ate 40, descricao ate 125, CTA ate 30). Foto+logo igual post_unico."
   }
 }

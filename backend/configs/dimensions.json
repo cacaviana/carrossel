@@ -3,5 +3,5 @@
   "post_unico": { "width": 1080, "height": 1350 },
   "capa_reels": { "width": 1080, "height": 1920 },
   "thumbnail_youtube": { "width": 1280, "height": 720 },
-  "anuncio": { "width": 1080, "height": 1080 }
+  "anuncio": { "width": 1080, "height": 1350 }
 }
