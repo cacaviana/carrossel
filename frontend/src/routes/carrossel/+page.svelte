@@ -10,6 +10,8 @@
 	let erro = $state('');
 	let salvandoDrive = $state(false);
 	let driveSalvo = $state('');
+	let publicando = $state(false);
+	let publicadoMsg = $state('');
 	let modoEdicao = $state(false);
 	let gerandoSlide = $state<number | null>(null);
 
@@ -199,6 +201,42 @@
 		pdf.save(`${$carrosselAtual.title || 'carrossel'}.pdf`);
 	}
 
+	async function publicarRedes() {
+		if (!$carrosselAtual) return;
+		let currentConfig: typeof $config | undefined;
+		config.subscribe((v) => (currentConfig = v))();
+
+		const imagesWithData = $carrosselAtual.slides.filter((s) => s.imageBase64);
+		if (imagesWithData.length === 0) { erro = 'Gere as imagens primeiro.'; return; }
+
+		erro = ''; publicadoMsg = ''; publicando = true;
+
+		try {
+			const images = $carrosselAtual.slides.map((s) => s.imageBase64).filter(Boolean) as string[];
+			const legenda = $carrosselAtual.legenda_linkedin || $carrosselAtual.title;
+
+			const res = await fetch(`${currentConfig.backendUrl}/api/publicar`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					images_base64: images,
+					legenda_instagram: legenda,
+					texto_linkedin: legenda,
+				})
+			});
+
+			if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Erro ao publicar'); }
+			const data = await res.json();
+			const ok = data.resultados.filter((r: any) => !r.error);
+			const fail = data.resultados.filter((r: any) => r.error);
+			publicadoMsg = `Publicado em ${ok.length} rede(s)!` + (fail.length > 0 ? ` ${fail.length} falha(s).` : '');
+		} catch (e) {
+			erro = e instanceof Error ? e.message : 'Erro ao publicar';
+		} finally {
+			publicando = false;
+		}
+	}
+
 	async function salvarNoDrive() {
 		if (!$carrosselAtual) return;
 		let currentConfig: typeof $config | undefined;
@@ -286,6 +324,12 @@
 					class="py-2.5 px-4 rounded-full text-xs sm:text-sm font-medium border border-steel-3/30 text-steel-3 hover:bg-steel-0 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]">
 					{salvandoDrive ? 'Salvando...' : 'Drive'}
 				</button>
+				<button onclick={publicarRedes} disabled={publicando}
+					class="px-5 py-2.5 rounded-full text-sm font-medium text-white cursor-pointer
+						bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-500
+						hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+					{publicando ? 'Publicando...' : 'Divulgar nas Redes'}
+				</button>
 			</div>
 		</div>
 
@@ -337,6 +381,11 @@
 
 		{#if erro}
 			<div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{erro}</div>
+		{/if}
+		{#if publicadoMsg}
+			<div class="mb-4 p-3 rounded-xl bg-purple-50 border border-purple-200 text-purple-700 text-sm">
+				{publicadoMsg}
+			</div>
 		{/if}
 		{#if driveSalvo}
 			<div class="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">

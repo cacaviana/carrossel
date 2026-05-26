@@ -29,5 +29,16 @@ Thumbs.db
 
 # Claude
 .claude/
-node_modules/
+
+# Test
 test-results/
+
+# Generated output
+output/
+
+# Images & binaries
+*.png
+*.jpg
+*.jpeg
+*.b64
+*.tgz
