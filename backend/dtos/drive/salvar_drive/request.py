@@ -16,3 +16,4 @@ class SaveCarrosselDriveRequest(BaseModel):
     tecnologia_principal: str | None = None
     tipo_carrossel: str | None = "texto"
     legenda_linkedin: str | None = None
+    pipeline_id: str | None = None

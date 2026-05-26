@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Pacifico&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  font-family: '{{fonte_titulo}}', 'Outfit', sans-serif;
+  color: {{texto_principal}};
+}
+
+.slide {
+  width: 1080px;
+  height: 1350px;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 56px;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 8px 24px;
+  border-radius: 9999px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  background: {{badge_bg}};
+  color: {{badge_cor}};
+  border: 1px solid {{badge_borda}};
+}
+
+/* Headline */
+.headline {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  color: {{texto_principal}};
+}
+.headline .keyword {
+  color: {{acento_principal}};
+}
+
+/* Subline */
+.subline {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1.4;
+  color: {{texto_secundario}};
+  margin-bottom: 32px;
+}
+
+/* Card glassmorphism */
+.card {
+  background: {{card_bg}};
+  border: 1px solid {{card_borda}};
+  border-radius: 20px;
+  padding: 40px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Title inside card */
+.card-title {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 28px;
+  color: {{texto_principal}};
+}
+
+/* Bullets */
+.bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bullets li {
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: {{texto_secundario}};
+  padding-left: 28px;
+  position: relative;
+}
+.bullets li::before {
+  content: '\2192';
+  position: absolute;
+  left: 0;
+  color: {{acento_principal}};
+  font-weight: 600;
+}
+.bullets li strong, .bullets li b {
+  color: {{texto_principal}};
+  font-weight: 700;
+}
+.bullets li .keyword {
+  color: {{acento_principal}};
+  font-weight: 600;
+}
+
+/* Footer */
+.footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 24px;
+}
+.footer-foto {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid {{acento_principal}};
+  object-fit: cover;
+}
+.footer-foto-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid {{acento_principal}};
+  background: rgba(0,0,0,0.3);
+}
+.footer-nome {
+  font-size: 20px;
+  font-weight: 500;
+  color: {{texto_principal}};
+}
+.footer-counter {
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 500;
+  color: {{texto_secundario}};
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* CTA specific */
+.cta-foto {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: 3px solid {{acento_principal}};
+  object-fit: cover;
+  align-self: center;
+  margin-bottom: 28px;
+}
+.tags {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+.tag {
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-size: 18px;
+  font-weight: 500;
+  background: {{tag_bg}};
+  color: {{acento_principal}};
+  border: 1px solid {{card_borda}};
+}
+
+/* Code */
+.terminal {
+  background: {{terminal_corpo}};
+  border: 1px solid {{terminal_borda}};
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+.terminal-bar {
+  background: {{terminal_barra}};
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.terminal-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+.terminal-body {
+  padding: 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  line-height: 1.6;
+  color: {{acento_secundario}};
+  white-space: pre-wrap;
+}
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="bg-image" style="background-image: url('{{background_url}}')"></div>
+  <div class="content">
+    {{SLOT}}
+  </div>
+</div>
+</body>
+</html>

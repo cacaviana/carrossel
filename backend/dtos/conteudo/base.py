@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class SlideResponse(BaseModel):
     type: str
+    tipo_layout: str | None = None
     headline: str | None = None
     subline: str | None = None
     title: str | None = None

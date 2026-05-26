@@ -1,0 +1,53 @@
+{
+  "nome": "Petra Design",
+  "slug": "petra",
+  "cores": {
+    "fundo": "#1A1A2E",
+    "gradiente_de": "#1A1A2E",
+    "gradiente_ate": "#16213E",
+    "card": "#0F3460",
+    "card_borda": "rgba(233,69,96,0.2)",
+    "acento_principal": "#E94560",
+    "acento_secundario": "#533483",
+    "acento_terciario": "#F5C542",
+    "acento_negativo": "#F87171",
+    "texto_principal": "#FFFFFF",
+    "texto_secundario": "#B8C1EC",
+    "texto_muted": "#6C7AA3"
+  },
+  "fontes": {
+    "titulo": "Playfair Display",
+    "corpo": "Inter",
+    "codigo": "Fira Code"
+  },
+  "visual": {
+    "estilo_fundo": "Fundo azul escuro profundo com gradiente diagonal. Luzes difusas vermelhas e roxas com efeito de profundidade.",
+    "estilo_desenho": "Formas geometricas abstratas em linhas vermelhas (#E94560) com glow roxo, estilo art deco moderno. Linhas elegantes e sofisticadas.",
+    "estilo_card": "Cards escuros semi-transparentes com borda vermelha sutil, cantos arredondados, backdrop-blur.",
+    "estilo_texto": "Titulos grandes em branco com serifa elegante. Palavras-chave em vermelho (#E94560). Subtitulos em azul claro (#B8C1EC).",
+    "regras_extras": "Estilo editorial premium. SEM emojis. Sofisticado e moderno."
+  },
+  "elementos": {
+    "badge_topo": "Petra Design",
+    "badge_topo_cor": "#E94560",
+    "rodape_nome": "Petra Design",
+    "rodape_instituicao": "",
+    "rodape_extra": "Design que transforma",
+    "cta_texto": "Saiba mais"
+  },
+  "foto": {
+    "posicao_rodape": "inferior_esquerdo",
+    "raio": 28,
+    "borda_cor": "#E94560",
+    "borda_largura": 2
+  },
+  "comunicacao": {
+    "persona": "Petra Design — estudio de design que transforma marcas. Visao artistica com resultado comercial.",
+    "tom": "Sofisticado e inspirador. Confiante sem ser arrogante. Editorial premium.",
+    "linguagem": "Portugues BR formal mas nao engessado. Frases elegantes. Vocabulario de design e estrategia.",
+    "publico": "Empreendedores e marcas que querem se posicionar com design de alto nivel.",
+    "palavras_proibidas": ["barato", "rapido", "facil"],
+    "exemplos_frase": ["Design nao e decoracao — e estrategia", "Sua marca comunica antes de voce falar"]
+  },
+  "referencia_imagem": null
+}

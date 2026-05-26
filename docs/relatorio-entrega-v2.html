@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 40px; color: #1a1a2e; font-size: 11px; line-height: 1.6; }
+h1 { color: #6D28D9; font-size: 22px; border-bottom: 2px solid #A78BFA; padding-bottom: 8px; }
+h2 { color: #1a1a2e; font-size: 16px; margin-top: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+h3 { color: #6D28D9; font-size: 13px; margin-top: 16px; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 10px; }
+th { background: #f3f0ff; color: #6D28D9; text-align: left; padding: 6px 8px; border: 1px solid #e5e7eb; font-weight: 600; }
+td { padding: 5px 8px; border: 1px solid #e5e7eb; vertical-align: top; }
+tr:nth-child(even) { background: #fafafa; }
+.status { width: 60px; text-align: center; }
+.check { width: 12px; height: 12px; border: 1.5px solid #9ca3af; border-radius: 3px; display: inline-block; }
+.header { text-align: center; margin-bottom: 30px; }
+.header h1 { border: none; font-size: 26px; }
+.header p { color: #6b7280; font-size: 12px; }
+.section { page-break-inside: avoid; }
+@media print { body { margin: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Content Factory v2.0 - Relatorio de Entrega</h1>
+<p>Data: 2026-04-06 | Branch: feat/refactor-dry-pipeline | PR: #1</p>
+<p>Frontend: app-carrossel-frontend.azurewebsites.net | Backend: app-carrossel-backend.azurewebsites.net</p>
+</div>
+
+<div class="section">
+<h2>1. HOME (Landing Page)</h2>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>1.1</td><td>URL / mostra landing</td><td>Hero "Content Factory" + 4 cards</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.2</td><td>Card Carrossel</td><td>Icone, 1080x1350, descricao</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.3</td><td>Card Post Unico</td><td>Icone, 1080x1080, descricao</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.4</td><td>Card Thumbnail YouTube</td><td>Icone, 1280x720, descricao</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.5</td><td>Card Capa Reels</td><td>Icone, 1080x1920, descricao</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.6</td><td>Card Funil</td><td>Badge "Em breve"</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.7</td><td>Stats</td><td>Marcas, formatos (4), agentes (6)</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.8</td><td>Clicar card navega</td><td>Vai pra /?formato=X</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>1.9</td><td>Voltar do wizard</td><td>Link volta pra landing</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>2. CONFIGURACOES</h2>
+<h3>2.1 Marcas</h3>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>2.1</td><td>Lista marcas</td><td>Todas com bolinha de cor e nome</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.2</td><td>Ver/Fechar</td><td>Expande/colapsa detalhes</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.3</td><td>Menu 3 pontinhos</td><td>Dropdown: Renomear, Clonar, Remover</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.4</td><td>Clonar</td><td>Modal, slug auto, marca criada</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.5</td><td>Slug CAPS</td><td>Convertido pra minusculo</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.6</td><td>Renomear</td><td>Modal, nome atualiza</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.7</td><td>Remover</td><td>Confirmacao, remove</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.8</td><td>Nova marca</td><td>Cria com cores padrao</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>2.9</td><td>Aba Foto Perfil</td><td>NAO existe (removida)</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>3. CARROSSEL (1080x1350)</h2>
+<h3>3.1 Criacao (3 modos)</h3>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>3.1</td><td>Texto pronto</td><td>3 campos (Capa/Slide/CTA), max 9 slides, max 500 chars</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.2</td><td>Ideia livre</td><td>Min 20, max 2000 chars, contador</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.3</td><td>Por disciplina</td><td>Grid D1-D9, selecionar tech, tema opcional</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.4</td><td>Marca</td><td>Seletor com marcas cadastradas</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.5</td><td>Avatar</td><td>3 opcoes: Na capa / Livre / Sem</td><td class="status"><span class="check"></span></td></tr>
+</table>
+<h3>3.2 Pipeline (6 etapas)</h3>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>3.6</td><td>6 etapas (sem hook)</td><td>STR, CPY, ART, IMG, BRD, CRT</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.7</td><td>AP-1 Briefing</td><td>NAO vazio, editavel, aprovar/rejeitar</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.8</td><td>AP-2 Copy</td><td>Titulo "Revisar Copy", NAO vazia, slides editaveis</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.9</td><td>AP-3 Visual</td><td>Prompts NAO vazios, editaveis, min 50 chars</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.10</td><td>Image Generator</td><td>Barra progresso, ~1-2min</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.11</td><td>Pipeline completo</td><td>6 bolinhas verdes, "Ver Imagens"</td><td class="status"><span class="check"></span></td></tr>
+</table>
+<h3>3.3 Editor</h3>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>3.12</td><td>Preview 4:5</td><td>Retangular vertical</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.13</td><td>Texto esperado</td><td>Titulo + corpo (NAO vazio)</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.14</td><td>Corrigir texto</td><td>Feedback, ate 3 tentativas</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.15</td><td>Regenerar slide</td><td>Imagem diferente, feedback</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.16</td><td>Toggle Logo</td><td>Liga/desliga overlay</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.17</td><td>Posicionar logo</td><td>Click posiciona, "Igual em todos"</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.18</td><td>Rodape/Central</td><td>Toggle + sliders de tamanho</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.19</td><td>Borda</td><td>Checkbox + cor</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.20</td><td>PDF 1080x1350</td><td>Download com/sem logo correto</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>3.21</td><td>Salvar Drive</td><td>Salva e mostra link</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>4. POST UNICO (1080x1080)</h2>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>4.1</td><td>Texto pronto: 1 campo</td><td>Sem Capa/CTA, sem + adicionar</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>4.2</td><td>Ideia livre</td><td>Min 20, max 2000</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>4.3</td><td>Por disciplina</td><td>Funciona</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>4.4</td><td>Avatar</td><td>2 opcoes: Com / Sem</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>4.5</td><td>Pipeline 6 etapas</td><td>Copy 1 slide, NAO vazia</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>4.6</td><td>Editor 1:1</td><td>Preview quadrado</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>4.7</td><td>PDF 1080x1080</td><td>Download quadrado</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>5. THUMBNAIL YOUTUBE (1280x720)</h2>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>5.1</td><td>Texto pronto: 1 campo</td><td>Avatar forcado "Com avatar"</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>5.2</td><td>Ideia livre / Disciplina</td><td>Funciona</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>5.3</td><td>Copy</td><td>Headline max ~4 palavras</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>5.4</td><td>Imagem gerada</td><td>Rosto grande ~40%, cores vibrantes</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>5.5</td><td>Editor 16:9</td><td>Preview paisagem</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>5.6</td><td>PDF 1280x720</td><td>Download paisagem</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>5.7</td><td>Rodape</td><td>Apenas texto (sem circulo de foto)</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>6. CAPA REELS (1080x1920)</h2>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>6.1</td><td>Texto pronto: 1 campo</td><td>Avatar: Com / Sem</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>6.2</td><td>Pipeline 6 etapas</td><td>Funciona</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>6.3</td><td>Editor 9:16</td><td>Preview vertical tall</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>6.4</td><td>PDF 1080x1920</td><td>Download vertical</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>7. TRANSVERSAIS</h2>
+<table>
+<tr><th>#</th><th>Item</th><th>Esperado</th><th class="status">OK</th></tr>
+<tr><td>7.1</td><td>CORS</td><td>Whitelist configurada em prod</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.2</td><td>Rate limiting</td><td>5/min geracao, 15/min executar</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.3</td><td>Polling inteligente</td><td>Para com aprovacao pendente</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.4</td><td>Paginas NAO vazias</td><td>Copy, briefing, visual com conteudo</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.5</td><td>Sem texto parasita</td><td>Sem "Title:"/"Body:" nas imagens</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.6</td><td>Sem circulo foto</td><td>Gemini nao desenha placeholder</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.7</td><td>16 agentes</td><td>10 LLM + 6 skills na listagem</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.8</td><td>153 testes Playwright</td><td>Desktop + Mobile + Formatos</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.9</td><td>Sidebar funcional</td><td>Todos os links, Reels habilitado</td><td class="status"><span class="check"></span></td></tr>
+<tr><td>7.10</td><td>Mobile</td><td>Hamburger menu, touch-friendly</td><td class="status"><span class="check"></span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>8. REFATORACOES REALIZADAS</h2>
+<table>
+<tr><th>#</th><th>O que</th><th>Antes</th><th>Depois</th></tr>
+<tr><td>8.1</td><td>parse_llm_json</td><td>8 copias</td><td>1 centralizada</td></tr>
+<tr><td>8.2</td><td>GEMINI_API_URL</td><td>7 copias</td><td>1 centralizada</td></tr>
+<tr><td>8.3</td><td>API_BASE frontend</td><td>15 copias</td><td>1 centralizada</td></tr>
+<tr><td>8.4</td><td>Dimensoes</td><td>Hardcoded 1080x1350</td><td>utils/dimensions.py</td></tr>
+<tr><td>8.5</td><td>Componentes UI</td><td>4 duplicados</td><td>Extraidos reutilizaveis</td></tr>
+<tr><td>8.6</td><td>Conexao banco</td><td>pymssql sem pool</td><td>SQLAlchemy pool=10</td></tr>
+<tr><td>8.7</td><td>Imagens</td><td>Sequencial + sleep</td><td>Paralelo semaforo=3</td></tr>
+<tr><td>8.8</td><td>Retry texto</td><td>Regenera do zero</td><td>Preserva visual</td></tr>
+<tr><td>8.9</td><td>Hook specialist</td><td>7 etapas</td><td>6 etapas (removido)</td></tr>
+<tr><td>8.10</td><td>Config router</td><td>250 linhas logica</td><td>brand_service + editor_service</td></tr>
+</table>
+</div>
+
+<div style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+<p style="font-size: 10px; color: #9ca3af; text-align: center;">
+Content Factory v2.0 - IT Valley School | Gerado em 2026-04-06<br>
+Assinatura: _________________ | Data: ___/___/______
+</p>
+</div>
+
+</body>
+</html>

@@ -1,27 +1,34 @@
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from dtos.conteudo.gerar_conteudo.request import GerarConteudoRequest
 from dtos.conteudo.gerar_conteudo.response import GerarConteudoResponse
+from middleware.auth import CurrentUser, get_current_user
 from services.conteudo_service import gerar_conteudo
 from services.conteudo_openai_service import gerar_conteudo_openai
 from services.conteudo_cli_service import gerar_conteudo_cli
+from middleware.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.post("/gerar-conteudo", response_model=GerarConteudoResponse)
-async def api_gerar_conteudo(req: GerarConteudoRequest):
-    openai_key = os.getenv("OPENAI_API_KEY")
+@limiter.limit("5/minute")
+async def api_gerar_conteudo(
+    request: Request,
+    req: GerarConteudoRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     claude_key = os.getenv("CLAUDE_API_KEY")
-    if not openai_key and not claude_key:
-        raise HTTPException(status_code=400, detail="Nenhuma API key configurada (OPENAI_API_KEY ou CLAUDE_API_KEY). Acesse /configuracoes.")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not claude_key and not openai_key:
+        raise HTTPException(status_code=400, detail="Nenhuma API key configurada (CLAUDE_API_KEY ou OPENAI_API_KEY). Acesse /configuracoes.")
     try:
         total = 1 if req.tipo_carrossel == "infografico" else req.total_slides
-        if openai_key:
-            result = await gerar_conteudo_openai(
-                openai_api_key=openai_key,
+        if claude_key:
+            result = await gerar_conteudo(
+                claude_api_key=claude_key,
                 disciplina=req.disciplina,
                 tecnologia=req.tecnologia,
                 tema_custom=req.tema_custom,
@@ -30,8 +37,8 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
                 tipo_carrossel=req.tipo_carrossel,
             )
         else:
-            result = await gerar_conteudo(
-                claude_api_key=claude_key,
+            result = await gerar_conteudo_openai(
+                openai_api_key=openai_key,
                 disciplina=req.disciplina,
                 tecnologia=req.tecnologia,
                 tema_custom=req.tema_custom,
@@ -45,7 +52,12 @@ async def api_gerar_conteudo(req: GerarConteudoRequest):
 
 
 @router.post("/gerar-conteudo-cli", response_model=GerarConteudoResponse)
-async def api_gerar_conteudo_cli(req: GerarConteudoRequest):
+@limiter.limit("5/minute")
+async def api_gerar_conteudo_cli(
+    request: Request,
+    req: GerarConteudoRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     try:
         total = 1 if req.tipo_carrossel == "infografico" else req.total_slides
         result = await gerar_conteudo_cli(

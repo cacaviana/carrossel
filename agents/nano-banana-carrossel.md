@@ -1,100 +1,102 @@
-# Skill Geracao de Slides Visuais — Carlos Viana / IT Valley School
+# Skill Geracao de Slides Visuais — Carrossel LinkedIn
 
-## DESIGN SYSTEM: Dark Mode Premium — Carrossel Tech IT Valley
+NOTA: Este skill e generico. Cores, fontes, badges, rodape e elementos de marca sao injetados em runtime pelo PromptComposer via brand profile. Placeholders entre {chaves} indicam dados que vem do brand profile.
+
+## DESIGN SYSTEM: Dark Mode Premium — Carrossel Tech
 
 ### Paleta de Cores & Atmosfera
 
-| Elemento | Cor Hex | Uso |
-|----------|---------|-----|
-| Fundo Global | #0A0A0F | Base de tudo. Nunca 100% preto. |
-| Fundo de Card | #12121A | Cards e elementos destacados |
-| Fundo Codigo | #0D0D18 | Corpo da janela de terminal |
-| Barra titulo terminal | #1a1a2a | Title bar da janela macOS |
-| Gradiente Base | #1a0a2e → #0a1628 | Gradiente sutil diagonal |
-| Texto Principal | #FFFFFF | Titulos e informacoes cruciais |
-| Texto Secundario | #9896A3 | Corpo, legendas, detalhes |
-| Texto Muted | #5A5A66 | Paginacao, elementos terciarios |
-| Acento Principal | #A78BFA (Roxo Lilas) | Keywords, bordas ativas, pontos focais |
-| Acento Soft | #C4B5FD (Roxo Claro) | Citacoes, italicos |
-| Acento Secundario | #34D399 (Verde Neon) | Badges codigo, numeros positivos |
-| Acento Terciario | #FBBF24 (Amber) | Metricas de impacto, atencao |
-| Acento Negativo | #F87171 (Vermelho) | Limitacoes, alertas |
-| Bordas Sutis | rgba(167,139,250,0.2) | Bordas finas de 1px para cards |
+| Elemento | Placeholder | Uso |
+|----------|-------------|-----|
+| Fundo Global | {cor_fundo_global} | Base de tudo. Nunca 100% preto. |
+| Fundo de Card | {cor_fundo_card} | Cards e elementos destacados |
+| Fundo Codigo | {cor_fundo_codigo} | Corpo da janela de terminal |
+| Barra titulo terminal | {cor_barra_terminal} | Title bar da janela macOS |
+| Gradiente Base | {cor_gradiente_inicio} a {cor_gradiente_fim} | Gradiente sutil diagonal |
+| Texto Principal | {cor_texto_principal} | Titulos e informacoes cruciais |
+| Texto Secundario | {cor_texto_secundario} | Corpo, legendas, detalhes |
+| Texto Muted | {cor_texto_muted} | Paginacao, elementos terciarios |
+| Acento Principal | {cor_acento_principal} | Keywords, bordas ativas, pontos focais |
+| Acento Soft | {cor_acento_soft} | Citacoes, italicos |
+| Acento Secundario | {cor_acento_secundario} | Badges codigo, numeros positivos |
+| Acento Terciario | {cor_acento_terciario} | Metricas de impacto, atencao |
+| Acento Negativo | {cor_acento_negativo} | Limitacoes, alertas |
+| Bordas Sutis | {cor_bordas_sutis} | Bordas finas de 1px para cards |
 
 ### Tipografia
 
-| Fonte | Uso | Peso |
-|-------|-----|------|
-| Outfit | Titulos grandes | Light (300) |
-| Outfit | Destaques em titulos | Semibold (600) |
-| Outfit | Corpo de texto | Regular (400) ou Light (300) |
-| JetBrains Mono | Badges pill | Uppercase, letter-spacing, 12px |
-| JetBrains Mono | Codigo Python | Verde #34D399 sobre fundo #0D0D18 |
-| JetBrains Mono | Metricas | Numeros de impacto, 28px+ |
+| Placeholder | Uso | Peso |
+|-------------|-----|------|
+| {fonte_titulo} | Titulos grandes | Light (300) |
+| {fonte_titulo} | Destaques em titulos | Semibold (600) |
+| {fonte_titulo} | Corpo de texto | Regular (400) ou Light (300) |
+| {fonte_mono} | Badges pill | Uppercase, letter-spacing, 12px |
+| {fonte_mono} | Codigo | {cor_acento_secundario} sobre {cor_fundo_codigo} |
+| {fonte_mono} | Metricas | Numeros de impacto, 28px+ |
 
 ### Hierarquia de Destaques no Texto
-Dentro de texto cinza (#9896A3), palavras-chave ganham cor e peso:
+Dentro de texto {cor_texto_secundario}, palavras-chave ganham cor e peso:
 
 | Tipo | Cor | Peso | Quando usar |
 |------|-----|------|-------------|
-| Keyword principal | #A78BFA (roxo) | Semibold (600) | Tecnologias, conceitos centrais |
-| Numero de impacto | #FBBF24 (amber) | Semibold (600) | Metricas, percentuais |
-| Positivo | #34D399 (verde) | Semibold (600) | Resultados bons, badges codigo |
-| Negativo | #F87171 (vermelho) | Semibold (600) | Limitacoes, problemas |
-| Riscado | #5C5A6B (cinza) | Regular + strikethrough | Conceito obsoleto |
+| Keyword principal | {cor_acento_principal} | Semibold (600) | Tecnologias, conceitos centrais |
+| Numero de impacto | {cor_acento_terciario} | Semibold (600) | Metricas, percentuais |
+| Positivo | {cor_acento_secundario} | Semibold (600) | Resultados bons, badges codigo |
+| Negativo | {cor_acento_negativo} | Semibold (600) | Limitacoes, problemas |
+| Riscado | {cor_texto_muted} | Regular + strikethrough | Conceito obsoleto |
 
 ## BADGES NOS SLIDES
 
 | Tipo | Borda | Fundo | Texto |
 |------|-------|-------|-------|
-| Codigo / Noticia | 1px #34D399 | rgba(52,211,153,0.1) | "CODIGO REAL" ou "NOTICIA REAL" verde #34D399 |
-| Categoria | 1px rgba(167,139,250,0.2) | rgba(167,139,250,0.1) | Roxo #A78BFA |
-| Alerta | 1px rgba(248,113,113,0.15) | rgba(248,113,113,0.09) | Vermelho #F87171 |
+| Codigo / Noticia | 1px {cor_acento_secundario} | {cor_acento_secundario} 10% opacidade | "CODIGO REAL" ou "NOTICIA REAL" em {cor_acento_secundario} |
+| Categoria | 1px {cor_acento_principal} 20% opacidade | {cor_acento_principal} 10% opacidade | {cor_acento_principal} |
+| Alerta | 1px {cor_acento_negativo} 15% opacidade | {cor_acento_negativo} 9% opacidade | {cor_acento_negativo} |
 
-Forma: Pill (cantos arredondados). Fonte: JetBrains Mono, Uppercase, ~12px.
+Forma: Pill (cantos arredondados). Fonte: {fonte_mono}, Uppercase, ~12px.
 
-- Slide de CAPA: badge "Carlos Viana" (verde #34D399)
-- TODO slide de CODIGO: badge "CODIGO REAL" (verde #34D399)
-- Slide CTA: rodape "Carlos Viana — IT Valley School — Pos IA & ML"
+- Slide de CAPA: badge {badge_topo} (definido no brand profile)
+- TODO slide de CODIGO: badge "CODIGO REAL" em {cor_acento_secundario}
+- Slide CTA: rodape {rodape_nome} — {rodape_instituicao} — {rodape_curso} (definidos no brand profile)
 - NUNCA: nomes de ferramentas internas, nomes de metodos internos
 
 ## REGRA OBRIGATORIA: SLIDE DE CODIGO
 Todo slide do tipo "code" DEVE ter:
-1. Badge "CODIGO REAL" no topo (verde #34D399, pill)
+1. Badge "CODIGO REAL" no topo ({cor_acento_secundario}, pill)
 2. Codigo dentro de JANELA DE TERMINAL estilo macOS/Apple:
-   - Container: largura 90-95%, borda 1px #1E1E35, radius 10px
-   - Barra titulo: altura 28px, fundo #1a1a2a, radius superior 10px
-   - 3 botoes: vermelho #FF5F57, amarelo #FEBC2E, verde #28C840, 10px cada, gap 6px
-   - Nome arquivo: "agent.py" em monospace 10px cinza #9896A3, centralizado
-   - Corpo: fundo #0D0D18, radius inferior 10px, padding 24-32px
-   - Codigo: JetBrains Mono, 9.5px, verde #34D399, line-height 1.55
+   - Container: largura 90-95%, borda 1px {cor_borda_terminal}, radius 10px
+   - Barra titulo: altura 28px, fundo {cor_barra_terminal}, radius superior 10px
+   - 3 botoes: {cor_botao_fechar}, {cor_botao_minimizar}, {cor_botao_maximizar}, 10px cada, gap 6px (definidos no brand profile)
+   - Nome arquivo: em {fonte_mono} 10px {cor_texto_secundario}, centralizado
+   - Corpo: fundo {cor_fundo_codigo}, radius inferior 10px, padding 24-32px
+   - Codigo: {fonte_mono}, 9.5px, {cor_acento_secundario}, line-height 1.55
 
 ## RODAPE PADRAO (todo slide)
 
 | Posicao | Elemento | Detalhes |
 |---------|----------|----------|
-| Inferior Esquerdo | Foto + Nome | Circulo (40-48px) com borda roxa #A78BFA, "Carlos Viana" em Outfit Medium branco |
-| Inferior Centro | Navegacao | "DESLIZA →" em monospace pequena, roxo #A78BFA |
-| Inferior Direito | Paginacao | "XX / 10" em monospace, cinza #5A5A66 |
+| Inferior Esquerdo | Foto + Nome | Circulo (40-48px) com borda {cor_acento_principal}, {rodape_nome} em {fonte_titulo} Medium branco |
+| Inferior Centro | Navegacao | {texto_navegacao} em {fonte_mono} pequena, {cor_acento_principal} (definido no brand profile) |
+| Inferior Direito | Paginacao | "XX / NN" em {fonte_mono}, {cor_texto_muted} |
 
 ## COMPONENTES VISUAIS
 
 ### Quote Blocks
-- Borda esquerda: 3px, #A78BFA
-- Fundo: rgba(167,139,250,0.06)
-- Texto: italico, #C4B5FD, 13px
-- Fonte citacao: monospace, 10px, cinza
+- Borda esquerda: 3px, {cor_acento_principal}
+- Fundo: {cor_acento_principal} 6% opacidade
+- Texto: italico, {cor_acento_soft}, 13px
+- Fonte citacao: {fonte_mono}, 10px, cinza
 
 ### Metric Cards
 - Fundo: cor do acento com 10% opacidade
 - Borda: cor do acento com 25% opacidade
 - Radius: 10px
 - Numero: 28px, peso 600, cor do acento
-- Label: 10px, cinza monospace
+- Label: 10px, cinza {fonte_mono}
 
 ### Glows (Atmosfera)
 - Circulos com blur extremo (80px+) e 6-10% opacidade
-- Cores: roxo #A78BFA, verde #34D399
+- Cores: {cor_acento_principal}, {cor_acento_secundario}
 - Posicao: cantos dos slides, capa e CTA
 
 ## MODELOS E CUSTOS
@@ -132,15 +134,15 @@ Todo slide do tipo "code" DEVE ter:
 
 | Tipo | Fundo | Elementos |
 |------|-------|-----------|
-| Capa | Gradiente + glows | Atmosfera + headline + badge Carlos Viana |
-| Metricas | Card #12121A | Quote box + metric cards + destaques |
-| Flow | Card #12121A | Steps verticais com linha conectora roxa |
+| Capa | Gradiente + glows | Atmosfera + headline + badge {badge_topo} |
+| Metricas | Card {cor_fundo_card} | Quote box + metric cards + destaques |
+| Flow | Card {cor_fundo_card} | Steps verticais com linha conectora {cor_acento_principal} |
 | Respiro | Gradiente sem card | Frase GRANDE centralizada |
-| Codigo | Card #12121A | Janela macOS + badge CODIGO REAL |
-| Limitacoes | Card borda vermelha | Cards de alerta + metrica |
-| Comparativo | Card #12121A | Duas colunas: vermelho vs roxo |
-| Espelho | Gradiente + linha roxa | Frase de impacto + riscado |
-| CTA | Gradiente + linha roxa | Card convite + tags + IT Valley |
+| Codigo | Card {cor_fundo_card} | Janela macOS + badge CODIGO REAL |
+| Limitacoes | Card borda {cor_acento_negativo} | Cards de alerta + metrica |
+| Comparativo | Card {cor_fundo_card} | Duas colunas: {cor_acento_negativo} vs {cor_acento_principal} |
+| Espelho | Gradiente + linha {cor_acento_principal} | Frase de impacto + riscado |
+| CTA | Gradiente + linha {cor_acento_principal} | Card convite + tags + {rodape_instituicao} |
 
 ## API
 POST https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent
@@ -150,22 +152,16 @@ Extrair imagem: data.candidates[0].content.parts → find part.inlineData → pa
 
 ## REGRAS DE OURO
 1. Nunca muro de texto. Quebrar com cor, metrica ou bloco visual.
-2. Palavras-chave SEMPRE em roxo (#A78BFA) dentro de texto cinza.
+2. Palavras-chave SEMPRE em {cor_acento_principal} dentro de texto {cor_texto_secundario}.
 3. Numeros SEMPRE grandes — card proprio ou 28px+.
 4. Alternar denso / respiro apos 2-3 slides densos.
-5. Fundo nunca 100% preto. Sempre #0A0A0F com gradiente ou card #12121A.
+5. Fundo nunca 100% preto. Sempre {cor_fundo_global} com gradiente ou card {cor_fundo_card}.
 6. Glows criam atmosfera. Blur extremo, 6-10% opacidade.
-7. Rodape consistente: Carlos Viana + foto com borda roxa em TODO slide.
+7. Rodape consistente: {rodape_nome} + foto com borda {cor_acento_principal} em TODO slide.
 8. Codigo na janela macOS. Sempre com bolinhas, barra de titulo, nome do arquivo.
-9. Sem icones genericos. Outline limpo dentro de caixa #16162A.
+9. Sem icones genericos. Outline limpo dentro de caixa {cor_fundo_icone} (definido no brand profile).
 10. Sem stock vibes. Nada de clipart, robos, cerebros digitais.
 
-## BANCO DE IMAGENS PRA CAPA
-1. Terminal/IDE com codigo desfocado, dark mode
-2. Dashboard com graficos, tons escuros
-3. Dev de costas olhando pra tela com codigo
-4. Rede de conexoes, pontos luminosos
-5. GPU/hardware close-up, iluminacao dramatica
-6. Fundo quase preto com spotlight sutil
-7. Notebook com codigo + cafe, low key lighting
-NUNCA: cerebro digital, robo, circuito brilhante generico
+## FORMATO DE IMAGEM
+- Tamanho: 1080x1350px (formato LinkedIn carrossel)
+- Orientacao: Vertical (portrait)

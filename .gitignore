@@ -29,9 +29,40 @@ Thumbs.db
 
 # Claude
 .claude/
-
-# Test
 test-results/
+playwright-report/
+
+# Imagens de teste e preview (geradas durante dev)
+backend/*.png
+backend/*.pdf
+backend/uvicorn.log
+backend/test_output/
+backend/*_slides.json
+backend/scripts/test_*.png
+test_output/
+prod-logs.zip
+
+# Artefatos de QA E2E (tenants fictos criados nos testes)
+backend/configs/tenant-e2e-*/
+backend/configs/tenant-A/
+
+# Artefatos de runtime (geradas pelo pipeline)
+backend/assets/pipeline-images/
+backend/assets/brand-assets/
+backend/pass2.log
+
+# HTMLs de preview (geradas durante dev)
+*.preview.html
+*_preview.html
+preview_*.html
+final_preview.html
+final_*.html
+carlos_preview.html
+pure_preview.html
+overlay_preview.html
+pipeline_preview.html
+pipeline_foto_preview.html
+v*_preview.html
 
 # Generated output
 output/
@@ -42,3 +73,7 @@ output/
 *.jpeg
 *.b64
 *.tgz
+
+# PDFs de teste
+carrossel_*.pdf
+carrossel_final.pdf

@@ -9,6 +9,7 @@ export interface FotoItem {
 }
 
 const STORAGE_KEY = 'carrossel-fotos';
+const PRINCIPAL_KEY = 'carrossel-foto-principal';
 
 function loadFotos(): FotoItem[] {
 	if (!browser) return [];
@@ -21,6 +22,15 @@ function loadFotos(): FotoItem[] {
 
 function saveFotos(fotos: FotoItem[]) {
 	if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(fotos));
+}
+
+function loadPrincipalId(): string {
+	if (!browser) return '';
+	return localStorage.getItem(PRINCIPAL_KEY) || '';
+}
+
+function savePrincipalId(id: string) {
+	if (browser) localStorage.setItem(PRINCIPAL_KEY, id);
 }
 
 function createFotosStore() {
@@ -41,6 +51,11 @@ function createFotosStore() {
 						};
 						const updated = [...fotos, novo];
 						saveFotos(updated);
+						// Se for a primeira foto, define como principal automaticamente
+						if (updated.length === 1) {
+							savePrincipalId(novo.id);
+							fotoPrincipalId.set(novo.id);
+						}
 						return updated;
 					});
 					resolve();
@@ -52,14 +67,35 @@ function createFotosStore() {
 			update((fotos) => {
 				const updated = fotos.filter((f) => f.id !== id);
 				saveFotos(updated);
+				// Se removeu a principal, limpa
+				if (loadPrincipalId() === id) {
+					const newPrincipal = updated.length > 0 ? updated[0].id : '';
+					savePrincipalId(newPrincipal);
+					fotoPrincipalId.set(newPrincipal);
+				}
 				return updated;
 			});
 		},
 		clear() {
 			set([]);
 			saveFotos([]);
+			savePrincipalId('');
+			fotoPrincipalId.set('');
+		},
+	};
+}
+
+function createPrincipalStore() {
+	const { subscribe, set } = writable<string>(loadPrincipalId());
+
+	return {
+		subscribe,
+		set(id: string) {
+			savePrincipalId(id);
+			set(id);
 		},
 	};
 }
 
 export const fotos = createFotosStore();
+export const fotoPrincipalId = createPrincipalStore();

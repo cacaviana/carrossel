@@ -1,319 +1,690 @@
 <script lang="ts">
 	import { disciplinas } from '$lib/data/disciplinas';
-	import { config, isProduction } from '$lib/stores/config';
-	import { fotos } from '$lib/stores/fotos';
-	import { carrosselAtual, gerandoConteudo } from '$lib/stores/carrossel';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { PipelineService } from '$lib/services/PipelineService';
+	import { BrandService } from '$lib/services/BrandService';
+	import Banner from '$lib/components/ui/Banner.svelte';
+	import DeadlinePicker from '$lib/components/kanban/DeadlinePicker.svelte';
+	import type { FormatoConteudo } from '$lib/dtos/PipelineDTO';
 
-	const isProd = isProduction();
-
-	// Wizard state
-	let modo = $state<'disciplina' | 'texto'>('texto');
-	let tipoCarrossel = $state<'texto' | 'visual' | 'infografico'>('texto');
+	let modoEntrada = $state<'texto_pronto' | 'ideia' | 'disciplina' | 'upload'>('ideia');
+	let textoLivre = $state('');
 	let disciplinaSelecionada = $state('');
 	let techSelecionada = $state('');
 	let temaCustom = $state('');
-	let textoLivre = $state('');
+	let criando = $state(false);
 	let erro = $state('');
-	let modoCli = $state(false);
-	let totalSlides = $state<number>(10);
+	let deadline = $state('');
 
-	const disciplinaAtual = $derived(disciplinas.find((d) => d.id === disciplinaSelecionada));
-	const techsDisponiveis = $derived(disciplinaAtual?.techs ?? []);
+	// CTA opcional, usado so quando formato=anuncio. Se vazio, backend usa brand.cta_anuncio
+	// ou o Copywriter inventa um contextual (RN-023).
+	let ctaAnuncio = $state('');
+	let ctaUserEditou = $state(false); // trava: depois que o user editar, nao sobrescreve mais
+	const CTA_ANUNCIO_MAX = 30;
 
-	const podeContinuar = $derived(
-		modo === 'texto'
-			? textoLivre.trim().length > 20
-			: !!disciplinaSelecionada && !!techSelecionada
-	);
+	// Upload mode
+	let uploadedBg = $state('');
+	let uploadedFile = $state('');
+	let templateLayout = $state('texto_centralizado');
+	let textoUpload = $state('');
 
-	// Quando muda para infográfico, força 1 slide
-	$effect(() => {
-		if (tipoCarrossel === 'infografico') totalSlides = 1;
-		else if (totalSlides === 1) totalSlides = 10;
+	function handleFileUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		if (!file.type.startsWith('image/')) { erro = 'Selecione uma imagem'; return; }
+		if (file.size > 10 * 1024 * 1024) { erro = 'Imagem muito grande (max 10MB)'; return; }
+		uploadedFile = file.name;
+		const reader = new FileReader();
+		reader.onload = () => { uploadedBg = reader.result as string; };
+		reader.readAsDataURL(file);
+	}
+
+	// Marca
+	type Brand = { slug: string; nome: string; cor_principal: string; cor_fundo: string };
+	let brands = $state<Brand[]>([]);
+	let brandSelecionada = $state('');
+
+	import { onMount } from 'svelte';
+	onMount(async () => {
+		try {
+			const lista = await BrandService.listar();
+			brands = lista.map(dto => ({
+				slug: dto.slug,
+				nome: dto.nome,
+				cor_principal: dto.cor_principal,
+				cor_fundo: dto.cor_fundo
+			}));
+			if (brands.length > 0) brandSelecionada = brands[0].slug;
+		} catch {}
 	});
 
-	const tipos = [
-		{ id: 'texto' as const, label: 'Texto', desc: 'Slides com texto, código e bullets' },
-		{ id: 'visual' as const, label: 'Visual', desc: 'Texto + diagramas e ilustrações' },
-		{ id: 'infografico' as const, label: 'Infográfico', desc: '1 slide visual de alto impacto' },
+	// Quando o user troca a marca, pre-preenche o CTA com brand.cta_anuncio (so se o
+	// user ainda nao tiver digitado nada manualmente — depois disso a escolha dele vence).
+	$effect(() => {
+		const slug = brandSelecionada;
+		if (!slug || ctaUserEditou) return;
+		(async () => {
+			try {
+				const brand = await BrandService.buscar(slug);
+				if (!ctaUserEditou) ctaAnuncio = brand.cta_anuncio || '';
+			} catch {}
+		})();
+	});
+
+	// Avatar
+	type AvatarMode = 'capa' | 'livre' | 'sem' | 'sim';
+	let avatarMode = $state<AvatarMode>('capa');
+
+	const avatarOptions = $derived(
+		formatoAtual === 'thumbnail_youtube'
+			? [{ id: 'sim' as AvatarMode, label: 'Com avatar', tip: 'Sua foto aparece na thumbnail' }]
+			: formatoAtual === 'post_unico' || formatoAtual === 'capa_reels' || formatoAtual === 'anuncio'
+				? [
+					{ id: 'sim' as AvatarMode, label: 'Com avatar', tip: 'Sua foto aparece na imagem' },
+					{ id: 'sem' as AvatarMode, label: 'Sem avatar', tip: 'Imagem sem foto de pessoa' }
+				]
+				: [
+					{ id: 'capa' as AvatarMode, label: 'Avatar na capa', tip: 'Foto so no primeiro slide' },
+					{ id: 'livre' as AvatarMode, label: 'Avatar livre', tip: 'A IA decide onde encaixar sua foto' },
+					{ id: 'sem' as AvatarMode, label: 'Sem avatar', tip: 'Nenhum slide tera foto de pessoa' }
+				]
+	);
+
+	// Formatos de slide unico: default com avatar
+	$effect(() => {
+		if (formatoAtual === 'thumbnail_youtube' || formatoAtual === 'post_unico' || formatoAtual === 'capa_reels' || formatoAtual === 'anuncio') avatarMode = 'sim';
+	});
+
+
+	// Texto pronto — slide a slide
+	type SlideTexto = { principal: string; alternativo: string; tipo_layout: string };
+	const LAYOUT_OPTIONS = [
+		{ value: 'texto', label: 'Texto' },
+		{ value: 'lista', label: 'Lista' },
+		{ value: 'comparativo', label: 'Comparativo' },
+		{ value: 'dados', label: 'Dados' },
 	];
+	const FORMATOS_SLIDE_UNICO = ['post_unico', 'thumbnail_youtube', 'capa_reels', 'anuncio'];
+	const isSlideUnico = $derived(FORMATOS_SLIDE_UNICO.includes(formatoAtual));
+	let slidesTexto = $state<SlideTexto[]>(Array.from({ length: 3 }, () => ({ principal: '', alternativo: '', tipo_layout: 'texto' })));
 
-	async function gerarConteudo(useCli: boolean) {
-		if (!podeContinuar) {
-			erro = modo === 'texto'
-				? 'Escreva um texto com pelo menos 20 caracteres.'
-				: 'Selecione uma disciplina e uma tecnologia.';
-			return;
+	// Quando muda pra formato de slide unico, ajustar pra 1 slide
+	$effect(() => {
+		if (isSlideUnico && slidesTexto.length > 1) {
+			slidesTexto = [slidesTexto[0]];
 		}
+	});
 
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
+	const MAX_SLIDES = 7; // maximo de slides texto_pronto (Fase 5)
+	const MAX_CHARS_SLIDE = 500;
+	const MAX_CHARS_IDEIA = 2000;
+	let maxSlidesIdeia = $state(5);
 
-		modoCli = useCli;
+	function adicionarSlide() {
+		if (slidesTexto.length >= MAX_SLIDES) return;
+		slidesTexto = [...slidesTexto, { principal: '', alternativo: '', tipo_layout: 'texto' }];
+	}
+
+	function removerSlide(index: number) {
+		if (slidesTexto.length <= 1) return;
+		slidesTexto = slidesTexto.filter((_, i) => i !== index);
+	}
+
+	const formatoLabels: Record<string, string> = {
+		carrossel: 'Carrossel',
+		post_unico: 'Post Unico',
+		thumbnail_youtube: 'Thumbnail YouTube',
+		capa_reels: 'Capa Reels',
+		anuncio: 'Anuncio (post de venda)',
+		funil: 'Funil de Conteudo'
+	};
+
+	const formatoDims: Record<string, string> = {
+		carrossel: '1080 x 1350 · LinkedIn, Instagram',
+		post_unico: '1080 x 1350 · Instagram, Facebook, LinkedIn',
+		thumbnail_youtube: '1280 x 720 · YouTube',
+		capa_reels: '1080 x 1920 · Instagram Reels, TikTok',
+		anuncio: '1080 x 1350 · Meta Ads, LinkedIn Ads',
+		funil: 'Mix de formatos · Todas as plataformas'
+	};
+
+	const formatoDesc: Record<string, string> = {
+		carrossel: 'Crie slides completos 10x mais rapido com muito mais engajamento.',
+		post_unico: 'Uma imagem que para o scroll e gera conversa no feed.',
+		thumbnail_youtube: 'A thumbnail que faz o clique acontecer antes do titulo.',
+		capa_reels: 'A capa que transforma scroll em visualizacao completa.',
+		anuncio: '1 imagem 1080x1350 com copy de venda: headline (40) + descricao (125) + CTA (30).',
+		funil: 'Conteudo conectado que leva sua audiencia do interesse a acao.'
+	};
+
+	const formatoRaw = $derived(page.url.searchParams.get('formato'));
+	const formatoAtual = $derived(formatoRaw ?? 'carrossel');
+	const showLanding = $derived(!formatoRaw);
+	const isFunil = $derived(formatoAtual === 'funil');
+	const labelFormato = $derived(formatoLabels[formatoAtual] ?? 'Carrossel');
+	const dimFormato = $derived(formatoDims[formatoAtual] ?? '');
+	const descFormato = $derived(formatoDesc[formatoAtual] ?? '');
+
+	const disciplinaAtual = $derived(disciplinas.find(d => d.id === disciplinaSelecionada));
+	const techsDisponiveis = $derived(disciplinaAtual?.techs ?? []);
+
+	const podeCriar = $derived(
+		modoEntrada === 'upload'
+			? !!uploadedBg && textoUpload.trim().length > 0
+			: modoEntrada === 'disciplina'
+				? !!disciplinaSelecionada && !!techSelecionada
+				: modoEntrada === 'texto_pronto'
+					? slidesTexto.some(s => s.principal.trim().length > 0)
+					: textoLivre.trim().length >= 20
+	);
+
+	async function criarPipeline() {
+		if (!podeCriar) return;
 		erro = '';
-		gerandoConteudo.set(true);
-
-		const endpoint = useCli ? '/api/gerar-conteudo-cli' : '/api/gerar-conteudo';
-		const base = modo === 'texto'
-			? { texto_livre: textoLivre }
-			: { disciplina: disciplinaSelecionada, tecnologia: techSelecionada, tema_custom: temaCustom || undefined };
-
-		const body = { ...base, total_slides: totalSlides, tipo_carrossel: tipoCarrossel };
-
+		criando = true;
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}${endpoint}`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			});
+			const tema = modoEntrada === 'upload'
+				? textoUpload
+				: modoEntrada === 'disciplina'
+					? [disciplinaSelecionada, techSelecionada, temaCustom].filter(Boolean).join(' - ')
+					: modoEntrada === 'texto_pronto'
+						? (slidesTexto[0]?.principal || 'Texto pronto pelo usuario')
+						: textoLivre;
 
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.detail || 'Erro ao gerar conteudo');
+			const formatos: FormatoConteudo[] = isFunil
+				? ['carrossel', 'post_unico', 'thumbnail_youtube']
+				: [formatoAtual as FormatoConteudo];
+
+			const payload: Record<string, any> = {
+				tema,
+				formatos,
+				modo_funil: isFunil,
+				modo_entrada: modoEntrada,
+				brand_slug: brandSelecionada || undefined,
+				avatar_mode: avatarMode,
+				deadline: deadline || undefined,
+			};
+
+			if (modoEntrada === 'texto_pronto') {
+				payload.slides_texto_pronto = slidesTexto
+					.filter(s => s.principal.trim().length > 0)
+					.map(s => ({ principal: s.principal, alternativo: s.alternativo, tipo_layout: s.tipo_layout }));
 			}
 
-			const data = await res.json();
-			carrosselAtual.set({ ...data, createdAt: new Date().toISOString() });
+			if (modoEntrada === 'upload') {
+				payload.background_base64 = uploadedBg;
+				payload.template_layout = templateLayout;
+			}
 
-			const saved = localStorage.getItem('carrossel-historico');
-			const historico = saved ? JSON.parse(saved) : [];
-			historico.unshift({ ...data, createdAt: new Date().toISOString() });
-			localStorage.setItem('carrossel-historico', JSON.stringify(historico.slice(0, 50)));
+			if (modoEntrada === 'ideia') {
+				payload.max_slides = maxSlidesIdeia;
+			}
 
-			goto('/carrossel');
+			// CTA opcional de anuncio — vazio = backend puxa de brand.cta_anuncio ou Copywriter inventa
+			if (formatoAtual === 'anuncio' && ctaAnuncio.trim().length > 0) {
+				payload.cta = ctaAnuncio.trim().slice(0, CTA_ANUNCIO_MAX);
+			}
+
+			const pipeline = await PipelineService.criar(payload);
+			goto(`/pipeline/${pipeline.id}`);
 		} catch (e) {
-			erro = e instanceof Error ? e.message : 'Erro desconhecido';
+			erro = e instanceof Error ? e.message : 'Erro ao iniciar pipeline';
 		} finally {
-			gerandoConteudo.set(false);
+			criando = false;
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Home — Carrossel System</title>
+	<title>{showLanding ? 'Content Factory' : `${labelFormato} — Content Factory`}</title>
 </svelte:head>
 
-<div class="animate-fade-up">
-	<div class="mb-6">
-		<h2 class="text-xl sm:text-2xl font-semibold text-steel-6 mb-1">Criar Carrossel LinkedIn</h2>
-		<p class="text-sm text-steel-4 font-light">Carlos Viana / IT Valley School</p>
-	</div>
-
-	<!-- PASSO 1: Tipo de carrossel -->
-	<div class="mb-5">
-		<p class="text-xs font-medium text-steel-5 mb-2">Tipo</p>
-		<div class="grid grid-cols-3 gap-2 sm:gap-3">
-			{#each tipos as tipo}
-				<button
-					onclick={() => tipoCarrossel = tipo.id}
-					class="p-3 sm:p-4 rounded-xl text-left transition-all cursor-pointer active:scale-[0.97]
-						{tipoCarrossel === tipo.id
-							? 'bg-steel-6 text-white shadow-lg'
-							: 'bg-bg-card border border-teal-4/30 hover:border-steel-3/40'}"
-				>
-					<span class="block text-sm font-semibold">{tipo.label}</span>
-					<span class="block text-xs mt-0.5 {tipoCarrossel === tipo.id ? 'text-teal-4' : 'text-steel-4'} font-light">
-						{tipo.desc}
-					</span>
-				</button>
-			{/each}
+{#if showLanding}
+<!-- ========== LANDING — HERO BANNER ========== -->
+<div class="hero-bg min-h-screen relative overflow-hidden">
+		<!-- Subtle decorative blobs -->
+		<div class="absolute inset-0 overflow-hidden pointer-events-none">
+			<div class="absolute w-[500px] h-[500px] rounded-full top-[-10%] right-[-5%] opacity-20"
+				style="background: radial-gradient(circle, rgba(53,120,176,0.25) 0%, rgba(53,120,176,0.08) 40%, transparent 70%); filter: blur(80px);"></div>
+			<div class="absolute w-[400px] h-[400px] rounded-full bottom-[-15%] left-[10%] opacity-15"
+				style="background: radial-gradient(circle, rgba(122,173,166,0.3) 0%, rgba(122,173,166,0.1) 50%, transparent 70%); filter: blur(60px);"></div>
+			<div class="absolute w-[250px] h-[250px] rounded-full top-[30%] left-[40%] opacity-10"
+				style="background: radial-gradient(circle, rgba(53,120,176,0.2) 0%, transparent 60%); filter: blur(50px);"></div>
 		</div>
-	</div>
 
-	<!-- PASSO 2: Foto + Slides (inline) -->
-	<div class="flex flex-col sm:flex-row gap-4 mb-5">
-		<!-- Foto -->
-		<div class="flex-1">
-			<p class="text-xs font-medium text-steel-5 mb-2">Sua foto</p>
-			<div class="flex gap-2 items-center flex-wrap">
-				{#if $fotos.length > 0}
-					{#each $fotos as foto}
-						<button
-							onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: foto.dataUrl }))}
-							class="w-10 h-10 rounded-full overflow-hidden cursor-pointer transition-all
-								{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-[#A78BFA] scale-110' : 'opacity-50 hover:opacity-100'}"
-						>
-							<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
-						</button>
-					{/each}
-					<button
-						onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: '' }))}
-						class="w-10 h-10 rounded-full border border-teal-4/30 flex items-center justify-center text-xs text-steel-4 cursor-pointer hover:bg-teal-1 transition-all
-							{!$config.fotoCriadorBase64 ? 'ring-2 ring-[#A78BFA]' : ''}"
-					>Sem</button>
-				{:else}
-					<a href="/configuracoes" class="text-xs text-steel-3 underline">Adicionar fotos em Config</a>
-				{/if}
+		<div class="max-w-[1200px] mx-auto px-6 sm:px-8 lg:px-10 py-2 sm:py-6 lg:py-10">
+			<!-- Tag -->
+			<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-steel-3/8 border border-steel-3/20 mb-8">
+				<span class="text-xs font-medium text-steel-3 tracking-wide">IA + Design que converte</span>
+			</div>
+
+			<!-- Headline -->
+			<h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-steel-6 leading-[1.1] mb-5 max-w-5xl">
+				Crie conteúdos virais<br>
+				<span class="hero-galaxy-text">em segundos com IA</span>
+			</h1>
+
+			<!-- Subtitle -->
+			<p class="text-lg sm:text-xl lg:text-2xl text-steel-4 font-light mb-8 max-w-2xl">
+				Do zero ao post pronto para Instagram sem esforco.
+			</p>
+
+			<!-- Bullet points — staggered entrance -->
+			<ul class="space-y-2.5 mb-8">
+				{#each [
+					'Escolha o formato e deixe a IA montar o briefing pra voce',
+					'Decida o tema ou jogue uma ideia — o Strategist faz o resto',
+					'Aprove o texto, edite se quiser, sem surpresas no resultado',
+					'Gere imagens virais prontas pra postar em qualquer plataforma'
+				] as item, i}
+					<li class="hero-check flex items-center gap-2.5 text-sm sm:text-base text-steel-5" style="animation-delay: {0.3 + i * 0.2}s">
+						<span class="w-6 h-6 rounded-full bg-steel-3/12 flex items-center justify-center shrink-0">
+							<svg class="w-3.5 h-3.5 text-steel-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+						</span>
+						{item}
+					</li>
+				{/each}
+			</ul>
+
+			<!-- O que voce quer criar -->
+			<p class="text-sm text-steel-4 uppercase tracking-widest mb-4">O que voce quer criar hoje?</p>
+
+			<!-- CTA -->
+			<a
+				href="/?formato=carrossel"
+				class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-sm text-white no-underline mb-8
+					border border-steel-3/30 transition-all duration-300
+					hover:shadow-[0_0_35px_rgba(53,120,176,0.2)] hover:border-steel-3/60"
+				style="background: linear-gradient(135deg, #3578B0 0%, #265A87 100%);"
+			>
+				Gerar meu carrossel agora
+				<svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+			</a>
+
+			<!-- Social proof -->
+			<div class="flex items-center gap-3 mt-2">
+				<div class="flex -space-x-2">
+					<div class="w-8 h-8 rounded-full bg-steel-3/20 border-2 border-bg-global flex items-center justify-center text-[10px] text-steel-3 font-bold">C</div>
+					<div class="w-8 h-8 rounded-full bg-teal-6/20 border-2 border-bg-global flex items-center justify-center text-[10px] text-teal-6 font-bold">V</div>
+					<div class="w-8 h-8 rounded-full bg-amber/20 border-2 border-bg-global flex items-center justify-center text-[10px] text-amber font-bold">P</div>
+				</div>
+				<p class="text-sm text-steel-4">+2.847 criadores ja estao criando conteudo 10x mais rapido</p>
 			</div>
 		</div>
-		<!-- Slides -->
-		{#if tipoCarrossel !== 'infografico'}
-			<div>
-				<p class="text-xs font-medium text-steel-5 mb-2">Slides</p>
-				<div class="flex gap-2">
-					{#each [1, 3, 7, 10] as count}
-						<button
-							onclick={() => totalSlides = count}
-							class="w-10 h-10 rounded-full text-sm font-bold transition-all cursor-pointer active:scale-95
-								{totalSlides === count ? 'bg-steel-6 text-white shadow' : 'bg-bg-card text-steel-4 border border-teal-4/30 hover:border-steel-3/40'}"
-						>{count}</button>
+</div>
+
+{:else}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+<!-- ========== WIZARD (formato selecionado) ========== -->
+<div class="animate-fade-up max-w-3xl mx-auto">
+	<!-- Header -->
+	<div class="mb-8">
+		<a href="/" class="text-xs text-text-muted hover:text-steel-3 transition-colors mb-3 inline-flex items-center gap-1">
+			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+			Voltar
+		</a>
+		<h1 class="text-4xl sm:text-5xl font-bold text-steel-6 mb-2">
+			{labelFormato}
+		</h1>
+		<p class="text-base sm:text-lg text-text-secondary font-light">{descFormato}</p>
+		<div class="flex items-center gap-2 mt-3">
+			<span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-bg-elevated border border-border-default text-text-muted">{dimFormato}</span>
+		</div>
+	</div>
+
+	<!-- Marca -->
+	{#if brands.length > 0}
+		<div class="mb-6">
+			<p class="label-upper mb-3">Marca</p>
+			<div class="flex gap-2 flex-wrap">
+				{#each brands as brand}
+					<button
+						onclick={() => { brandSelecionada = brand.slug; }}
+						class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer
+							{brandSelecionada === brand.slug
+								? 'bg-bg-card border-2 shadow-sm'
+								: 'border border-border-default hover:border-purple/40'}"
+						style={brandSelecionada === brand.slug ? `border-color: ${brand.cor_principal}` : ''}
+					>
+						<span
+							class="w-3 h-3 rounded-full shrink-0"
+							style="background: {brand.cor_principal}"
+						></span>
+						{brand.nome}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	<!-- Avatar -->
+	{#if avatarOptions.length > 0}
+		<div class="mb-6">
+			<p class="label-upper mb-3">Avatar / Foto</p>
+			<div class="flex gap-2">
+				{#each avatarOptions as opt}
+					<button
+						onclick={() => { avatarMode = opt.id; }}
+						title={opt.tip}
+						class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
+							{avatarMode === opt.id
+								? 'bg-purple text-bg-global'
+								: 'text-text-secondary border border-border-default hover:border-purple/40'}"
+					>{opt.label}</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	<!-- Modo de entrada -->
+	<div class="mb-6">
+		<p class="label-upper mb-3">Fonte do conteudo</p>
+		<div class="flex gap-2 mb-4">
+			<button
+				onclick={() => { modoEntrada = 'texto_pronto'; erro = ''; }}
+				class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
+					{modoEntrada === 'texto_pronto'
+						? 'bg-purple text-bg-global'
+						: 'text-text-secondary border border-border-default hover:border-purple/40'}"
+			>Texto pronto</button>
+			<button
+				onclick={() => { modoEntrada = 'ideia'; erro = ''; }}
+				class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
+					{modoEntrada === 'ideia'
+						? 'bg-purple text-bg-global'
+						: 'text-text-secondary border border-border-default hover:border-purple/40'}"
+			>Ideia livre</button>
+			<button
+				onclick={() => { modoEntrada = 'disciplina'; erro = ''; }}
+				class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
+					{modoEntrada === 'disciplina'
+						? 'bg-purple text-bg-global'
+						: 'text-text-secondary border border-border-default hover:border-purple/40'}"
+			>Por disciplina</button>
+			<button
+				onclick={() => { modoEntrada = 'upload'; erro = ''; }}
+				class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
+					{modoEntrada === 'upload'
+						? 'bg-purple text-bg-global'
+						: 'text-text-secondary border border-border-default hover:border-purple/40'}"
+			>Upload</button>
+		</div>
+
+		{#if modoEntrada === 'texto_pronto'}
+			<div class="bg-bg-card rounded-xl border border-border-default p-5">
+				<p class="text-sm text-text-secondary mb-3">Tenho uma ideia e preciso criar um design surpreendente.</p>
+
+				<!-- Slides -->
+				<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
+					{#each slidesTexto as slide, i}
+						<div class="rounded-lg border border-border-default p-4 bg-bg-global">
+							<div class="flex items-center gap-2 mb-2">
+								<span class="w-6 h-6 rounded-full bg-purple text-bg-global text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+								<span class="text-xs text-text-muted">
+									{isSlideUnico ? 'Texto da imagem' : (i === 0 ? 'Capa' : i === slidesTexto.length - 1 ? 'CTA' : `Slide ${i + 1}`)}
+								</span>
+								{#if !isSlideUnico && slidesTexto.length > 1}
+									<button
+										onclick={() => removerSlide(i)}
+										class="ml-auto px-2 py-0.5 rounded-full text-xs text-red-400 hover:bg-red-50 transition-all cursor-pointer"
+									>remover</button>
+								{/if}
+								<select
+									data-testid={`select-tipo-layout-${i}`}
+									bind:value={slide.tipo_layout}
+									disabled={criando}
+									class="ml-auto px-2 py-1 rounded-lg border border-border-default bg-bg-input text-text-secondary text-xs outline-none"
+								>
+									{#each LAYOUT_OPTIONS as opt}
+										<option value={opt.value}>{opt.label}</option>
+									{/each}
+								</select>
+							</div>
+							<textarea
+								bind:value={slide.principal}
+								placeholder="Texto principal do slide {i + 1}..."
+								rows="3"
+								maxlength={MAX_CHARS_SLIDE}
+								disabled={criando}
+								class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+									focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
+									placeholder:text-text-muted mb-2"
+							></textarea>
+							<textarea
+								bind:value={slide.alternativo}
+								placeholder="Texto alternativo (opcional)..."
+								rows="2"
+								disabled={criando}
+								class="w-full px-3 py-2 rounded-lg border border-border-default bg-bg-input text-text-secondary text-xs
+									focus:border-purple/60 focus:ring-3 focus:ring-purple/8 outline-none transition-all resize-y
+									placeholder:text-text-muted"
+							></textarea>
+						</div>
 					{/each}
 				</div>
+
+				{#if !isSlideUnico && slidesTexto.length < MAX_SLIDES}
+					<button
+						onclick={adicionarSlide}
+						disabled={criando}
+						class="mt-3 w-full py-2.5 rounded-lg border border-dashed border-purple/30 text-purple text-sm font-medium
+							hover:bg-purple/5 transition-all cursor-pointer disabled:opacity-50"
+					>+ Adicionar slide</button>
+				{/if}
+
+				{#if !isSlideUnico}
+					<p class="text-xs text-text-muted mt-2">
+						{slidesTexto.filter(s => s.principal.trim().length > 0).length}/{slidesTexto.length} slides preenchidos
+					</p>
+				{/if}
+			</div>
+		{:else if modoEntrada === 'ideia'}
+			<div class="bg-bg-card rounded-xl border border-border-default p-5">
+				<p class="text-sm text-text-secondary mb-3">Me surpreenda com algo viral do inicio ao fim.</p>
+				<textarea
+					data-testid="campo-tema"
+					bind:value={textoLivre}
+					placeholder="Ex: 7 habitos para conquistar sua vaga de dev na gringa, ou: vi que teve vazamento no Axios, criar post focando em seguranca..."
+					rows="5"
+					maxlength={MAX_CHARS_IDEIA}
+					disabled={criando}
+					class="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+						focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
+						placeholder:text-text-muted"
+				></textarea>
+				<div class="flex items-center justify-between mt-3">
+					<p class="text-xs text-text-muted">{textoLivre.trim().length}/20 min · {MAX_CHARS_IDEIA} max</p>
+					{#if !isSlideUnico}
+						<div class="flex items-center gap-2">
+							<span class="text-xs text-text-muted">Max slides:</span>
+							<div class="flex gap-1">
+								{#each [3, 4, 5] as n}
+									<button
+										onclick={() => maxSlidesIdeia = n}
+										class="w-7 h-7 rounded-full text-xs font-medium transition-all cursor-pointer
+											{maxSlidesIdeia === n ? 'bg-purple text-bg-global' : 'text-text-muted border border-border-default hover:border-purple/40'}"
+									>{n}</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+		{:else if modoEntrada === 'upload'}
+			<div class="bg-bg-card rounded-xl border border-border-default p-5">
+				<p class="text-sm text-text-secondary mb-4">Suba uma imagem de fundo, escolha o template e digite o texto.</p>
+
+				<!-- File upload -->
+				<div class="mb-4">
+					<label class="flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed border-border-default hover:border-purple/40 transition-all cursor-pointer bg-bg-global">
+						{#if uploadedBg}
+							<div class="flex items-center gap-3">
+								<img src={uploadedBg} alt="Preview" class="h-24 rounded-lg object-cover" />
+								<div class="text-left">
+									<p class="text-sm text-text-primary font-medium">{uploadedFile}</p>
+									<p class="text-xs text-text-muted">Clique para trocar</p>
+								</div>
+							</div>
+						{:else}
+							<svg class="w-8 h-8 text-text-muted mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+							<p class="text-sm text-text-muted">Clique para subir imagem de fundo</p>
+							<p class="text-xs text-text-muted mt-1">PNG, JPG ate 10MB</p>
+						{/if}
+						<input type="file" accept="image/*" onchange={handleFileUpload} class="hidden" disabled={criando} data-testid="input-upload-bg" />
+					</label>
+				</div>
+
+				<!-- Templates -->
+				{#if uploadedBg}
+					<p class="label-upper mb-2">Template</p>
+					<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+						{#each [
+							{ id: 'texto_centralizado', icon: 'Aa', label: 'Texto centralizado' },
+							{ id: 'texto_no_topo', icon: '\u2191Aa', label: 'Texto no topo' },
+							{ id: 'texto_embaixo', icon: 'Aa\u2193', label: 'Texto embaixo' },
+							{ id: 'criativo_topo', icon: '\u2728\u2191', label: 'Criativo topo' },
+							{ id: 'criativo_embaixo', icon: '\u2728\u2193', label: 'Criativo embaixo' },
+						] as tpl}
+							<button
+								onclick={() => templateLayout = tpl.id}
+								data-testid={`btn-template-${tpl.id}`}
+								class="flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all cursor-pointer
+									{templateLayout === tpl.id
+										? 'bg-bg-card border-purple shadow-sm'
+										: 'border-border-default hover:border-purple/40'}"
+							>
+								<span class="text-lg">{tpl.icon}</span>
+								<span class="text-[11px] text-text-secondary leading-tight">{tpl.label}</span>
+							</button>
+						{/each}
+					</div>
+
+					<!-- Texto -->
+					<label class="block text-xs text-text-muted mb-1.5">Texto da capa</label>
+					<textarea
+						bind:value={textoUpload}
+						placeholder="Digite o texto que aparecera na imagem..."
+						rows="3"
+						maxlength={500}
+						disabled={criando}
+						data-testid="campo-texto-upload"
+						class="w-full px-4 py-3 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+							focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all resize-y
+							placeholder:text-text-muted"
+					></textarea>
+					<p class="text-xs text-text-muted mt-1">{textoUpload.length}/500</p>
+				{/if}
 			</div>
 		{:else}
-			<div>
-				<p class="text-xs font-medium text-steel-5 mb-2">Slides</p>
-				<div class="flex gap-2 items-center">
-					<span class="w-10 h-10 rounded-full bg-steel-6 text-white text-sm font-bold flex items-center justify-center shadow">1</span>
-					<span class="text-xs text-steel-4 font-light">Infográfico único</span>
-				</div>
+			<!-- Disciplinas -->
+			<div class="bg-bg-card rounded-xl border border-border-default p-5 mb-4">
+				<p class="text-sm text-text-secondary mb-4">Escolha a disciplina e a IA monta o conteudo tecnico pra voce.</p>
 			</div>
-		{/if}
-	</div>
-
-	<!-- PASSO 3: Fonte do conteúdo -->
-	<div class="flex gap-2 mb-4">
-		<button
-			onclick={() => { modo = 'texto'; erro = ''; }}
-			class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
-				{modo === 'texto' ? 'bg-steel-6 text-white shadow' : 'bg-bg-card text-steel-4 border border-teal-4/30 hover:border-steel-3/40'}"
-		>Texto livre</button>
-		<button
-			onclick={() => { modo = 'disciplina'; erro = ''; }}
-			class="px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer
-				{modo === 'disciplina' ? 'bg-steel-6 text-white shadow' : 'bg-bg-card text-steel-4 border border-teal-4/30 hover:border-steel-3/40'}"
-		>Por disciplina</button>
-	</div>
-
-	<!-- Modo: Texto livre -->
-	{#if modo === 'texto'}
-		<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4 sm:p-6 animate-fade-up">
-			<textarea
-				bind:value={textoLivre}
-				placeholder={tipoCarrossel === 'infografico'
-					? 'Descreva o tema do infográfico. Ex: Pipeline de MLOps — do treinamento ao deploy com métricas de cada etapa...'
-					: tipoCarrossel === 'visual'
-					? 'Descreva o tema. Ex: Como funciona o algoritmo de garbage collection em Python — com diagramas explicativos...'
-					: 'Cole ou escreva seu conteúdo. Ex: Hoje implementei detecção de objetos em tempo real com YOLO v8...'}
-				rows="5"
-				class="w-full px-4 py-3 rounded-xl border border-teal-4/30 bg-white text-steel-6 text-sm
-					focus:border-steel-3 focus:ring-2 focus:ring-steel-3/20 outline-none transition-all resize-y mb-4"
-			></textarea>
-
-			{#if erro}<div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{erro}</div>{/if}
-
-			<div class="flex flex-col gap-3">
-				{#if !isProd}
-					<button onclick={() => gerarConteudo(true)} disabled={$gerandoConteudo || !podeContinuar}
-						class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
-							bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4
-							hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]">
-						{#if $gerandoConteudo && modoCli}
-							<span class="inline-flex items-center gap-2">
-								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-								Gerando...
+			<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+				{#each disciplinas as disc}
+					<button
+						onclick={() => { disciplinaSelecionada = disc.id; techSelecionada = ''; }}
+						disabled={criando}
+						class="text-left p-4 rounded-xl border transition-all cursor-pointer
+							{disciplinaSelecionada === disc.id
+								? 'bg-bg-card border-purple shadow-[0_0_16px_rgba(53,120,176,0.08)]'
+								: 'bg-bg-card border-border-default hover:border-purple/40'}"
+					>
+						<div class="flex items-center gap-2 mb-1">
+							<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-full
+								{disciplinaSelecionada === disc.id ? 'bg-purple/8 text-purple' : 'bg-bg-elevated text-text-muted'}">
+								{disc.id}
 							</span>
-						{:else}Claude Code (grátis){/if}
+							<span class="text-xs font-medium text-text-primary truncate">{disc.nome}</span>
+						</div>
+						<p class="text-xs text-text-secondary line-clamp-2">{disc.descricao}</p>
 					</button>
-				{/if}
-				<button onclick={() => gerarConteudo(false)} disabled={$gerandoConteudo || !podeContinuar}
-					class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
-						bg-gradient-to-r from-steel-4 via-steel-3 to-steel-2
-						hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]">
-					{#if $gerandoConteudo && !modoCli}
-						<span class="inline-flex items-center gap-2">
-							<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-							{tipoCarrossel === 'infografico' ? 'Gerando infográfico...' : 'Gerando carrossel...'}
-						</span>
-					{:else}
-						{tipoCarrossel === 'infografico' ? 'Gerar Infográfico' : 'Gerar Carrossel'}
-					{/if}
-				</button>
+				{/each}
 			</div>
-		</div>
 
-	<!-- Modo: Por disciplina -->
-	{:else}
-		<div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
-			{#each disciplinas as disc}
-				<button
-					onclick={() => { disciplinaSelecionada = disc.id; techSelecionada = ''; }}
-					class="text-left p-4 sm:p-5 rounded-2xl border transition-all duration-300 cursor-pointer
-						{disciplinaSelecionada === disc.id
-							? 'bg-steel-6 text-white border-steel-3 shadow-lg scale-[1.02]'
-							: 'bg-bg-card border-teal-4/30 hover:border-steel-3/40 hover:-translate-y-1 hover:shadow-md'}"
-				>
-					<div class="flex items-center gap-2 mb-1">
-						<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
-							{disciplinaSelecionada === disc.id ? 'bg-steel-3 text-white' : 'bg-steel-0 text-steel-3'}">
-							{disc.id}
-						</span>
-						<h3 class="font-semibold text-xs sm:text-sm">{disc.nome}</h3>
-					</div>
-					<p class="text-xs {disciplinaSelecionada === disc.id ? 'text-teal-4' : 'text-steel-4'} font-light line-clamp-2">
-						{disc.descricao}
-					</p>
-				</button>
-			{/each}
-		</div>
+			{#if disciplinaAtual}
+				<div class="bg-bg-card rounded-xl border border-border-default p-5 animate-fade-up">
+					<p class="text-sm font-medium text-text-primary mb-3">{disciplinaAtual.id} — {disciplinaAtual.nome}</p>
 
-		{#if disciplinaAtual}
-			<div class="bg-bg-card rounded-2xl border border-teal-4/30 p-4 sm:p-6 animate-fade-up">
-				<h3 class="font-semibold text-steel-6 mb-3 text-sm sm:text-base">{disciplinaAtual.id} — {disciplinaAtual.nome}</h3>
-
-				<div class="mb-4">
-					<label class="block text-xs font-medium text-steel-5 mb-2">Tecnologia</label>
-					<div class="flex flex-wrap gap-2">
+					<p class="label-upper mb-2">Tecnologia</p>
+					<div class="flex flex-wrap gap-2 mb-4">
 						{#each techsDisponiveis as tech}
 							<button
 								onclick={() => techSelecionada = tech}
-								class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer
-									{techSelecionada === tech ? 'bg-steel-3 text-white shadow-md' : 'bg-teal-3 text-steel-5 hover:bg-teal-4'}"
+								disabled={criando}
+								class="px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer
+									{techSelecionada === tech
+										? 'bg-purple text-bg-global'
+										: 'bg-purple/8 text-purple border border-purple/20 hover:bg-purple/15'}"
 							>{tech}</button>
 						{/each}
 					</div>
-				</div>
 
-				<div class="mb-4">
-					<label for="tema" class="block text-xs font-medium text-steel-5 mb-2">Tema (opcional)</label>
-					<input id="tema" type="text" bind:value={temaCustom}
-						placeholder="Ex: Como reduzir custo de inferencia..."
-						class="w-full px-4 py-3 rounded-xl border border-teal-4/30 bg-bg-card text-steel-6 text-sm
-							focus:border-steel-3 focus:ring-2 focus:ring-steel-3/20 outline-none transition-all" />
+					<label class="block text-xs text-text-muted mb-1.5">Tema (opcional)</label>
+					<input type="text" bind:value={temaCustom} placeholder="Ex: Como reduzir custo de inferencia..."
+						disabled={criando}
+						class="w-full px-4 py-2.5 rounded-lg border border-border-default bg-bg-input text-text-primary text-sm
+							focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all placeholder:text-text-muted" />
 				</div>
-
-				{#if erro}<div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{erro}</div>{/if}
-
-				<div class="flex flex-col gap-3">
-					{#if !isProd}
-						<button onclick={() => gerarConteudo(true)} disabled={$gerandoConteudo || !podeContinuar}
-							class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
-								bg-gradient-to-r from-steel-6 via-steel-5 to-steel-4
-								hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]">
-							{#if $gerandoConteudo && modoCli}
-								<span class="inline-flex items-center gap-2">
-									<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-									Gerando...
-								</span>
-							{:else}Claude Code (grátis){/if}
-						</button>
-					{/if}
-					<button onclick={() => gerarConteudo(false)} disabled={$gerandoConteudo || !podeContinuar}
-						class="w-full py-3.5 px-4 rounded-full font-medium text-white transition-all duration-300 cursor-pointer
-							bg-gradient-to-r from-steel-4 via-steel-3 to-steel-2
-							hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]">
-						{#if $gerandoConteudo && !modoCli}
-							<span class="inline-flex items-center gap-2">
-								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-								{tipoCarrossel === 'infografico' ? 'Gerando infográfico...' : 'Gerando carrossel...'}
-							</span>
-						{:else}
-							{tipoCarrossel === 'infografico' ? 'Gerar Infográfico' : 'Gerar Carrossel'}
-						{/if}
-					</button>
-				</div>
-			</div>
+			{/if}
 		{/if}
+	</div>
+
+	<!-- CTA opcional (so anuncio) -->
+	{#if formatoAtual === 'anuncio'}
+		<div class="mb-4">
+			<p class="label-upper mb-2">CTA do anuncio (opcional)</p>
+			<input
+				type="text"
+				data-testid="campo-cta-anuncio"
+				bind:value={ctaAnuncio}
+				oninput={() => (ctaUserEditou = true)}
+				maxlength={CTA_ANUNCIO_MAX + 10}
+				disabled={criando}
+				placeholder='Ex: "Matricule-se agora", "Inscreva-se gratis", "Saiba mais"'
+				title="Se vazio, o sistema usa o CTA padrao da marca. Se a marca nao tiver CTA, o Copywriter inventa um contextual."
+				class="w-full px-4 py-2.5 rounded-lg border text-text-primary text-sm
+					focus:border-purple focus:ring-3 focus:ring-purple/12 outline-none transition-all placeholder:text-text-muted bg-bg-input
+					{ctaAnuncio.length <= CTA_ANUNCIO_MAX ? 'border-border-default' : 'border-red ring-1 ring-red/30'}"
+			/>
+			<p class="text-[11px] text-text-muted mt-1">
+				{ctaAnuncio.length}/{CTA_ANUNCIO_MAX} — Vazio = usa o CTA padrao da marca ou o Copywriter inventa um.
+			</p>
+		</div>
 	{/if}
+
+	<!-- Prazo de publicacao com calendario visual -->
+	<div class="mb-4">
+		<DeadlinePicker value={deadline} onchange={(d) => deadline = d} />
+	</div>
+
+	<!-- Erro -->
+	{#if erro}
+		<div class="mb-4" data-testid="msg-erro">
+			<Banner type="error" ondismiss={() => erro = ''}>{erro}</Banner>
+		</div>
+	{/if}
+
+	<!-- Botao Criar -->
+	<button
+		data-testid="btn-criar-pipeline"
+		onclick={criarPipeline}
+		disabled={!podeCriar || criando}
+		class="w-full py-3.5 px-6 rounded-full font-medium text-bg-global transition-all duration-300 cursor-pointer
+			bg-purple hover:shadow-[0_0_30px_rgba(53,120,176,0.25)] hover:opacity-90
+			disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+	>
+		{#if criando}
+			<span class="inline-flex items-center gap-2">
+				<span class="w-4 h-4 border-2 border-bg-global/30 border-t-bg-global rounded-full animate-spin"></span>
+				Iniciando pipeline...
+			</span>
+		{:else}
+			{isFunil ? 'Criar Funil de Conteudo' : `Criar ${labelFormato}`}
+		{/if}
+	</button>
 </div>
+</div>
+{/if}

@@ -1,6 +1,29 @@
 @import 'tailwindcss';
 
 @theme {
+	/* === Light Mode — Corporate Clean === */
+	--color-bg-global: #E6EEEC;
+	--color-bg-card: #FAFCFB;
+	--color-bg-code: #F0F4F3;
+	--color-bg-elevated: #EEF3F1;
+	--color-bg-input: #FFFFFF;
+
+	--color-border-default: rgba(53,120,176,0.18);
+	--color-border-active: #3578B0;
+
+	--color-text-primary: #0D2033;
+	--color-text-secondary: #3D5A6E;
+	--color-text-muted: #7A9299;
+
+	--color-purple: #3578B0;
+	--color-purple-soft: #5A9ACC;
+	--color-purple-deep: #265A87;
+
+	--color-green: #2A9D6E;
+	--color-amber: #D4930A;
+	--color-red: #DC4F4F;
+
+	/* === Teal palette === */
 	--color-teal-0: #F4F9F7;
 	--color-teal-1: #EEF5F2;
 	--color-teal-2: #E6EEEC;
@@ -16,20 +39,21 @@
 	--color-steel-5: #173650;
 	--color-steel-6: #0D2033;
 	--color-bg-page: #E6EEEC;
-	--color-bg-card: #FAFCFB;
-	--color-bg-dark: #0D2033;
-	--color-bg-dark-card: #122840;
+	--color-bg-card-legacy: #FAFCFB;
+
 	--font-family-outfit: 'Outfit', 'Helvetica Neue', sans-serif;
+	--font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 @layer base {
 	body {
 		font-family: var(--font-family-outfit);
-		background-color: var(--color-bg-page);
-		color: var(--color-steel-6);
+		background-color: var(--color-bg-global);
+		color: var(--color-text-primary);
 	}
 }
 
+/* === Animations === */
 @keyframes fade-up {
 	from { opacity: 0; transform: translateY(20px); }
 	to { opacity: 1; transform: translateY(0); }
@@ -40,6 +64,11 @@
 	100% { background-position: 200% 0; }
 }
 
+@keyframes pulse-border {
+	0%, 100% { border-color: rgba(212, 147, 10, 0.4); }
+	50% { border-color: rgba(212, 147, 10, 0.8); }
+}
+
 .animate-fade-up {
 	animation: fade-up 0.65s ease-out forwards;
 }
@@ -48,4 +77,95 @@
 	background: linear-gradient(90deg, transparent 0%, rgba(53,120,176,0.08) 50%, transparent 100%);
 	background-size: 200% 100%;
 	animation: shimmer 2s infinite;
+}
+
+.animate-pulse-border {
+	animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* === Design Tokens / Spacing === */
+.app-shell {
+	padding: 2.5rem;
+}
+
+.sidebar-padding {
+	padding-inline: 2rem;
+	padding-block: 1.5rem;
+}
+
+.card-padding {
+	padding: 1.5rem;
+	border-radius: 1.5rem;
+}
+
+.label-upper {
+	font-size: 0.65rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--color-text-muted);
+}
+
+/* === Hero Landing === */
+.hero-bg {
+	background:
+		radial-gradient(ellipse 60% 50% at 75% 30%, rgba(53,120,176,0.10) 0%, transparent 60%),
+		radial-gradient(ellipse 40% 40% at 25% 70%, rgba(122,173,166,0.08) 0%, transparent 50%),
+		radial-gradient(ellipse 30% 30% at 50% 50%, rgba(53,120,176,0.05) 0%, transparent 50%),
+		linear-gradient(160deg, #E6EEEC 0%, #EEF5F2 25%, #F4F9F7 50%, #EEF5F2 75%, #E6EEEC 100%);
+}
+
+.hero-galaxy-text {
+	background: linear-gradient(135deg, #3578B0 0%, #7AADA6 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Check items — staggered fade-in */
+.hero-check {
+	opacity: 0;
+	transform: translateY(12px);
+	animation: check-appear 0.5s ease-out forwards;
+}
+
+@keyframes check-appear {
+	to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero cards — entrance */
+.hero-card {
+	animation: card-float-in 0.7s ease-out both;
+}
+
+@keyframes card-float-in {
+	from { opacity: 0; filter: blur(4px); }
+	to { opacity: 1; filter: blur(0); }
+}
+
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
+
+/* Scrollbar fina e discreta */
+.scrollbar-thin {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(53,120,176,0.2) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+	width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+	background: rgba(53,120,176,0.2);
+	border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+	background: rgba(53,120,176,0.4);
 }

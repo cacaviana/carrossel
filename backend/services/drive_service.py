@@ -199,3 +199,80 @@ async def save_carrossel(
         pdf_base64,
         images_base64,
     )
+
+
+# ── Anuncios (Google Ads Display) ──────────────────────────────────────────────
+
+def _save_anuncio_sync(
+    credentials_json: str,
+    parent_folder_id: str,
+    title: str,
+    data_str: str,
+    dimensoes: list[dict],          # [{nome_arquivo, imagem_bytes}...]
+    copy_txt_content: str,
+) -> dict:
+    """Cria subpasta '{title} - {data_str}' e faz upload das imagens + copy.txt.
+
+    Estrutura esperada da subpasta (so inclui dimensoes 'valido'):
+      - ad-1200x628.png
+      - ad-1080x1080.png
+      - ad-300x600.png
+      - ad-300x250.png
+      - copy.txt
+    """
+    service = _build_service(credentials_json)
+
+    subfolder_name = f"{title} - {data_str}"
+    subfolder_id = _create_folder_sync(service, subfolder_name, parent_folder_id)
+
+    # Pasta publica (igual ao padrao do save_carrossel)
+    try:
+        service.permissions().create(
+            fileId=subfolder_id,
+            body={"role": "reader", "type": "anyone"},
+        ).execute()
+    except Exception:
+        pass  # se ja for publica ou sem permissao
+
+    files: list[dict] = []
+    for d in dimensoes:
+        nome = d.get("nome_arquivo") or ""
+        img_bytes = d.get("imagem_bytes") or b""
+        if not nome or not img_bytes:
+            continue
+        r = _upload_bytes_sync(service, img_bytes, nome, "image/png", subfolder_id)
+        files.append({"name": nome, "file_id": r.get("file_id"), "web_view_link": r.get("web_view_link", "")})
+
+    # copy.txt
+    copy_bytes = copy_txt_content.encode("utf-8")
+    r = _upload_bytes_sync(service, copy_bytes, "copy.txt", "text/plain", subfolder_id)
+    files.append({"name": "copy.txt", "file_id": r.get("file_id"), "web_view_link": r.get("web_view_link", "")})
+
+    folder_link = f"https://drive.google.com/drive/folders/{subfolder_id}"
+    return {
+        "folder_id": subfolder_id,
+        "folder_name": subfolder_name,
+        "folder_link": folder_link,
+        "files": files,
+    }
+
+
+async def salvar_anuncio_drive(
+    credentials_json: str,
+    parent_folder_id: str,
+    title: str,
+    data_str: str,
+    dimensoes: list[dict],
+    copy_txt_content: str,
+) -> dict:
+    """Wrapper async do save_anuncio_sync. Uso pelo AnuncioExportService."""
+    return await asyncio.get_event_loop().run_in_executor(
+        None,
+        _save_anuncio_sync,
+        credentials_json,
+        parent_folder_id,
+        title,
+        data_str,
+        dimensoes,
+        copy_txt_content,
+    )

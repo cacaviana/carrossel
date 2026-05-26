@@ -19,6 +19,8 @@ jobs:
           node-version: "22"
 
       - name: Install and build
+        env:
+          VITE_API_URL: https://app-carrossel-backend.azurewebsites.net
         run: |
           cd frontend
           npm ci

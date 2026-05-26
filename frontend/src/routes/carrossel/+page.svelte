@@ -5,6 +5,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import type { Slide } from '$lib/stores/carrossel';
+	import SlideDotsNav from '$lib/components/ui/SlideDotsNav.svelte';
+	import { CarrosselService } from '$lib/services/CarrosselService';
 
 	let legendaCopiada = $state(false);
 	let erro = $state('');
@@ -23,23 +25,17 @@
 	let carregandoDS = $state(false);
 
 	onMount(async () => {
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/drive/design-systems`);
-			if (res.ok) designSystems = await res.json();
+			designSystems = await CarrosselService.listarDesignSystems();
 		} catch {}
 	});
 
 	async function selecionarDesignSystem(id: string) {
 		if (!id) { designSystemSelecionado = ''; designSystemConteudo = ''; return; }
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
 		carregandoDS = true;
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/drive/design-systems/${id}`);
-			if (res.ok) {
-				const data = await res.json();
+			const data = await CarrosselService.buscarDesignSystem(id);
+			if (data) {
 				designSystemSelecionado = id;
 				designSystemConteudo = data.content;
 			}
@@ -120,19 +116,21 @@
 		erro = '';
 
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/gerar-imagem-slide`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					slide: $carrosselAtual.slides[index],
-					slide_index: index,
-					total_slides: $carrosselAtual.slides.length,
-					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
-					design_system: designSystemConteudo || undefined
-				})
+			// Usa a imagem da capa como referencia visual (se existir e nao for a propria capa)
+			const coverImage = index > 0 ? $carrosselAtual.slides[0]?.imageBase64 : undefined;
+
+			const data = await CarrosselService.gerarImagemSlide({
+				slide: $carrosselAtual.slides[index],
+				slide_index: index,
+				total_slides: $carrosselAtual.slides.length,
+				foto_criador: currentConfig?.fotoCriadorBase64 || undefined,
+				design_system: designSystemConteudo || undefined,
+				reference_image: coverImage || undefined,
+				brand_slug: $carrosselAtual.brand_slug,
+				avatar_mode: $carrosselAtual.avatar_mode || 'livre',
+				pipeline_id: $carrosselAtual.pipeline_id,
+				formato: $carrosselAtual.formato || 'carrossel'
 			});
-			if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
-			const data = await res.json();
 			if (data.image) {
 				carrosselAtual.update((c) => {
 					if (!c) return c;
@@ -158,22 +156,16 @@
 		modoEdicao = false;
 
 		try {
-			const res = await fetch(`${currentConfig.backendUrl}/api/gerar-imagem`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					slides: $carrosselAtual.slides,
-					foto_criador: currentConfig.fotoCriadorBase64 || undefined,
-					design_system: designSystemConteudo || undefined
-				})
+			const data = await CarrosselService.gerarImagens({
+				slides: $carrosselAtual.slides,
+				foto_criador: currentConfig?.fotoCriadorBase64 || undefined,
+				design_system: designSystemConteudo || undefined,
+				brand_slug: $carrosselAtual.brand_slug,
+				avatar_mode: $carrosselAtual.avatar_mode || 'livre',
+				pipeline_id: $carrosselAtual.pipeline_id,
+				formato: $carrosselAtual.formato || 'carrossel'
 			});
 
-			if (!res.ok) {
-				const data = await res.json();
-				throw new Error(data.detail || 'Erro ao gerar imagens');
-			}
-
-			const data = await res.json();
 			carrosselAtual.update((c) => {
 				if (!c) return c;
 				return { ...c, slides: c.slides.map((s, i) => ({ ...s, imageBase64: data.images[i] || undefined })) };
@@ -185,18 +177,37 @@
 		}
 	}
 
+	async function aplicarFotoNosSlides(slides: typeof $carrosselAtual.slides): Promise<string[]> {
+		/**  Aplica a foto real do criador nos slides via backend (pos-producao). */
+		let currentConfig: typeof $config | undefined;
+		config.subscribe((v) => (currentConfig = v))();
+
+		const fotoCriador = currentConfig?.fotoCriadorBase64;
+		const images = slides.filter(s => s.imageBase64).map(s => s.imageBase64!);
+
+		if (!fotoCriador || images.length === 0) return images;
+
+		try {
+			const data = await CarrosselService.aplicarFotoBatch({ slides: images, foto_criador: fotoCriador });
+			return data.images;
+		} catch {}
+		// Fallback: retorna sem overlay
+		return images;
+	}
+
 	async function exportarPDF() {
 		if (!$carrosselAtual) return;
 		const imagesWithData = $carrosselAtual.slides.filter((s) => s.imageBase64);
 		if (imagesWithData.length === 0) { erro = 'Gere as imagens primeiro.'; return; }
 
+		// Aplica foto real do criador antes de exportar
+		const finalImages = await aplicarFotoNosSlides($carrosselAtual.slides);
+
 		const { jsPDF } = await import('jspdf');
 		const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [1080, 1350] });
-		for (let i = 0; i < $carrosselAtual.slides.length; i++) {
-			const slide = $carrosselAtual.slides[i];
-			if (!slide.imageBase64) continue;
+		for (let i = 0; i < finalImages.length; i++) {
 			if (i > 0) pdf.addPage([1080, 1350]);
-			pdf.addImage(slide.imageBase64, 'PNG', 0, 0, 1080, 1350);
+			pdf.addImage(finalImages[i], 'PNG', 0, 0, 1080, 1350);
 		}
 		pdf.save(`${$carrosselAtual.title || 'carrossel'}.pdf`);
 	}
@@ -239,8 +250,6 @@
 
 	async function salvarNoDrive() {
 		if (!$carrosselAtual) return;
-		let currentConfig: typeof $config | undefined;
-		config.subscribe((v) => (currentConfig = v))();
 
 		const imagesWithData = $carrosselAtual.slides.filter((s) => s.imageBase64);
 		if (imagesWithData.length === 0) { erro = 'Gere as imagens primeiro.'; return; }
@@ -248,33 +257,27 @@
 		erro = ''; driveSalvo = ''; salvandoDrive = true;
 
 		try {
+			// Aplica foto real do criador antes de exportar
+			const finalImages = await aplicarFotoNosSlides($carrosselAtual.slides);
+
 			const { jsPDF } = await import('jspdf');
 			const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [1080, 1350] });
-			for (let i = 0; i < $carrosselAtual.slides.length; i++) {
-				const slide = $carrosselAtual.slides[i];
-				if (!slide.imageBase64) continue;
+			for (let i = 0; i < finalImages.length; i++) {
 				if (i > 0) pdf.addPage([1080, 1350]);
-				pdf.addImage(slide.imageBase64, 'PNG', 0, 0, 1080, 1350);
+				pdf.addImage(finalImages[i], 'PNG', 0, 0, 1080, 1350);
 			}
 			const pdfBase64 = pdf.output('datauristring').split(',')[1];
-			const images = $carrosselAtual.slides.map((s) => s.imageBase64 || null);
+			const images = finalImages.map((img) => img || null);
 
-			const res = await fetch(`${currentConfig.backendUrl}/api/google-drive/carrossel`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-						title: $carrosselAtual.title || 'carrossel',
-						pdf_base64: pdfBase64,
-						images_base64: images,
-						disciplina: $carrosselAtual.disciplina || null,
-						tecnologia_principal: $carrosselAtual.tecnologia_principal || null,
-						tipo_carrossel: $carrosselAtual.slides[0]?.type === 'infographic' ? 'infografico' : 'texto',
-						legenda_linkedin: $carrosselAtual.legenda_linkedin || null
-					})
+			const data = await CarrosselService.salvarDrive({
+				title: $carrosselAtual.title || 'carrossel',
+				pdf_base64: pdfBase64,
+				images_base64: images,
+				disciplina: $carrosselAtual.disciplina || null,
+				tecnologia_principal: $carrosselAtual.tecnologia_principal || null,
+				tipo_carrossel: $carrosselAtual.slides[0]?.type === 'infographic' ? 'infografico' : 'texto',
+				legenda_linkedin: $carrosselAtual.legenda_linkedin || null
 			});
-
-			if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Erro ao salvar no Drive'); }
-			const data = await res.json();
 			driveSalvo = data.web_view_link;
 		} catch (e) {
 			erro = e instanceof Error ? e.message : 'Erro ao salvar no Drive';
@@ -364,7 +367,7 @@
 							<button
 								onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: foto.dataUrl }))}
 								class="w-10 h-10 rounded-full overflow-hidden cursor-pointer transition-all active:scale-95
-									{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-[#A78BFA] scale-110' : 'opacity-50 hover:opacity-100'}"
+									{$config.fotoCriadorBase64 === foto.dataUrl ? 'ring-2 ring-steel-3 scale-110' : 'opacity-50 hover:opacity-100'}"
 							>
 								<img src={foto.dataUrl} alt={foto.name} class="w-full h-full object-cover" />
 							</button>
@@ -372,7 +375,7 @@
 						<button
 							onclick={() => config.update(c => ({ ...c, fotoCriadorBase64: '' }))}
 							class="w-10 h-10 rounded-full border border-teal-4/30 flex items-center justify-center text-xs text-steel-4 cursor-pointer hover:bg-teal-1 transition-all
-								{!$config.fotoCriadorBase64 ? 'ring-2 ring-[#A78BFA]' : ''}"
+								{!$config.fotoCriadorBase64 ? 'ring-2 ring-steel-3' : ''}"
 						>Sem</button>
 					</div>
 				</div>
@@ -546,14 +549,7 @@
 								class="px-4 py-2 rounded-full text-sm font-medium bg-teal-3 text-steel-5 hover:bg-teal-4 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
 								Anterior
 							</button>
-							<div class="flex gap-1.5">
-								{#each Array(totalSlides) as _, i}
-									<button onclick={() => slideAtual.set(i)}
-										class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer
-											{i === $slideAtual ? 'bg-steel-3 scale-125' : 'bg-teal-4 hover:bg-teal-5'}">
-									</button>
-								{/each}
-							</div>
+							<SlideDotsNav total={totalSlides} current={$slideAtual} onSelect={(i) => slideAtual.set(i)} activeClass="bg-steel-3 scale-125" inactiveClass="bg-teal-4 hover:bg-teal-5" />
 							<button onclick={nextSlide} disabled={$slideAtual === totalSlides - 1}
 								class="px-4 py-2 rounded-full text-sm font-medium bg-teal-3 text-steel-5 hover:bg-teal-4 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
 								Próximo

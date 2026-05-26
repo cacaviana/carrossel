@@ -1,7 +1,10 @@
 import { writable } from 'svelte/store';
 
+export type TipoLayout = 'texto' | 'lista' | 'comparativo' | 'dados';
+
 export interface Slide {
 	type: 'cover' | 'content' | 'code' | 'comparison' | 'cta' | 'infographic';
+	tipo_layout?: TipoLayout;
 	headline?: string;
 	subline?: string;
 	title?: string;
@@ -26,6 +29,13 @@ export interface CarrosselData {
 	slides: Slide[];
 	legenda_linkedin: string;
 	createdAt?: string;
+	// Contexto de geracao (Fase 4) — necessario pra regenerar slides
+	// individualmente mantendo consistencia de refs
+	brand_slug?: string;
+	avatar_mode?: 'sem' | 'capa' | 'livre' | 'sim';
+	max_slides?: number;
+	pipeline_id?: string;
+	formato?: string;
 }
 
 export const carrosselAtual = writable<CarrosselData | null>(null);

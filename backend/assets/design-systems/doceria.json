@@ -1,0 +1,110 @@
+{
+  "nome": "Doce Encanto",
+  "slug": "doceria",
+  "cores": {
+    "fundo": "#FFF5F7",
+    "gradiente_de": "#FFE0E6",
+    "gradiente_ate": "#E0F7F5",
+    "card": "rgba(255,255,255,0.85)",
+    "card_borda": "rgba(236,72,153,0.2)",
+    "acento_principal": "#EC4899",
+    "acento_secundario": "#5EEAD4",
+    "acento_terciario": "#FBBF24",
+    "acento_negativo": "#F87171",
+    "texto_principal": "#1F1F1F",
+    "texto_secundario": "#6B7280",
+    "texto_muted": "#9CA3AF"
+  },
+  "fontes": {
+    "titulo": "Pacifico",
+    "corpo": "Nunito",
+    "codigo": "monospace"
+  },
+  "visual": {
+    "estilo_fundo": "Fundo rosa claro (#FFF5F7) e verde agua (#E0F7F5) com formas abstratas organicas flutuando (bolhas, ondas, splashes de cor rosa e verde). Gradiente suave rosa para verde agua. Atmosfera doce, aconchegante e instagramavel.",
+    "estilo_elemento": {
+      "tipo": "personagens cartoon estilo anos 80",
+      "estilo": "Contornos FORTES e GROSSOS, cores VIBRANTES, estilo quadrinhos/comic book anos 80.",
+      "mascotes": "SEMPRE usar as 2 mascotes oficiais da marca: (1) menina de cabelo ROSA CACHEADO volumoso, pele clara, expressao alegre e travessa, sempre com um doce na mao ou comendo. (2) menina de cabelo VERDE AGUA/TURQUESA liso curto, pele clara, expressao doce e carinhosa, sempre segurando ou mordendo um doce. As duas mascotes aparecem em TODOS os slides, uma de cada lado, fazendo coisas diferentes conforme o tema (comendo, segurando, oferecendo, cozinhando, provando).",
+      "comida": "Doces REALISTAS e APETITOSOS espalhados ao redor (brigadeiros, cupcakes, sorvetes, donuts, chocolates, ovos de pascoa). A comida deve parecer gostosa e dar agua na boca.",
+      "complexidade": "alta — muitos elementos decorativos, mascotes, doces, estrelas, coracoes",
+      "opacidade": "alta — os personagens e doces sao bem visiveis e fazem parte do visual"
+    },
+    "posicionamento_elemento": {
+      "regra": "personagens e doces ao redor do card/texto, nas laterais e cantos",
+      "locais_permitidos": [
+        "laterais do card",
+        "cantos do slide",
+        "ao redor do texto",
+        "entre os bullets"
+      ]
+    },
+    "estilo_card": "Cards brancos semi-transparentes com bordas rosa suave (#EC4899 com 20% opacidade), cantos bem arredondados (20px), sombra suave difusa.",
+    "estilo_texto": "Titulos grandes em rosa (#EC4899) com fonte cursiva divertida e descontraida. Corpo em cinza escuro (#1F1F1F). Palavras-chave em verde agua (#5EEAD4) bold ou rosa (#EC4899) bold.",
+    "rodape": {
+      "formato": "Nome da marca 'Doce Encanto' pequeno no canto inferior + paginacao",
+      "paginacao": "X/N pequeno"
+    },
+    "regras_extras": "Atmosfera ALEGRE e APETITOSA. Emojis de comida BEM-VINDOS. SEMPRE ter personagens cartoon anos 80 com contornos fortes. SEMPRE ter doces realistas. Visual instagramavel, colorido, divertido. MUITOS elementos visuais espalhados."
+  },
+  "elementos": {
+    "badge_topo": "Doce Encanto",
+    "badge_topo_cor": "#EC4899",
+    "rodape_nome": "Doce Encanto",
+    "rodape_instituicao": "",
+    "rodape_extra": "Feito com amor",
+    "cta_texto": "Peca ja pelo WhatsApp"
+  },
+  "foto": {
+    "posicao_rodape": "inferior_esquerdo",
+    "raio": 28,
+    "borda_cor": "#EC4899",
+    "borda_largura": 2
+  },
+  "comunicacao": {
+    "persona": "Docurinha — doceria artesanal cheia de amor e sabor. Cada doce e feito a mao com ingredientes selecionados.",
+    "tom": "Fofo, acolhedor, gera desejo e agua na boca. Carinhoso com o cliente. Usa diminutivos com charme.",
+    "linguagem": "Portugues BR super informal e doce. Diminutivos (brigadeirinhos, docinho). Descricoes que dao agua na boca. Emojis de comida bem-vindos.",
+    "publico": "Pessoas que amam doces, maes, festeiras, quem quer presentear. Todas as idades.",
+    "palavras_proibidas": [
+      "diet",
+      "sem acucar",
+      "light",
+      "artificial"
+    ],
+    "exemplos_frase": [
+      "Cada mordida e um abraco",
+      "Feito com tanto amor que da pra sentir no sabor",
+      "Seu pedido ta ficando uma delicia"
+    ]
+  },
+  "referencia_imagem": null,
+  "_loaded": true,
+  "dna": {
+    "estilo": "cute, playful, sweet, cartoonish",
+    "cores": "rosa pastel, azul claro, branco, marrom",
+    "tipografia": "bold, arredondada, fofa, sans-serif",
+    "elementos": "doces variados, corações, estrelas, bolhas",
+    "banner": "banner como um liquido derramado rosa com granulados coloridos"
+  },
+  "padrao_visual": {
+    "com_avatar": {
+      "tipo_foto": "fundo digital abstrato com gradientes suaves",
+      "composicoes": [
+        "personagens cartoon em primeiro plano interagindo com doces e elementos decorativos."
+      ],
+      "fundo_cenario": "gradiente suave de cores pastel com formas orgânicas e bolhas.",
+      "iluminacao": "clara e uniforme, sem sombras realistas, com brilho suave.",
+      "mood": "alegre, infantil, festivo, doce e divertido.",
+      "elementos_overlay": "ilustrações de personagens fofos e doces, texto em destaque com emojis, elementos gráficos como corações e estrelas.",
+      "paleta_dominante": [
+        "#F06292",
+        "#A7E0E0",
+        "#FFFFFF",
+        "#FFD1DC",
+        "#8B4513"
+      ],
+      "relacao_pessoa_fundo": "personagens cartoon dominam o primeiro plano, com fundo abstrato e decorativo."
+    }
+  }
+}

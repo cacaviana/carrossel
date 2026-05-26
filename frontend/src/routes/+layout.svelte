@@ -1,81 +1,164 @@
 <script lang="ts">
 	import '../app.css';
+	import { afterNavigate, goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { tick } from 'svelte';
+	import { browser } from '$app/environment';
+	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 
 	let { children } = $props();
-	let menuAberto = $state(false);
+	let sidebarCollapsed = $state(false);
+	let mobileMenuOpen = $state(false);
+	let mainEl: HTMLElement;
 
-	const navItems = [
-		{ href: '/', label: 'Home' },
-		{ href: '/carrossel', label: 'Carrossel' },
-		{ href: '/historico', label: 'Historico' },
-		{ href: '/agentes', label: 'Agentes' },
-		{ href: '/configuracoes', label: 'Config' },
-		{ href: '/configuracoes#design-systems', label: 'Design' }
-	];
+	const isHome = $derived(page.url.pathname === '/' && !page.url.searchParams.has('formato'));
+	const isLoginPage = $derived(page.url.pathname === '/login');
+	const isConvitePage = $derived(page.url.pathname === '/convite');
+	const histTab = $derived(page.url.searchParams.get('tab'));
+	const isKanbanPage = $derived(page.url.pathname === '/historico' && (histTab === 'kanban' || histTab === 'calendario' || histTab === 'usuarios'));
+	const isProtectedPage = $derived(page.url.pathname === '/historico' || page.url.pathname.startsWith('/kanban'));
+
+	// Auth — lazy load pra nao quebrar SSR
+	let authReady = $state(false);
+	let loggedIn = $state(false);
+	let authData: any = $state(null);
+	let NotificationBellComponent: any = $state(null);
+
+	async function loadAuth() {
+		if (!browser) return;
+		try {
+			const { isLoggedIn, getAuth } = await import('$lib/stores/auth.svelte');
+			loggedIn = isLoggedIn();
+			authData = getAuth();
+			authReady = true;
+			const mod = await import('$lib/components/notification/NotificationBell.svelte');
+			NotificationBellComponent = mod.default;
+		} catch {}
+	}
+
+	$effect(() => { if (browser) loadAuth(); });
+
+	const showAuthHeader = $derived(authReady && loggedIn && !isLoginPage && !isConvitePage);
+
+	// Auth guard reativo — redireciona assim que authReady muda
+	$effect(() => {
+		if (!browser || !authReady) return;
+		if (!isLoginPage && !isConvitePage && !loggedIn) {
+			goto('/login');
+		}
+		if (isLoginPage && loggedIn) {
+			goto('/');
+		}
+	});
+
+	afterNavigate(async () => {
+		await tick();
+		window.scrollTo({ top: 0, behavior: 'instant' });
+		mainEl?.scrollTo({ top: 0, behavior: 'instant' });
+		if (browser) await loadAuth();
+	});
+
+	async function handleLogout() {
+		if (!browser) return;
+		const { clearAuth } = await import('$lib/stores/auth.svelte');
+		clearAuth();
+		loggedIn = false;
+		authData = null;
+		goto('/login');
+	}
 </script>
 
-<div class="min-h-screen flex flex-col">
-	<header class="bg-steel-6 text-white px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
-		<div class="max-w-7xl mx-auto flex items-center justify-between">
-			<a href="/" class="flex items-center gap-2 sm:gap-3 no-underline">
-				<div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-steel-3 to-steel-2 flex items-center justify-center text-white font-bold text-sm sm:text-lg">
-					C
-				</div>
-				<div>
-					<h1 class="text-base sm:text-lg font-semibold tracking-tight text-white">Carrossel System</h1>
-					<p class="text-[10px] sm:text-xs text-steel-2 font-light">IT Valley School</p>
-				</div>
-			</a>
+{#if isLoginPage || isConvitePage}
+	{@render children()}
+{:else if !authReady}
+	<div class="min-h-screen flex items-center justify-center bg-bg-global">
+		<div class="w-8 h-8 border-2 border-purple/30 border-t-purple rounded-full animate-spin"></div>
+	</div>
+{:else if !loggedIn}
+	<!-- guard vai redirecionar pro login -->
+{:else}
+<div class="min-h-screen flex bg-bg-global">
+	<!-- Sidebar desktop -->
+	<div class="hidden md:block shrink-0">
+		<Sidebar collapsed={sidebarCollapsed} onToggle={() => sidebarCollapsed = !sidebarCollapsed} />
+	</div>
 
-			<!-- Hamburger mobile -->
+	<!-- Mobile header + drawer -->
+	<div class="md:hidden fixed top-0 left-0 right-0 z-40 bg-bg-card border-b border-border-default px-4 py-3 flex items-center justify-between">
+		<div class="flex items-center gap-2">
+			<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-steel-3 to-steel-5 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+				CF
+			</div>
+			<span class="text-sm font-semibold text-text-primary">Content Factory</span>
+		</div>
+		<div class="flex items-center gap-2">
+			{#if showAuthHeader && NotificationBellComponent}
+				<NotificationBellComponent />
+			{/if}
 			<button
-				onclick={() => menuAberto = !menuAberto}
-				class="sm:hidden p-2 rounded-lg hover:bg-steel-5 transition-all cursor-pointer"
-				aria-label="Menu"
+				onclick={() => mobileMenuOpen = !mobileMenuOpen}
+				class="p-2 rounded-lg hover:bg-black/5 transition-all cursor-pointer text-text-secondary"
 			>
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					{#if menuAberto}
+					{#if mobileMenuOpen}
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					{:else}
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
 					{/if}
 				</svg>
 			</button>
-
-			<!-- Nav desktop -->
-			<nav class="hidden sm:flex gap-1">
-				{#each navItems as item}
-					<a
-						href={item.href}
-						class="px-4 py-2 rounded-full text-sm font-medium text-teal-4 hover:bg-steel-5 hover:text-white transition-all duration-200 no-underline"
-					>
-						{item.label}
-					</a>
-				{/each}
-			</nav>
 		</div>
+	</div>
 
-		<!-- Nav mobile -->
-		{#if menuAberto}
-			<nav class="sm:hidden mt-3 pt-3 border-t border-steel-5 flex flex-col gap-1">
-				{#each navItems as item}
-					<a
-						href={item.href}
-						onclick={() => menuAberto = false}
-						class="px-4 py-2.5 rounded-xl text-sm font-medium text-teal-4 hover:bg-steel-5 hover:text-white transition-all duration-200 no-underline"
+	{#if mobileMenuOpen}
+		<div class="md:hidden fixed inset-0 z-30">
+			<button class="absolute inset-0 bg-black/60" onclick={() => mobileMenuOpen = false} tabindex="-1"></button>
+			<div class="absolute left-0 top-0 bottom-0">
+				<Sidebar collapsed={false} onToggle={() => mobileMenuOpen = false} />
+			</div>
+		</div>
+	{/if}
+
+	<!-- Content -->
+	<main bind:this={mainEl} class="flex-1 min-h-screen overflow-y-auto md:pt-0 pt-14">
+		<!-- Auth header (desktop) -->
+		{#if showAuthHeader}
+			<div class="hidden md:flex items-center justify-end gap-3 px-6 py-3 border-b border-border-default bg-bg-card">
+				{#if NotificationBellComponent}
+					<NotificationBellComponent />
+				{/if}
+				<div class="flex items-center gap-2">
+					<div class="w-8 h-8 rounded-full bg-purple/10 text-[10px] font-bold text-purple flex items-center justify-center border border-purple/20">
+						{authData?.iniciais ?? ''}
+					</div>
+					<div class="text-right">
+						<p class="text-xs font-medium text-text-primary">{authData?.name ?? ''}</p>
+						<p class="text-[10px] text-text-muted">{authData?.roleLabel ?? ''}</p>
+					</div>
+					<button
+						onclick={handleLogout}
+						class="ml-2 p-1.5 rounded-lg text-text-muted hover:text-red hover:bg-red/5 transition-all cursor-pointer"
+						title="Sair"
 					>
-						{item.label}
-					</a>
-				{/each}
-			</nav>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+						</svg>
+					</button>
+				</div>
+			</div>
 		{/if}
-	</header>
 
-	<main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-		{@render children()}
+		{#if isHome}
+			{@render children()}
+		{:else if isKanbanPage}
+			<div class="mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+				{@render children()}
+			</div>
+		{:else}
+			<div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+				{@render children()}
+			</div>
+		{/if}
 	</main>
-
-	<footer class="bg-steel-6 text-teal-5 text-center py-4 text-xs font-light px-4">
-		IT Valley School — Pos IA & ML — Carrossel System v1.0
-	</footer>
 </div>
+{/if}

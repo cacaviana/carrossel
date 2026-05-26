@@ -85,6 +85,25 @@ D7 IA Generativa: GPT, Claude, LLMs, RAG, LangChain, LangGraph, Agentes, LoRA
 D8 Cloud: AWS, Azure, GCP, Serverless ML, Lambda, SageMaker
 D9 ML em Produção: Model Monitoring, Data Drift, MLOps, CI/CD, A/B Testing
 
+## TIPO DE LAYOUT (tipo_layout) — OBRIGATÓRIO em todo slide
+
+Cada slide DEVE ter o campo `tipo_layout` que indica como o conteúdo auxiliar deve ser renderizado visualmente.
+Escolha o tipo_layout mais adequado ao conteúdo de cada slide:
+
+| tipo_layout   | Quando usar | Exemplo visual |
+|---------------|-------------|----------------|
+| `texto`       | Parágrafo simples, frase de impacto, headline com subline | Capa, espelho, CTA |
+| `lista`       | Bullet points, passos, itens enumerados | Fluxo, anatomia, lições |
+| `comparativo` | Dois blocos lado a lado (X vs Y, antes/depois) | Comparativo, contraste |
+| `dados`       | Números em destaque, métricas, KPIs | Stakes com números, resultados |
+
+REGRAS:
+- Cover (capa) → sempre `texto`
+- CTA → sempre `texto`
+- Code → sempre `texto` (o código já é o foco visual)
+- Content com bullets → `lista` (padrão) ou `dados` (se os bullets são números/métricas)
+- Comparison → sempre `comparativo`
+
 ## FORMATO DE SAÍDA — JSON obrigatório
 
 Gere EXATAMENTE o número de slides indicado (3, 7 ou 10). Se o prompt não indicar, gere 10.
@@ -97,16 +116,16 @@ Gere EXATAMENTE o número de slides indicado (3, 7 ou 10). Se o prompt não indi
   "tecnologia_principal": "[Tech]",
   "hook_formula": "[Fórmula usada]",
   "slides": [
-    { "type": "cover", "headline": "...", "subline": "..." },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "CONTEXTO" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "STAKES" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "FLUXO" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "ANATOMIA" },
-    { "type": "code", "title": "...", "code": "...", "caption": "...", "etapa": "CÓDIGO" },
-    { "type": "comparison", "title": "...", "left_label": "...", "left_items": ["..."], "right_label": "...", "right_items": ["..."], "etapa": "COMPARATIVO" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "LIÇÕES" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "ESPELHO" },
-    { "type": "cta", "headline": "...", "subline": "...", "tags": ["#CódigoOuNãoAconteceu", "#ITValleySchool", "..."] }
+    { "type": "cover", "tipo_layout": "texto", "headline": "...", "subline": "..." },
+    { "type": "content", "tipo_layout": "lista", "title": "...", "bullets": ["..."], "etapa": "CONTEXTO" },
+    { "type": "content", "tipo_layout": "dados", "title": "...", "bullets": ["..."], "etapa": "STAKES" },
+    { "type": "content", "tipo_layout": "lista", "title": "...", "bullets": ["..."], "etapa": "FLUXO" },
+    { "type": "content", "tipo_layout": "lista", "title": "...", "bullets": ["..."], "etapa": "ANATOMIA" },
+    { "type": "code", "tipo_layout": "texto", "title": "...", "code": "...", "caption": "...", "etapa": "CÓDIGO" },
+    { "type": "comparison", "tipo_layout": "comparativo", "title": "...", "left_label": "...", "left_items": ["..."], "right_label": "...", "right_items": ["..."], "etapa": "COMPARATIVO" },
+    { "type": "content", "tipo_layout": "lista", "title": "...", "bullets": ["..."], "etapa": "LIÇÕES" },
+    { "type": "content", "tipo_layout": "texto", "title": "...", "bullets": ["..."], "etapa": "ESPELHO" },
+    { "type": "cta", "tipo_layout": "texto", "headline": "...", "subline": "...", "tags": ["#CódigoOuNãoAconteceu", "#ITValleySchool", "..."] }
   ],
   "legenda_linkedin": "Hook completo + legenda + hashtags"
 }
@@ -120,13 +139,13 @@ Gere EXATAMENTE o número de slides indicado (3, 7 ou 10). Se o prompt não indi
   "tecnologia_principal": "[Tech]",
   "hook_formula": "[Fórmula usada]",
   "slides": [
-    { "type": "cover", "headline": "...", "subline": "..." },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "CONTEXTO" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "REVELAÇÃO" },
-    { "type": "code", "title": "...", "code": "...", "caption": "...", "etapa": "CÓDIGO" },
-    { "type": "comparison", "title": "...", "left_label": "...", "left_items": ["..."], "right_label": "...", "right_items": ["..."], "etapa": "COMPARATIVO" },
-    { "type": "content", "title": "...", "bullets": ["..."], "etapa": "ESPELHO" },
-    { "type": "cta", "headline": "...", "subline": "...", "tags": ["#CódigoOuNãoAconteceu", "#ITValleySchool", "..."] }
+    { "type": "cover", "tipo_layout": "texto", "headline": "...", "subline": "..." },
+    { "type": "content", "tipo_layout": "lista", "title": "...", "bullets": ["..."], "etapa": "CONTEXTO" },
+    { "type": "content", "tipo_layout": "lista", "title": "...", "bullets": ["..."], "etapa": "REVELAÇÃO" },
+    { "type": "code", "tipo_layout": "texto", "title": "...", "code": "...", "caption": "...", "etapa": "CÓDIGO" },
+    { "type": "comparison", "tipo_layout": "comparativo", "title": "...", "left_label": "...", "left_items": ["..."], "right_label": "...", "right_items": ["..."], "etapa": "COMPARATIVO" },
+    { "type": "content", "tipo_layout": "texto", "title": "...", "bullets": ["..."], "etapa": "ESPELHO" },
+    { "type": "cta", "tipo_layout": "texto", "headline": "...", "subline": "...", "tags": ["#CódigoOuNãoAconteceu", "#ITValleySchool", "..."] }
   ],
   "legenda_linkedin": "Hook completo + legenda + hashtags"
 }
@@ -140,9 +159,9 @@ Gere EXATAMENTE o número de slides indicado (3, 7 ou 10). Se o prompt não indi
   "tecnologia_principal": "[Tech]",
   "hook_formula": "[Fórmula usada]",
   "slides": [
-    { "type": "cover", "headline": "...", "subline": "..." },
-    { "type": "code", "title": "...", "code": "...", "caption": "...", "etapa": "PROVA" },
-    { "type": "cta", "headline": "...", "subline": "...", "tags": ["#CódigoOuNãoAconteceu", "#ITValleySchool", "..."] }
+    { "type": "cover", "tipo_layout": "texto", "headline": "...", "subline": "..." },
+    { "type": "code", "tipo_layout": "texto", "title": "...", "code": "...", "caption": "...", "etapa": "PROVA" },
+    { "type": "cta", "tipo_layout": "texto", "headline": "...", "subline": "...", "tags": ["#CódigoOuNãoAconteceu", "#ITValleySchool", "..."] }
   ],
   "legenda_linkedin": "Hook completo + legenda + hashtags"
 }
@@ -189,4 +208,4 @@ REGRA CRÍTICA para Visual e Infográfico: O conteúdo DEVE seguir EXATAMENTE o 
 
 ## REGRAS INVIOLÁVEIS
 NUNCA: frases motivacionais, promessas mágicas, inflar métricas, esconder limitações, tom guru, emojis excessivos, CTA "curte se concorda", hook genérico, nomes de ferramentas internas nos slides.
-SEMPRE: números específicos, limitações, tom dev-pra-dev, CTA com IT Valley School (quando houver CTA), ângulo não-óbvio, crédito "Carlos Viana" no badge da capa. Gere EXATAMENTE o número de slides indicado. Para tipos Visual e Infográfico, SEMPRE inclua illustration_description.
+SEMPRE: números específicos, limitações, tom dev-pra-dev, CTA com IT Valley School (quando houver CTA), ângulo não-óbvio, crédito "Carlos Viana" no badge da capa. Gere EXATAMENTE o número de slides indicado. Para tipos Visual e Infográfico, SEMPRE inclua illustration_description. SEMPRE inclua tipo_layout em TODOS os slides.

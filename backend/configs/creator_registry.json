@@ -1,0 +1,18 @@
+{
+  "criadores": [
+    {
+      "nome": "Carlos Viana",
+      "funcao": "THOUGHT_LEADER",
+      "plataforma": "LinkedIn",
+      "url": "",
+      "ativo": true
+    },
+    {
+      "nome": "Outro",
+      "funcao": "EXPLAINER",
+      "plataforma": "YouTube",
+      "url": "",
+      "ativo": false
+    }
+  ]
+}
